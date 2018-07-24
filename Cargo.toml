@@ -1,0 +1,7 @@
+[package]
+name = "image2-rs"
+version = "0.1.0"
+authors = ["Zach Shipko <zachshipko@gmail.com>"]
+
+[dependencies]
+num = "0.2"
