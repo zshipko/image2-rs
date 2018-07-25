@@ -3,6 +3,9 @@
 extern crate num;
 extern crate test;
 
+#[cfg(feature = "v4l")]
+extern crate rscam;
+
 #[macro_use]
 pub mod filter;
 mod util;

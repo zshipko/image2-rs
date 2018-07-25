@@ -139,23 +139,23 @@ mod tests {
 
     #[bench]
     fn test_magick_read(b: &mut Bencher) {
-        let image: ImageBuffer<f32, Rgb> = magick::DEFAULT.read("/home/zach/Downloads/zach.jpg").unwrap();
+        let image: ImageBuffer<f32, Rgb> = magick::read("/home/zach/Downloads/zach.jpg").unwrap();
         let mut dest = image.new_like();
         b.iter (|| ToGrayscale.eval(&mut dest, &[&image]));
-        magick::DEFAULT.write("test0.jpg", dest).unwrap();
+        magick::write("test0.jpg", dest).unwrap();
     }
 
     #[bench]
     fn bench_invert(b: &mut Bencher) {
-        let image: ImageBuffer<f32, Rgb> = magick::DEFAULT.read("/home/zach/Downloads/zach.jpg").unwrap();
+        let image: ImageBuffer<f32, Rgb> = magick::read("/home/zach/Downloads/zach.jpg").unwrap();
         let mut dest = image.new_like();
         b.iter(|| Invert.eval(&mut dest, &[&image]));
-        magick::DEFAULT.write("test1.jpg", dest).unwrap();
+        magick::write("test1.jpg", dest).unwrap();
     }
 
     #[bench]
     fn bench_kernel(b: &mut Bencher) {
-        let image: ImageBuffer<f32, Gray> = magick::DEFAULT.read("/home/zach/Downloads/zach.jpg").unwrap();
+        let image: ImageBuffer<f32, Gray> = magick::read("/home/zach/Downloads/zach.jpg").unwrap();
         let mut dest = image.new_like();
         let k = Kernel::from([
             [-1.0, -1.0, -1.0],
@@ -164,6 +164,6 @@ mod tests {
         ]);
 
         b.iter(|| k.eval(&mut dest, &[&image]));
-        magick::DEFAULT.write("test2.jpg", dest).unwrap();
+        magick::write("test2.jpg", dest).unwrap();
     }
 }

@@ -19,8 +19,8 @@ pub enum Error {
 }
 
 pub struct Magick {
-    identify: &'static str,
-    convert: &'static str,
+    identify: &'static [&'static str],
+    convert: &'static [&'static str],
 }
 
 
@@ -33,14 +33,22 @@ pub fn kind<C: Color>() -> &'static str {
     }
 }
 
-pub const DEFAULT: Magick = Magick {
-    identify: "identify",
-    convert: "convert",
+pub const IMAGEMAGICK: Magick = Magick {
+    identify: &["identify"],
+    convert: &["convert"],
 };
+
+pub const GRAPHICSMAGICK: Magick = Magick {
+    identify: &["gm", "identify"],
+    convert: &["gm", "convert"],
+};
+
+
 
 impl Magick {
     pub fn get_image_shape<P: AsRef<Path>>(&self, path: P) -> Result<(usize, usize), Error> {
-        let identify = Command::new(self.identify)
+        let identify = Command::new(self.identify[0])
+            .args(self.identify[1..].iter())
             .arg(path.as_ref())
             .output();
 
@@ -76,7 +84,8 @@ impl Magick {
         };
         let kind = kind::<C>();
 
-        let cmd = Command::new(self.convert)
+        let cmd = Command::new(self.convert[0])
+            .args(self.convert[1..].iter())
             .arg(path.as_ref())
             .args(&["-depth", "8"])
             .arg(kind)
@@ -98,7 +107,8 @@ impl Magick {
         let kind = kind::<C>();
         let (width, height, _) = image.shape();
         let size = format!("{}x{}", width, height);
-        let cmd = Command::new("convert")
+        let cmd = Command::new(self.convert[0])
+            .args(self.convert[1..].iter())
             .stdin(Stdio::piped())
             .args(&["-depth", "8"])
             .args(&["-size", size.as_str()])
@@ -127,5 +137,15 @@ impl Magick {
         };
         res
     }
-
 }
+
+pub fn read<P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<ImageBuffer<T, C>, Error> {
+    IMAGEMAGICK.read(path)
+}
+
+pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(path: P, image: I) -> Result<(), Error> {
+    IMAGEMAGICK.write(path, image)
+}
+
+
+

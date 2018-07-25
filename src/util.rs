@@ -1,6 +1,6 @@
 use std::f64;
 
-#[derive(Debug, PartialEq, PartialOrd)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub struct Angle(f64);
 
 impl Angle {

@@ -1,7 +1,12 @@
 [package]
-name = "image2-rs"
+name = "image2"
 version = "0.1.0"
 authors = ["Zach Shipko <zachshipko@gmail.com>"]
 
 [dependencies]
 num = "0.2"
+rscam = {version = "0.5", optional = true}
+
+[features]
+default = []
+v4l = ["rscam"]
