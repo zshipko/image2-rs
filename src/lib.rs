@@ -3,6 +3,7 @@
 
 extern crate num;
 extern crate rayon;
+extern crate euclid;
 extern crate test;
 
 #[cfg(feature = "v4l")]
@@ -16,8 +17,9 @@ mod tests;
 
 #[macro_use]
 pub mod filter;
-mod color;
+pub mod color;
 mod error;
+#[macro_use]
 mod image;
 pub mod io;
 mod kernel;

@@ -2,12 +2,25 @@ use std::marker::PhantomData;
 
 use color::Color;
 use ty::Type;
+use pixel::{Pixel, PixelVec};
 
 use rayon::prelude::*;
 
 #[inline]
 fn index(width: usize, channels: usize, x: usize, y: usize) -> usize {
     width * channels * y + x * channels
+}
+
+#[macro_export]
+macro_rules! image2_for_each {
+    ($image:expr, $i:ident, $j:ident, $px:ident, $body:block) => {
+        for $j in 0..$image.height() {
+            for $i in 0..$image.width() {
+                let $px = $image.at($i, $j);
+                $body
+            }
+        }
+    }
 }
 
 pub trait Image<T: Type, C: Color> {
@@ -74,7 +87,7 @@ pub trait Image<T: Type, C: Color> {
         }
     }
 
-    fn for_each<F: Sync + Fn((usize, usize), Vec<&mut T>)>(&mut self, f: F) {
+    fn for_each<F: Sync + Send + Fn((usize, usize), Vec<&mut T>)>(&mut self, f: F) {
         let (width, _height, channels) = self.shape();
 
         self.data_mut()
@@ -86,6 +99,23 @@ pub trait Image<T: Type, C: Color> {
                 let x = n - (y * width);
                 f((x, y), pixel)
             });
+    }
+
+    fn mean_stddev(&self) -> (Vec<f64>, Vec<f64>) {
+        let mut mean = PixelVec::empty();
+        let mut variance = PixelVec::empty();
+
+        image2_for_each!(self, i, j, px, {
+            let v = px.to_pixel_vec().data;
+            mean.data += v;
+            variance.data += v * v;
+        });
+
+        mean.data = mean.data / (self.width() * self.height()) as f64;
+        variance.data = variance.data / (self.width() * self.height()) as f64;
+        variance.data -= mean.data * mean.data;
+
+        (mean.to_vec(C::channels()), variance.to_vec(C::channels()))
     }
 }
 

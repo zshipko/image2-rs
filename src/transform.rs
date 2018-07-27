@@ -1,0 +1,92 @@
+use euclid;
+use ::{Color, Filter, Image, Type};
+
+pub type Point<T> = euclid::Point2D<T>;
+pub struct Transform(pub euclid::Transform2D<f64>);
+
+impl Filter for Transform {
+    fn compute_at<T: Type, C: Color, I: Image<T, C>>(
+        &self,
+        x: usize,
+        y: usize,
+        c: usize,
+        input: &[&I],
+    ) -> f64 {
+        let pt = Point::new(x as f64, y as f64);
+        let dest = self.0.transform_point(&pt);
+        (input[0].get(dest.x.floor() as usize, dest.y.floor() as usize, c) + input[0].get(dest.x.ceil() as usize, dest.y.ceil() as usize, c)) / 2.
+    }
+}
+
+pub fn rotate<T: Type, C: Color, I: Image<T, C>>(
+    dest: &mut I,
+    src: &I,
+    deg: f64,
+    center: Point<f64>,
+) {
+    let filter = Transform(
+        euclid::Transform2D::create_rotation(euclid::Angle::degrees(deg))
+            .pre_translate(euclid::TypedVector2D::new(-center.x, -center.y))
+            .post_translate(euclid::TypedVector2D::new(center.x, center.y)),
+    );
+
+    filter.eval(dest, &[src])
+}
+
+pub fn scale<T: Type, C: Color, I: Image<T, C>>(
+    dest: &mut I,
+    src: &I,
+    x: f64,
+    y: f64,
+) {
+    let filter = Transform(
+        euclid::Transform2D::create_scale(1.0 / x, 1.0 / y)
+    );
+
+    filter.eval(dest, &[src])
+}
+
+pub fn rotate90<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I) {
+    let dwidth = dest.width() as f64;
+    let height = src.height() as f64;
+    rotate(dest, src, 90., Point::new(dwidth / 2., height / 2.));
+}
+
+pub fn rotate180<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I) {
+    let dwidth = src.width() as f64;
+    let height = src.height() as f64;
+    rotate(dest, src, 180., Point::new(dwidth / 2., height / 2.));
+}
+
+#[cfg(test)]
+mod test {
+    use test::Bencher;
+    use {
+        io::magick, Image, ImageBuf, Rgb,
+        transform::{rotate180, rotate90, scale},
+    };
+
+    #[bench]
+    fn test_rotate90(b: &mut Bencher) {
+        let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
+        let mut dest = Image::new(a.height(), a.width());
+        b.iter(|| rotate90(&mut dest, &a));
+        magick::write("test_rotate90.jpg", &dest).unwrap();
+    }
+
+    #[bench]
+    fn test_rotate180(b: &mut Bencher) {
+        let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
+        let mut dest = Image::new(a.width(), a.height());
+        b.iter(|| rotate180(&mut dest, &a));
+        magick::write("test_rotate180.jpg", &dest).unwrap();
+    }
+
+    #[bench]
+    fn test_scale(b: &mut Bencher) {
+        let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
+        let mut dest = Image::new(a.width() * 2, a.height() * 2);
+        b.iter(|| scale(&mut dest, &a, 2., 2.));
+        magick::write("test_scale.jpg", &dest).unwrap();
+    }
+}
