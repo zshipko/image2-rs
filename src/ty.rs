@@ -1,15 +1,17 @@
-use num::{NumCast, Zero, ToPrimitive, FromPrimitive};
+use num::{FromPrimitive, NumCast, ToPrimitive, Zero};
 use std::ops::*;
 
-pub trait Type:  NumCast +
-                FromPrimitive +
-                Zero +
-                Clone +
-                Copy +
-                Add<Output=Self> +
-                Sub<Output=Self> +
-                Mul<Output=Self> +
-                Div<Output=Self>
+pub trait Type:
+    NumCast
+    + FromPrimitive
+    + Zero
+    + Clone
+    + Copy
+    + Send
+    + Add<Output = Self>
+    + Sub<Output = Self>
+    + Mul<Output = Self>
+    + Div<Output = Self>
 {
     fn min() -> f64;
     fn max() -> f64;
@@ -28,7 +30,7 @@ pub trait Type:  NumCast +
     fn to_float(x: &Self) -> f64 {
         match ToPrimitive::to_f64(x) {
             Some(f) => f,
-            None => 0.0
+            None => 0.0,
         }
     }
 

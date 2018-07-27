@@ -1,25 +1,36 @@
 #![feature(test)]
+#![feature(stdsimd)]
 
 extern crate num;
+extern crate rayon;
 extern crate test;
 
 #[cfg(feature = "v4l")]
 extern crate rscam;
 
+#[cfg(feature = "raw")]
+extern crate rawloader;
+
+#[cfg(test)]
+mod tests;
+
 #[macro_use]
 pub mod filter;
-mod util;
-mod image;
-mod ty;
 mod color;
-mod kernel;
-pub mod io;
 mod error;
+mod image;
+pub mod io;
+mod kernel;
+mod pixel;
+pub mod transform;
+mod ty;
+mod util;
 
-pub use error::Error;
-pub use util::Angle;
-pub use image::{Image, ImageBuffer};
-pub use ty::Type;
 pub use color::{Color, Gray, Rgb, Rgba};
+pub use error::Error;
 pub use filter::Filter;
+pub use image::{Image, ImageBuf};
 pub use kernel::Kernel;
+pub use pixel::Pixel;
+pub use ty::Type;
+pub use util::Angle;

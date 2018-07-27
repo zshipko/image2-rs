@@ -5,7 +5,7 @@ use rscam;
 pub struct Webcam {
     width: u32,
     height: u32,
-    handle: rscam::Camera
+    handle: rscam::Camera,
 }
 
 impl Webcam {
@@ -20,10 +20,10 @@ impl Webcam {
     pub fn new(device: &str, width: u32, height: u32) -> Result<Webcam> {
         let cam = rscam::Camera::new(device)?;
 
-
-        Ok(Webcam{
-            width, height,
-            handle: cam
+        Ok(Webcam {
+            width,
+            height,
+            handle: cam,
         })
     }
 
@@ -32,10 +32,13 @@ impl Webcam {
         self.handle.start(&cfg)
     }
 
-    pub fn capture(&mut self) -> Result<::ImageBuffer<u8, ::Rgb>> {
+    pub fn capture(&mut self) -> Result<::ImageBuf<u8, ::Rgb>> {
         let frame = self.handle.capture()?;
         let (width, height) = frame.resolution;
-        Ok(::ImageBuffer::new_from(width as usize, height as usize, (*frame).to_vec()))
+        Ok(::ImageBuf::new_from(
+            width as usize,
+            height as usize,
+            (*frame).to_vec(),
+        ))
     }
 }
-

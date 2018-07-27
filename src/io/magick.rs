@@ -1,12 +1,12 @@
-use std::process::{Command, Stdio};
-use std::path::Path;
-use std::usize;
+use std::io::Write;
 use std::num::ParseIntError;
-use std::io::{Write};
+use std::path::Path;
+use std::process::{Command, Stdio};
+use std::usize;
 
 use color::Color;
+use image::{Image, ImageBuf};
 use ty::Type;
-use image::{Image, ImageBuffer};
 
 #[derive(Debug)]
 pub enum Error {
@@ -15,7 +15,7 @@ pub enum Error {
     FileDoesNotExist,
     InvalidImageData,
     UnableToExecuteCommand,
-    ErrorWritingImage
+    ErrorWritingImage,
 }
 
 pub struct Magick {
@@ -23,13 +23,12 @@ pub struct Magick {
     convert: &'static [&'static str],
 }
 
-
 pub fn kind<C: Color>() -> &'static str {
     match C::channels() {
         1 => "gray:-",
         3 => "rgb:-",
         4 => "rgba:-",
-        n => panic!("Invalid number of channels for io::magick image: {}", n)
+        n => panic!("Invalid number of channels for io::magick image: {}", n),
     }
 }
 
@@ -42,8 +41,6 @@ pub const GRAPHICSMAGICK: Magick = Magick {
     identify: &["gm", "identify"],
     convert: &["gm", "convert"],
 };
-
-
 
 impl Magick {
     pub fn get_image_shape<P: AsRef<Path>>(&self, path: P) -> Result<(usize, usize), Error> {
@@ -62,22 +59,28 @@ impl Magick {
             Err(_) => return Err(Error::InvalidImageShape),
         };
 
-        let t = shape.split(" ").skip(2).take(1).collect::<String>()
+        let t = shape
+            .split(" ")
+            .skip(2)
+            .take(1)
+            .collect::<String>()
             .split("x")
-            .map(|a|{
-                a.parse::<usize>()
-            }).collect::<Vec<Result<usize, ParseIntError>>>();
+            .map(|a| a.parse::<usize>())
+            .collect::<Vec<Result<usize, ParseIntError>>>();
 
         let a = t[0].clone();
         let b = t[1].clone();
 
         match (a, b) {
-            (Ok(a), Ok(b)) => Ok ((a, b)),
-            (Err(_), _) | (_, Err(_)) => Err(Error::InvalidImageShape)
+            (Ok(a), Ok(b)) => Ok((a, b)),
+            (Err(_), _) | (_, Err(_)) => Err(Error::InvalidImageShape),
         }
     }
 
-    pub fn read<P: AsRef<Path>, T: Type, C: Color>(&self, path: P) -> Result<ImageBuffer<T, C>, Error> {
+    pub fn read<P: AsRef<Path>, T: Type, C: Color>(
+        &self,
+        path: P,
+    ) -> Result<ImageBuf<T, C>, Error> {
         let (width, height) = match self.get_image_shape(&path) {
             Ok((width, height)) => (width, height),
             Err(e) => return Err(e),
@@ -93,17 +96,19 @@ impl Magick {
 
         let cmd = match cmd {
             Ok(cmd) => cmd,
-            Err(_) => return Err(Error::InvalidImageData)
+            Err(_) => return Err(Error::InvalidImageData),
         };
 
-        let data = cmd.stdout.iter().map(|x| {
-            x.convert()
-        }).collect::<Vec<T>>();
+        let data = cmd.stdout.iter().map(|x| x.convert()).collect::<Vec<T>>();
 
-        Ok(ImageBuffer::new_from(width, height, data))
+        Ok(ImageBuf::new_from(width, height, data))
     }
 
-    pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(&self, path: P, image: I) -> Result<(), Error> {
+    pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(
+        &self,
+        path: P,
+        image: &I,
+    ) -> Result<(), Error> {
         let kind = kind::<C>();
         let (width, height, _) = image.shape();
         let size = format!("{}x{}", width, height);
@@ -118,34 +123,38 @@ impl Magick {
 
         let mut proc = match cmd {
             Ok(c) => c,
-            Err(_) => return Err(Error::UnableToExecuteCommand)
+            Err(_) => return Err(Error::UnableToExecuteCommand),
         };
 
         {
             let mut stdin = proc.stdin.take().unwrap();
-            let wdata = image.data().iter().map(|x| x.convert()).collect::<Vec<u8>>();
+            let wdata = image
+                .data()
+                .iter()
+                .map(|x| x.convert())
+                .collect::<Vec<u8>>();
             match stdin.write_all(&wdata) {
                 Ok(()) => (),
-                Err(_) => return Err(Error::ErrorWritingImage)
+                Err(_) => return Err(Error::ErrorWritingImage),
             }
             let _ = stdin.flush();
         }
 
         let res = match proc.wait() {
             Ok(_) => Ok(()),
-            Err(_) => Err(Error::UnableToExecuteCommand)
+            Err(_) => Err(Error::UnableToExecuteCommand),
         };
         res
     }
 }
 
-pub fn read<P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<ImageBuffer<T, C>, Error> {
+pub fn read<P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<ImageBuf<T, C>, Error> {
     IMAGEMAGICK.read(path)
 }
 
-pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(path: P, image: I) -> Result<(), Error> {
+pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(
+    path: P,
+    image: &I,
+) -> Result<(), Error> {
     IMAGEMAGICK.write(path, image)
 }
-
-
-
