@@ -127,7 +127,7 @@ macro_rules! image2_filter {
     };
 }
 
-image2_filter!(Invert, x, y, c, input, { T::max() - input[0].get(x, y, c) });
+image2_filter!(Invert, x, y, c, input, { T::max_f() - input[0].get(x, y, c) });
 
 image2_filter!(Blend, x, y, c, input, {
     (input[0].get(x, y, c) + input[1].get(x, y, c)) / 2.0

@@ -35,7 +35,7 @@ make_color!(Yuv, "yuv", 3, false);
 
 image2_filter!(RgbToRgba, x, y, c, input, {
     if c == 4 {
-        return T::max();
+        return T::max_f();
     }
 
     input[0].get(x, y, c)

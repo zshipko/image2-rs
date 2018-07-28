@@ -8,43 +8,33 @@ use std::ops;
 #[cfg_attr(feature = "ser", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Kernel {
-    data: Vec<Vec<f64>>,
     rows: usize,
     cols: usize,
+    data: Vec<Vec<f64>>,
 }
 
-impl From<[[f64; 3]; 3]> for Kernel {
-    fn from(data: [[f64; 3]; 3]) -> Kernel {
-        let data = data.into_iter().map(|d| d.to_vec()).collect();
-        Kernel {
-            data,
-            rows: 3,
-            cols: 3,
+macro_rules! kernel_from {
+    ($n:expr) => {
+        impl From<[[f64; $n]; $n]> for Kernel {
+            fn from(data: [[f64; $n]; $n]) -> Kernel {
+                let data = data.into_iter().map(|d| d.to_vec()).collect();
+                Kernel {
+                    data,
+                    rows: $n,
+                    cols: $n,
+                }
+            }
         }
+    };
+    ($($n:expr,)*) => {
+        $(
+            kernel_from!($n);
+        )*
     }
 }
 
-impl From<[[f64; 5]; 5]> for Kernel {
-    fn from(data: [[f64; 5]; 5]) -> Kernel {
-        let data = data.into_iter().map(|d| d.to_vec()).collect();
-        Kernel {
-            data,
-            rows: 5,
-            cols: 5,
-        }
-    }
-}
-
-impl From<[[f64; 7]; 7]> for Kernel {
-    fn from(data: [[f64; 7]; 7]) -> Kernel {
-        let data = data.into_iter().map(|d| d.to_vec()).collect();
-        Kernel {
-            data,
-            rows: 7,
-            cols: 7,
-        }
-    }
-}
+kernel_from!(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+             16, 17, 18, 19, 20,);
 
 impl From<Vec<Vec<f64>>> for Kernel {
     fn from(data: Vec<Vec<f64>>) -> Kernel {
@@ -68,8 +58,8 @@ impl Filter for Kernel {
         for ky in -r2..r2 + 1 {
             let kr = &self.data[(ky + r2) as usize];
             for kx in -c2..c2 + 1 {
-                f += input[0].get((x as isize + kx) as usize, (y as isize + ky) as usize, c)
-                    * kr[(kx + c2) as usize]
+                let x = input[0].get((x as isize + kx) as usize, (y as isize + ky) as usize, c);
+                f += x * kr[(kx + c2) as usize];
             }
         }
         f

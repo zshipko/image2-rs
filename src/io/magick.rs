@@ -42,6 +42,7 @@ impl Magick {
     pub fn get_image_shape<P: AsRef<Path>>(&self, path: P) -> Result<(usize, usize), Error> {
         let identify = Command::new(self.identify[0])
             .args(self.identify[1..].iter())
+            .args(&["-format", "%w %h"])
             .arg(path.as_ref())
             .output();
 
@@ -57,14 +58,7 @@ impl Magick {
 
         let t = shape
             .split(" ")
-            .skip(2)
-            .take(1)
-            .collect::<String>()
-            .split("+")
-            .take(1)
-            .collect::<String>()
-            .split("x")
-            .map(|a| a.parse::<usize>())
+            .map(|a| a.trim().parse::<usize>())
             .collect::<Vec<Result<usize, ParseIntError>>>();
 
         let a = t[0].clone();
@@ -127,11 +121,11 @@ impl Magick {
 
         {
             let mut stdin = proc.stdin.take().unwrap();
-            let wdata = image
+            let wdata: Vec<u8> = image
                 .data()
                 .iter()
                 .map(|x| x.convert())
-                .collect::<Vec<u8>>();
+                .collect();
             match stdin.write_all(&wdata) {
                 Ok(()) => (),
                 Err(_) => return Err(Error::ErrorWritingImage),

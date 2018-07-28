@@ -45,7 +45,7 @@ impl<T: Type, C: Color> ImageBuf<T, C> {
         ImageBuf::new(self.width, self.height)
     }
 
-    pub fn new_like_with_color<D: Color>(&self) -> ImageBuf<T, C> {
+    pub fn new_like_with_color<D: Color>(&self) -> ImageBuf<T, D> {
         ImageBuf::new(self.width, self.height)
     }
 

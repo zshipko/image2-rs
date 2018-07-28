@@ -24,7 +24,6 @@ macro_rules! image2_for_each {
     }
 }
 
-/// The `Image` trait is the core trait for `image2`
 pub trait Image<T: Type, C: Color>: Sync + Send {
     fn shape(&self) -> (usize, usize, usize);
 
@@ -103,8 +102,8 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
     }
 
     fn mean_stddev(&self) -> (Vec<f64>, Vec<f64>) {
-        let mut mean = PixelVec::empty::<C>();
-        let mut variance = PixelVec::empty::<C>();
+        let mut mean = PixelVec::empty();
+        let mut variance = PixelVec::empty();
 
         image2_for_each!(self, i, j, px, {
             let v = px.to_pixel_vec();
@@ -116,7 +115,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         variance = variance.map(|x| (x / (self.width() * self.height()) as f64));
         variance -= &mean * &mean;
 
-        (mean.to_vec(), variance.to_vec())
+        (mean.to_vec::<C>(), variance.to_vec::<C>())
     }
 }
 

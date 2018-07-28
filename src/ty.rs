@@ -17,17 +17,17 @@ pub trait Type:
     + Div<Output = Self>
     + Rem<Output = Self>
 {
-    fn min() -> f64;
-    fn max() -> f64;
+    fn min_f() -> f64;
+    fn max_f() -> f64;
 
     #[inline]
     fn normalize(f: f64) -> f64 {
-        (f - Self::min()) / (Self::max() - Self::min())
+        (f - Self::min_f()) / (Self::max_f() - Self::min_f())
     }
 
     #[inline]
     fn denormalize(f: f64) -> f64 {
-        f * Self::max() - Self::min()
+        f * Self::max_f() - Self::min_f()
     }
 
     #[inline]
@@ -48,10 +48,10 @@ pub trait Type:
 
     #[inline]
     fn clamp(f: f64) -> f64 {
-        if f > Self::max() {
-            Self::max()
-        } else if f < Self::min() {
-            Self::min()
+        if f > Self::max_f() {
+            Self::max_f()
+        } else if f < Self::min_f() {
+            Self::min_f()
         } else {
             f
         }
@@ -66,13 +66,13 @@ pub trait Type:
 macro_rules! make_type {
     ($t:ty, $min:expr, $max:expr) => {
         impl Type for $t {
-            fn min() -> f64 {
+            fn min_f() -> f64 {
                 match ToPrimitive::to_f64(&$min) {
                     Some(f) => f,
                     None => panic!("Invalid type minimum"),
                 }
             }
-            fn max() -> f64 {
+            fn max_f() -> f64 {
                 match ToPrimitive::to_f64(&$max) {
                     Some(f) => f,
                     None => panic!("Invalid type maximum"),

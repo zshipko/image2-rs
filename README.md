@@ -2,13 +2,6 @@
 
 Another image processing library for Rust focused on generic, composable image operations.
 
-- Straight-forward API
-- Parallel pixel iteration using `Filter::eval_p`
-- Built-in support for u8, u16, i32, u32, f32, i64, u64, f64 datatypes
-- Generic image reader/writer based on `ImageMagick`, allowing for a wide range of formats to be read into an `ImageBuf` of any type and color.
-- (Optional) Support for RAW images via [rawloader](https://crates.io/crates/rawloader) (build with the `raw` feature enabled)
-- (Optional) Support for webcam capture via [rscam](https://github.com/loyd/rscam) (build with the `v4l` feature enabled)
-
 ## Installation
 
 Add the following to your `Cargo.toml`:
@@ -18,6 +11,38 @@ Add the following to your `Cargo.toml`:
 ### Crate features
 
 - `raw`
-    * RAW image support
+    * RAW image support via [rawloader](https://crates.io/crates/rawloader)
 - `v4l`
-    * Webcam capture on Linux
+    * Webcam capture on Linux via [rscam](https://github.com/loyd/rscam)
+
+## Examples
+
+```rust
+use image2::{
+    ImageBuf,
+    Rgb, Gray,
+    Type,
+    io::magick,
+    Filter,
+    filter::ToGrayscale
+};
+
+fn main() {
+    // Read an image using ImageMagick
+    let image: ImageBuf<f64, Rgb> = magick::read("../test/test.jpg").unwrap();
+
+    // Setup a filter
+    let filter = ToGrayscale.and_then(|f| {
+        f64::max_f() - f
+    });
+
+    // Create an output image
+    let mut output: ImageBuf<f64, Gray> = ImageBuf::new_like_with_color::<Gray>(&image);
+
+    // Execute the filter in parallel
+    filter.eval_p(&mut output, &[&image]);
+
+    // Save the image using ImageMagick
+    magick::write("interted_grayscale.jpg", &output).unwrap();
+}
+```

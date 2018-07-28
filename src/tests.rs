@@ -83,3 +83,11 @@ fn bench_sobel(b: &mut Bencher) {
     b.iter(|| k.eval_p(&mut dest, &[&image]));
     magick::write("test4.jpg", &dest).unwrap();
 }
+
+#[bench]
+fn bench_mean_stddev(b: &mut Bencher) {
+    let image: ImageBuf<f32, Gray> = magick::read("test/test.jpg").unwrap();
+    b.iter(|| {
+        image.mean_stddev();
+    });
+}
