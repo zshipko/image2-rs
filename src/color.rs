@@ -1,4 +1,7 @@
-pub trait Color: Send {
+use ty::Type;
+use image::Image;
+
+pub trait Color: Sync + Send {
     fn name() -> &'static str;
     fn channels() -> usize;
     fn has_alpha() -> bool;
@@ -27,3 +30,13 @@ make_color!(Rgb, "rgb", 3, false);
 make_color!(Rgba, "rgba", 4, true);
 make_color!(Cmyk, "cmyk", 4, false);
 make_color!(Yuv, "yuv", 3, false);
+
+image2_filter!(RgbToRgba, x, y, c, input, {
+    if c == 4 {
+        return T::max();
+    }
+
+    input[0].get(x, y, c)
+});
+
+

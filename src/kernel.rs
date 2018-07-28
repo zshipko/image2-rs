@@ -3,6 +3,8 @@ use filter::Filter;
 use image::Image;
 use ty::Type;
 
+#[cfg_attr(feature = "ser", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Kernel {
     data: Vec<Vec<f64>>,
     rows: usize,

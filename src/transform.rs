@@ -18,6 +18,7 @@ impl Filter for Transform {
     }
 }
 
+#[inline]
 pub fn rotate<T: Type, C: Color, I: Image<T, C>>(
     dest: &mut I,
     src: &I,
@@ -30,9 +31,10 @@ pub fn rotate<T: Type, C: Color, I: Image<T, C>>(
             .post_translate(euclid::TypedVector2D::new(center.x, center.y)),
     );
 
-    filter.eval(dest, &[src])
+    filter.eval_p(dest, &[src])
 }
 
+#[inline]
 pub fn scale<T: Type, C: Color, I: Image<T, C>>(
     dest: &mut I,
     src: &I,
@@ -43,7 +45,7 @@ pub fn scale<T: Type, C: Color, I: Image<T, C>>(
         euclid::Transform2D::create_scale(1.0 / x, 1.0 / y)
     );
 
-    filter.eval(dest, &[src])
+    filter.eval_p(dest, &[src])
 }
 
 pub fn rotate90<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I) {

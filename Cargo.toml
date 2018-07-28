@@ -9,9 +9,12 @@ rayon = "1"
 euclid = "0.19"
 rawloader = { version = "0.34", optional = true }
 rscam = {version = "0.5", optional = true}
+serde = {version = "1", optional = true}
+serde_derive = {version = "1", optional = true}
 
 [features]
 default = []
-all = ["v4l", "raw"]
+all = ["v4l", "raw", "serde"]
 v4l = ["rscam"]
 raw = ["rawloader"]
+ser = ["serde", "serde_derive"]

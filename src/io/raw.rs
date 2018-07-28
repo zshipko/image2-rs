@@ -4,7 +4,7 @@ use rawloader;
 
 use color::Rgb;
 use error::Error;
-use image::ImageBuf;
+use image_buf::ImageBuf;
 
 use std::path::Path;
 

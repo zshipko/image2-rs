@@ -5,7 +5,8 @@ use std::process::{Command, Stdio};
 use std::usize;
 
 use color::Color;
-use image::{Image, ImageBuf};
+use image::Image;
+use image_buf::ImageBuf;
 use ty::Type;
 
 #[derive(Debug)]
@@ -23,21 +24,16 @@ pub struct Magick {
     convert: &'static [&'static str],
 }
 
-pub fn kind<C: Color>() -> &'static str {
-    match C::channels() {
-        1 => "gray:-",
-        3 => "rgb:-",
-        4 => "rgba:-",
-        n => panic!("Invalid number of channels for io::magick image: {}", n),
-    }
+pub fn kind<C: Color>() -> String {
+    format!("{}:-", C::name())
 }
 
-pub const IMAGEMAGICK: Magick = Magick {
+pub const IM: Magick = Magick {
     identify: &["identify"],
     convert: &["convert"],
 };
 
-pub const GRAPHICSMAGICK: Magick = Magick {
+pub const GM: Magick = Magick {
     identify: &["gm", "identify"],
     convert: &["gm", "convert"],
 };
@@ -62,6 +58,9 @@ impl Magick {
         let t = shape
             .split(" ")
             .skip(2)
+            .take(1)
+            .collect::<String>()
+            .split("+")
             .take(1)
             .collect::<String>()
             .split("x")
@@ -149,12 +148,12 @@ impl Magick {
 }
 
 pub fn read<P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<ImageBuf<T, C>, Error> {
-    IMAGEMAGICK.read(path)
+    IM.read(path)
 }
 
 pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(
     path: P,
     image: &I,
 ) -> Result<(), Error> {
-    IMAGEMAGICK.write(path, image)
+    IM.write(path, image)
 }

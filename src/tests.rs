@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use color::{Gray, Rgb};
+use color::{Gray, Rgb, Yuv};
 use filter::{Filter, Invert, ToGrayscale};
 use io::magick;
 use kernel::Kernel;
@@ -25,7 +25,7 @@ fn bench_magick_read(b: &mut Bencher) {
 
 #[bench]
 fn bench_magick_write(b: &mut Bencher) {
-    let a: ImageBuf<f32, Rgb> = magick::read("test/test.jpg").unwrap();
+    let a: ImageBuf<f32, Yuv> = magick::read("test/test.jpg").unwrap();
     b.iter(|| {
         magick::write("test0.jpg", &a).unwrap();
     });

@@ -8,6 +8,9 @@ pub trait Type:
     + Clone
     + Copy
     + Send
+    + Sync
+    + PartialEq
+    + PartialOrd
     + Add<Output = Self>
     + Sub<Output = Self>
     + Mul<Output = Self>

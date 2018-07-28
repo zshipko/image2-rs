@@ -85,9 +85,7 @@ pub trait Filter: Sized + Sync {
         output
             .data_mut()
             .par_iter_mut()
-            .chunks(channels)
-            .enumerate()
-            .for_each(|(n, mut pixel)| {
+            .chunks(channels).enumerate().for_each(|(n, mut pixel)| {
                 let y = n / width;
                 let x = n - (y * width);
                 for c in 0..channels {
@@ -111,11 +109,11 @@ pub trait Filter: Sized + Sync {
 }
 
 #[macro_export]
-macro_rules! filter {
+macro_rules! image2_filter {
     ($name:ident, $x:ident, $y:ident, $c:ident, $input:ident, $f:expr) => {
         pub struct $name;
 
-        impl Filter for $name {
+        impl $crate::Filter for $name {
             fn compute_at<T: Type, C: Color, I: Image<T, C>>(
                 &self,
                 $x: usize,
@@ -129,15 +127,15 @@ macro_rules! filter {
     };
 }
 
-filter!(Invert, x, y, c, input, { T::max() - input[0].get(x, y, c) });
+image2_filter!(Invert, x, y, c, input, { T::max() - input[0].get(x, y, c) });
 
-filter!(Blend, x, y, c, input, {
+image2_filter!(Blend, x, y, c, input, {
     (input[0].get(x, y, c) + input[1].get(x, y, c)) / 2.0
 });
 
-filter!(ToGrayscale, x, y, _c, input, {
+image2_filter!(ToGrayscale, x, y, _c, input, {
     let a = input[0];
     a.get(x, y, 0) * 0.21 + a.get(x, y, 1) * 0.72 + a.get(x, y, 2) * 0.07
 });
 
-filter!(ToColor, x, y, _c, input, { input[0].get(x, y, 0) });
+image2_filter!(ToColor, x, y, _c, input, { input[0].get(x, y, 0) });

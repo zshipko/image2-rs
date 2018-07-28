@@ -17,6 +17,14 @@ pub trait Pixel<'a, T: Type>: AsRef<[T]> {
             _ => PixelVec{data: simd::f64x4::load_unaligned(&data[0..4])},
         }
     }
+
+    fn is_true(&self) -> bool {
+        self.as_ref().iter().all(|x| *x != T::zero())
+    }
+
+    fn is_false(&self) -> bool {
+        self.as_ref().iter().all(|x| *x == T::zero())
+    }
 }
 
 pub trait PixelMut<'a, T: Type>: Pixel<'a, T> + AsMut<[T]> {
