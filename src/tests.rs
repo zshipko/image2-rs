@@ -3,13 +3,13 @@
 use color::{Gray, Rgb, Yuv};
 use filter::{Filter, Invert, ToGrayscale};
 use io::magick;
-use kernel::Kernel;
+use kernel::{sobel, Kernel};
 use test::Bencher;
 use {Image, ImageBuf};
 
 #[test]
 fn test_image_buffer_new() {
-    let mut image: ImageBuf<u8, Rgb> = Image::new(1000, 1000);
+    let mut image: ImageBuf<u8, Rgb> = ImageBuf::new(1000, 1000);
     let mut dest = image.new_like();
     image.set(3, 15, 0, 1.);
     assert_eq!(image.get(3, 15, 0), 1.);
@@ -73,4 +73,13 @@ fn bench_kernel_parallel(b: &mut Bencher) {
 
     b.iter(|| k.eval_p(&mut dest, &[&image]));
     magick::write("test3p.jpg", &dest).unwrap();
+}
+
+#[bench]
+fn bench_sobel(b: &mut Bencher) {
+    let image: ImageBuf<f32, Gray> = magick::read("test/test.jpg").unwrap();
+    let mut dest = image.new_like();
+    let k = sobel();
+    b.iter(|| k.eval_p(&mut dest, &[&image]));
+    magick::write("test4.jpg", &dest).unwrap();
 }

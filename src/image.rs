@@ -9,6 +9,9 @@ fn index(width: usize, channels: usize, x: usize, y: usize) -> usize {
     width * channels * y + x * channels
 }
 
+/// `image2_for_each` allows you to iterate over each pixel in an image using a nested for-loop,
+/// this is provided for convenience to avoid having to write this for-loop by hand over and
+/// over again
 #[macro_export]
 macro_rules! image2_for_each {
     ($image:expr, $i:ident, $j:ident, $px:ident, $body:block) => {
@@ -21,8 +24,8 @@ macro_rules! image2_for_each {
     }
 }
 
+/// The `Image` trait is the core trait for `image2`
 pub trait Image<T: Type, C: Color>: Sync + Send {
-    fn new(width: usize, height: usize) -> Self;
     fn shape(&self) -> (usize, usize, usize);
 
     fn width(&self) -> usize {

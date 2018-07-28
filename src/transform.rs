@@ -48,6 +48,20 @@ pub fn scale<T: Type, C: Color, I: Image<T, C>>(
     filter.eval_p(dest, &[src])
 }
 
+#[inline]
+pub fn resize<T: Type, C: Color, I: Image<T, C>>(
+    dest: &mut I,
+    src: &I,
+    x: usize,
+    y: usize,
+) {
+    let filter = Transform(
+        euclid::Transform2D::create_scale(src.width() as f64 / x as f64, src.height() as f64 / y as f64)
+    );
+
+    filter.eval_p(dest, &[src])
+}
+
 pub fn rotate90<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I) {
     let dwidth = dest.width() as f64;
     let height = src.height() as f64;
@@ -65,13 +79,13 @@ mod test {
     use test::Bencher;
     use {
         io::magick, Image, ImageBuf, Rgb,
-        transform::{rotate180, rotate90, scale},
+        transform::{rotate180, rotate90, scale, resize},
     };
 
     #[bench]
     fn test_rotate90(b: &mut Bencher) {
         let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
-        let mut dest = Image::new(a.height(), a.width());
+        let mut dest = ImageBuf::new(a.height(), a.width());
         b.iter(|| rotate90(&mut dest, &a));
         magick::write("test_rotate90.jpg", &dest).unwrap();
     }
@@ -79,7 +93,7 @@ mod test {
     #[bench]
     fn test_rotate180(b: &mut Bencher) {
         let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
-        let mut dest = Image::new(a.width(), a.height());
+        let mut dest = ImageBuf::new(a.width(), a.height());
         b.iter(|| rotate180(&mut dest, &a));
         magick::write("test_rotate180.jpg", &dest).unwrap();
     }
@@ -87,8 +101,19 @@ mod test {
     #[bench]
     fn test_scale(b: &mut Bencher) {
         let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
-        let mut dest = Image::new(a.width() * 2, a.height() * 2);
+        let mut dest = ImageBuf::new(a.width() * 2, a.height() * 2);
         b.iter(|| scale(&mut dest, &a, 2., 2.));
         magick::write("test_scale.jpg", &dest).unwrap();
+    }
+
+
+    #[test]
+    fn test_scale_resize() {
+        let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
+        let mut dest0 = ImageBuf::new(a.width() * 2, a.height() * 2);
+        let mut dest1 = ImageBuf::new(a.width() * 2, a.height() * 2);
+        scale(&mut dest0, &a, 2., 2.);
+        resize(&mut dest1, &a, a.width() * 2, a.height() * 2);
+        assert_eq!(dest0, dest1);
     }
 }

@@ -9,6 +9,8 @@ pub trait Color: Sync + Send {
 
 macro_rules! make_color {
     ($name:ident, $name_s:expr, $channels:expr, $alpha:expr) => {
+        #[cfg_attr(feature = "ser", derive(Serialize, Deserialize))]
+        #[derive(Debug, Clone, Copy, PartialEq)]
         pub struct $name;
 
         impl Color for $name {

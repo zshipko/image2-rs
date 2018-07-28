@@ -139,3 +139,4 @@ image2_filter!(ToGrayscale, x, y, _c, input, {
 });
 
 image2_filter!(ToColor, x, y, _c, input, { input[0].get(x, y, 0) });
+

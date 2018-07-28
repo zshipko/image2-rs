@@ -4,6 +4,8 @@
 extern crate num;
 extern crate rayon;
 extern crate euclid;
+#[macro_use]
+extern crate lazy_static;
 
 #[cfg(feature = "ser")]
 extern crate serde;
@@ -30,7 +32,7 @@ pub mod filter;
 pub mod color;
 mod error;
 pub mod io;
-mod kernel;
+pub mod kernel;
 mod pixel;
 pub mod transform;
 mod ty;

@@ -1,5 +1,7 @@
 use ty::Type;
+
 use std::simd;
+use std::ops;
 
 pub trait Pixel<'a, T: Type>: AsRef<[T]> {
     fn to_float(&self) -> Vec<f64> {
@@ -66,6 +68,10 @@ impl PixelVec {
     pub fn set(&mut self, i: usize, x: f64) {
         self.data = self.data.replace(i, x)
     }
+
+    pub fn map<F: Fn(simd::f64x4) -> simd::f64x4>(self, f: F) -> PixelVec {
+        PixelVec{data: f(self.data)}
+    }
 }
 
 impl<'a, T: Type> Pixel<'a, T> for &'a [T] {}
@@ -73,3 +79,21 @@ impl<'a, T: Type> Pixel<'a, T> for &'a mut [T] {}
 impl<'a, T: Type> PixelMut<'a, T> for &'a mut [T] {}
 impl<'a, T: Type> Pixel<'a, T> for Vec<T> {}
 impl<'a, T: Type> PixelMut<'a, T> for Vec<T> {}
+
+macro_rules! op {
+    ($name:ident, $fx:ident, $f:expr) => {
+        impl ops::$name for PixelVec {
+            type Output = PixelVec;
+
+            fn $fx(self, other: PixelVec) -> PixelVec {
+                PixelVec{data: $f(self.data, other.data)}
+            }
+        }
+    }
+}
+
+op!(Add, add, |a, b| a + b);
+op!(Sub, sub, |a, b| a - b);
+op!(Mul, mul, |a, b| a * b);
+op!(Div, div, |a, b| a / b);
+op!(Rem, rem, |a, b| a % b);

@@ -14,15 +14,6 @@ pub struct ImageBuf<T: Type, C: Color> {
 }
 
 impl<T: Type, C: Color> Image<T, C> for ImageBuf<T, C> {
-    fn new(width: usize, height: usize) -> Self {
-        ImageBuf {
-            width,
-            height,
-            data: vec![T::zero(); width * height * C::channels()],
-            _color: PhantomData,
-        }
-    }
-
     fn shape(&self) -> (usize, usize, usize) {
         (self.width, self.height, C::channels())
     }
@@ -37,6 +28,15 @@ impl<T: Type, C: Color> Image<T, C> for ImageBuf<T, C> {
 }
 
 impl<T: Type, C: Color> ImageBuf<T, C> {
+    pub fn new(width: usize, height: usize) -> Self {
+        ImageBuf {
+            width,
+            height,
+            data: vec![T::zero(); width * height * C::channels()],
+            _color: PhantomData,
+        }
+    }
+
     pub fn new_like(&self) -> Self {
         Self::new(self.width, self.height)
     }
