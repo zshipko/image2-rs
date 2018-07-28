@@ -1,5 +1,4 @@
 #![feature(test)]
-#![feature(stdsimd)]
 
 extern crate num;
 extern crate rayon;

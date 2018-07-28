@@ -15,6 +15,7 @@ pub trait Type:
     + Sub<Output = Self>
     + Mul<Output = Self>
     + Div<Output = Self>
+    + Rem<Output = Self>
 {
     fn min() -> f64;
     fn max() -> f64;

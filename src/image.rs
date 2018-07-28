@@ -103,20 +103,20 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
     }
 
     fn mean_stddev(&self) -> (Vec<f64>, Vec<f64>) {
-        let mut mean = PixelVec::empty();
-        let mut variance = PixelVec::empty();
+        let mut mean = PixelVec::empty::<C>();
+        let mut variance = PixelVec::empty::<C>();
 
         image2_for_each!(self, i, j, px, {
-            let v = px.to_pixel_vec().data;
-            mean.data += v;
-            variance.data += v * v;
+            let v = px.to_pixel_vec();
+            mean += v.clone();
+            variance += &v * &v;
         });
 
-        mean.data = mean.data / (self.width() * self.height()) as f64;
-        variance.data = variance.data / (self.width() * self.height()) as f64;
-        variance.data -= mean.data * mean.data;
+        mean = mean.map(|x| x / (self.width() * self.height()) as f64);
+        variance = variance.map(|x| (x / (self.width() * self.height()) as f64));
+        variance -= &mean * &mean;
 
-        (mean.to_vec(C::channels()), variance.to_vec(C::channels()))
+        (mean.to_vec(), variance.to_vec())
     }
 }
 

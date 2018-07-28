@@ -1,6 +1,6 @@
 use ty::Type;
+use color::Color;
 
-use std::simd;
 use std::ops;
 
 pub trait Pixel<'a, T: Type>: AsRef<[T]> {
@@ -9,15 +9,7 @@ pub trait Pixel<'a, T: Type>: AsRef<[T]> {
     }
 
     fn to_pixel_vec(&self) -> PixelVec {
-        let data: Vec<f64> = self.as_ref().iter().map(|x| T::to_float(x)).collect();
-        match data.len() {
-            0 => PixelVec::empty(),
-            1 => PixelVec::new(data[0], 0.0, 0.0, 0.0),
-            2 => PixelVec::new(data[0], data[1], 0.0, 0.0),
-            3 => PixelVec::new(data[0], data[1], data[2], 0.0),
-            4 => PixelVec{data: simd::f64x4::load_unaligned(data.as_ref())},
-            _ => PixelVec{data: simd::f64x4::load_unaligned(&data[0..4])},
-        }
+        PixelVec(self.to_float())
     }
 
     fn is_true(&self) -> bool {
@@ -27,50 +19,31 @@ pub trait Pixel<'a, T: Type>: AsRef<[T]> {
     fn is_false(&self) -> bool {
         self.as_ref().iter().all(|x| *x == T::zero())
     }
+
+    fn map<F: FnMut(&T) -> T>(&self, f: F) -> PixelVec {
+        PixelVec(self.as_ref().iter().map(f).map(|x| T::to_float(&x)).collect())
+    }
+
+    fn map2<F: FnMut((&T, &T)) -> T>(&self, other: &Self, f: F) -> PixelVec {
+        PixelVec(self.as_ref().iter().zip(other.as_ref()).map(f).map(|x| T::to_float(&x)).collect())
+    }
 }
 
 pub trait PixelMut<'a, T: Type>: Pixel<'a, T> + AsMut<[T]> {
-    fn from_float<P: Pixel<'a, f64>>(&mut self, other: P) {
+    fn set_from_float<P: Pixel<'a, f64>>(&mut self, other: &P) {
         let a = self.as_mut().iter_mut();
         let b = other.as_ref().iter();
         a.zip(b).for_each(|(x, y)| *x = T::from_float(*y))
     }
 
-    fn from_pixel_vec(&mut self, other: &PixelVec) {
-        let data = self.as_mut();
-        data.iter_mut().enumerate().for_each(|(i, x)| *x = T::from_float(other.data.extract(i)));
-    }
-}
-
-pub struct PixelVec {
-    pub data: simd::f64x4
-}
-
-impl PixelVec {
-    pub fn empty() -> Self {
-        PixelVec{data: simd::f64x4::splat(0.0)}
+    fn set_from_pixel_vec(&mut self, other: &PixelVec) {
+        self.set_from_float(other)
     }
 
-    pub fn new<T: Type>(a: T, b: T, c: T, d: T) -> Self {
-        PixelVec{data:simd::f64x4::new(a.convert(), b.convert(), c.convert(), d.convert())}
-    }
-
-    pub fn to_vec<T: Type>(&self, n: usize) -> Vec<T> {
-        let mut dest = vec![T::zero(); n];
-        dest.from_pixel_vec(self);
-        dest
-    }
-
-    pub fn get(&self, i: usize) -> f64 {
-        self.data.extract(i)
-    }
-
-    pub fn set(&mut self, i: usize, x: f64) {
-        self.data = self.data.replace(i, x)
-    }
-
-    pub fn map<F: Fn(simd::f64x4) -> simd::f64x4>(self, f: F) -> PixelVec {
-        PixelVec{data: f(self.data)}
+    fn set_from<P: Pixel<'a, T>>(&mut self, other: &P) {
+        let a = self.as_mut().iter_mut();
+        let b = other.as_ref().iter();
+        a.zip(b).for_each(|(x, y)| *x = *y)
     }
 }
 
@@ -80,20 +53,77 @@ impl<'a, T: Type> PixelMut<'a, T> for &'a mut [T] {}
 impl<'a, T: Type> Pixel<'a, T> for Vec<T> {}
 impl<'a, T: Type> PixelMut<'a, T> for Vec<T> {}
 
-macro_rules! op {
+#[cfg_attr(feature = "ser", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
+pub struct PixelVec(Vec<f64>);
+
+impl PixelVec {
+    pub fn empty<C: Color>() -> PixelVec {
+        PixelVec(vec![0.0; C::channels()])
+    }
+
+    pub fn to_vec(self) -> Vec<f64> {
+        self.0
+    }
+}
+
+impl AsRef<[f64]> for PixelVec {
+    fn as_ref(&self) -> &[f64] {
+        self.0.as_ref()
+    }
+}
+
+impl AsMut<[f64]> for PixelVec {
+    fn as_mut(&mut self) -> &mut [f64] {
+        self.0.as_mut()
+    }
+}
+
+impl<'a> Pixel<'a, f64> for PixelVec {}
+
+macro_rules! pixelvec_op {
     ($name:ident, $fx:ident, $f:expr) => {
         impl ops::$name for PixelVec {
             type Output = PixelVec;
 
-            fn $fx(self, other: PixelVec) -> PixelVec {
-                PixelVec{data: $f(self.data, other.data)}
+            fn $fx(self, other: Self) -> Self::Output {
+                self.map2(&other, |(a, b)| $f(*a, *b))
+            }
+        }
+
+        impl<'a> ops::$name for &'a PixelVec {
+            type Output = PixelVec;
+
+            fn $fx(self, other: Self) -> Self::Output {
+                self.map2(&other, |(a, b)| $f(*a, *b))
             }
         }
     }
 }
 
-op!(Add, add, |a, b| a + b);
-op!(Sub, sub, |a, b| a - b);
-op!(Mul, mul, |a, b| a * b);
-op!(Div, div, |a, b| a / b);
-op!(Rem, rem, |a, b| a % b);
+macro_rules! pixelvec_op_assign {
+    ($name:ident, $fx:ident, $f:expr) => {
+        impl ops::$name for PixelVec {
+            fn $fx(&mut self, other: Self) {
+                self.as_mut().iter_mut().zip(other.as_ref()).for_each(|(a, b)| *a = $f(*a, *b))
+            }
+        }
+
+        impl<'a> ops::$name for &'a mut PixelVec {
+            fn $fx(&mut self, other: Self) {
+                self.as_mut().iter_mut().zip(other.as_ref()).for_each(|(a, b)| *a = $f(*a, *b))
+            }
+        }
+    }
+}
+
+pixelvec_op!(Add, add, |a, b| a + b);
+pixelvec_op_assign!(AddAssign, add_assign, |a, b| a + b);
+pixelvec_op!(Sub, sub, |a, b| a - b);
+pixelvec_op_assign!(SubAssign, sub_assign, |a, b| a - b);
+pixelvec_op!(Mul, mul, |a, b| a * b);
+pixelvec_op_assign!(MulAssign, mul_assign, |a, b| a * b);
+pixelvec_op!(Div, div, |a, b| a / b);
+pixelvec_op_assign!(DivAssign, div_assign, |a, b| a / b);
+pixelvec_op!(Rem, rem, |a, b| a % b);
+pixelvec_op_assign!(RemAssign, rem_assign, |a, b| a % b);
