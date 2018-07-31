@@ -31,7 +31,7 @@ pub fn rotate<T: Type, C: Color, I: Image<T, C>>(
             .post_translate(euclid::TypedVector2D::new(center.x, center.y)),
     );
 
-    filter.eval_p(dest, &[src])
+    filter.eval(dest, &[src])
 }
 
 #[inline]
@@ -45,7 +45,7 @@ pub fn scale<T: Type, C: Color, I: Image<T, C>>(
         euclid::Transform2D::create_scale(1.0 / x, 1.0 / y)
     );
 
-    filter.eval_p(dest, &[src])
+    filter.eval(dest, &[src])
 }
 
 #[inline]
@@ -59,7 +59,7 @@ pub fn resize<T: Type, C: Color, I: Image<T, C>>(
         euclid::Transform2D::create_scale(src.width() as f64 / x as f64, src.height() as f64 / y as f64)
     );
 
-    filter.eval_p(dest, &[src])
+    filter.eval(dest, &[src])
 }
 
 pub fn rotate90<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I) {

@@ -53,7 +53,7 @@ pub trait Filter: Sized + Sync {
         input: &[&I],
     ) -> f64;
 
-    fn eval<T: Type, C: Color, U: Type, D: Color, I: Image<T, C>, J: Image<U, D>>(
+    fn eval_s<T: Type, C: Color, U: Type, D: Color, I: Image<T, C>, J: Image<U, D>>(
         &self,
         output: &mut I,
         input: &[&J],
@@ -68,7 +68,7 @@ pub trait Filter: Sized + Sync {
         }
     }
 
-    fn eval_p<
+    fn eval<
         T: Send + Type,
         C: Color,
         U: Type,
@@ -139,4 +139,3 @@ image2_filter!(ToGrayscale, x, y, _c, input, {
 });
 
 image2_filter!(ToColor, x, y, _c, input, { input[0].get(x, y, 0) });
-

@@ -1,5 +1,3 @@
-use rayon::prelude::*;
-
 use ty::Type;
 use color::Color;
 
@@ -22,12 +20,14 @@ pub trait Pixel<'a, T: Type>: AsRef<[T]> {
         self.as_ref().iter().all(|x| *x == T::zero())
     }
 
-    fn map<F: FnMut(&T) -> T>(&self, f: F) -> PixelVec {
-        PixelVec::from_pixel::<T, Vec<T>>(self.as_ref().iter().map(f).collect())
-    }
-
-    fn map2<F: FnMut((&T, &T)) -> T>(&self, other: &Self, f: F) -> PixelVec {
-        PixelVec::from_pixel::<T, Vec<T>>(self.as_ref().iter().zip(other.as_ref()).map(f).collect())
+    fn map<F: FnMut(&T) -> T>(&self, mut f: F) -> PixelVec {
+        let len = self.as_ref().len();
+        let mut dest: PixelVec = PixelVec::empty();
+        let data = self.as_ref();
+        for i in 0..len {
+            (dest.0)[i] = T::to_float(&f(&data[i]))
+        }
+        dest
     }
 }
 
@@ -121,8 +121,11 @@ macro_rules! pixelvec_op {
         impl ops::$name for PixelVec {
             type Output = PixelVec;
 
-            fn $fx(self, other: Self) -> Self::Output {
-                self.map2(&other, |(a, b)| $f(*a, *b))
+            fn $fx(mut self, other: Self) -> Self::Output {
+                for i in 0..4 {
+                    self.0[i] = $f(self.0[i], other.0[i]);
+                }
+                self
             }
         }
 
@@ -130,7 +133,11 @@ macro_rules! pixelvec_op {
             type Output = PixelVec;
 
             fn $fx(self, other: Self) -> Self::Output {
-                self.map2(&other, |(a, b)| $f(*a, *b))
+                let mut dest = PixelVec::empty();
+                for i in 0..4 {
+                    dest.0[i] = $f(self.0[i], other.0[i]);
+                }
+                self.clone()
             }
         }
     }
@@ -140,20 +147,24 @@ macro_rules! pixelvec_op_assign {
     ($name:ident, $fx:ident, $f:expr) => {
         impl ops::$name for PixelVec {
             fn $fx(&mut self, other: Self) {
-                self.as_mut().par_iter_mut().zip(other.as_ref()).for_each(|(a, b)| *a = $f(*a, *b))
+                for i in 0..4 {
+                    self.0[i] = $f(self.0[i], other.0[i]);
+                }
             }
         }
 
         impl<'a> ops::$name for &'a mut PixelVec {
             fn $fx(&mut self, other: Self) {
-                self.as_mut().par_iter_mut().zip(other.as_ref()).for_each(|(a, b)| *a = $f(*a, *b))
+                for i in 0..4 {
+                    self.0[i] = $f(self.0[i], other.0[i]);
+                }
             }
         }
     }
 }
 
 pixelvec_op!(Add, add, |a, b| a + b);
-pixelvec_op_assign!(AddAssign, add_assign, |a, b| a + b);
+pixelvec_op_assign!(AddAssign, add_assign, |a: f64, b: f64| a + b);
 pixelvec_op!(Sub, sub, |a, b| a - b);
 pixelvec_op_assign!(SubAssign, sub_assign, |a, b| a - b);
 pixelvec_op!(Mul, mul, |a, b| a * b);
