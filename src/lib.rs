@@ -36,12 +36,14 @@ mod pixel;
 pub mod transform;
 mod ty;
 mod image_buf;
+mod image_ref;
 
 pub use color::{Color, Gray, Rgb, Rgba};
 pub use error::Error;
 pub use filter::Filter;
 pub use image::Image;
 pub use image_buf::ImageBuf;
+pub use image_ref::ImageRef;
 pub use kernel::Kernel;
 pub use pixel::Pixel;
 pub use ty::Type;
