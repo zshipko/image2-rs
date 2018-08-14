@@ -61,6 +61,10 @@ impl Magick {
             .map(|a| a.trim().parse::<usize>())
             .collect::<Vec<Result<usize, ParseIntError>>>();
 
+        if t.len() < 2 {
+            return Err(Error::InvalidImageShape)
+        }
+
         let a = t[0].clone();
         let b = t[1].clone();
 
@@ -99,7 +103,7 @@ impl Magick {
 
         let data = cmd.stdout.iter().map(|x| x.convert()).collect::<Vec<T>>();
 
-        Ok(ImageBuf::new_from(width, height, Layout::Interleaved, data))
+        Ok(ImageBuf::new_from(width, height, layout, data))
     }
 
     pub fn read<P: AsRef<Path>, T: Type, C: Color>(
