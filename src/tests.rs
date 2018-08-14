@@ -5,7 +5,7 @@ use filter::{Filter, Invert, ToGrayscale};
 use io::magick;
 use kernel::{sobel, Kernel};
 use test::Bencher;
-use {Image, ImageBuf};
+use {Image, ImageBuf, Layout};
 
 #[test]
 fn test_image_buffer_new() {
@@ -91,3 +91,22 @@ fn bench_mean_stddev(b: &mut Bencher) {
         image.mean_stddev();
     });
 }
+
+#[bench]
+fn bench_convert_to_planar(b: &mut Bencher) {
+    let image: ImageBuf<f32, Rgb> = magick::read("test/test.jpg").unwrap();
+    b.iter(|| {
+        image.clone().convert_layout(Layout::Planar);
+    });
+}
+
+#[test]
+fn test_convert_layout_rountrip() {
+    let mut image: ImageBuf<f32, Rgb> = magick::read("test/test.jpg").unwrap();
+    image.convert_layout(Layout::Planar);
+    magick::write("test_layout_planar.jpg", &image).unwrap();
+    image.convert_layout(Layout::Interleaved);
+    magick::write("test_layout_rountrip.jpg", &image).unwrap();
+}
+
+

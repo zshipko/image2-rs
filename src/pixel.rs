@@ -54,6 +54,9 @@ impl<'a, T: Type> Pixel<'a, T> for &'a mut [T] {}
 impl<'a, T: Type> PixelMut<'a, T> for &'a mut [T] {}
 impl<'a, T: Type> Pixel<'a, T> for Vec<T> {}
 impl<'a, T: Type> PixelMut<'a, T> for Vec<T> {}
+impl<'a, T: Type> Pixel<'a, T> for &'a Vec<T> {}
+impl<'a, T: Type> Pixel<'a, T> for &'a mut Vec<T> {}
+impl<'a, T: Type> PixelMut<'a, T> for &'a mut Vec<T> {}
 
 #[cfg_attr(feature = "ser", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy)]

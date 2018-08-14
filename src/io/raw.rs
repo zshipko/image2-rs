@@ -4,6 +4,7 @@ use rawloader;
 
 use color::Rgb;
 use error::Error;
+use image::Layout;
 use image_buf::ImageBuf;
 
 use std::path::Path;
@@ -33,18 +34,18 @@ impl Raw {
     /// Convert RAW image to RGB<f32>
     pub fn to_rgb(&self, w: usize, h: usize) -> Result<ImageBuf<f32, Rgb>, Error> {
         let decoded = self.image.to_rgb(w, h)?;
-        Ok(ImageBuf::new_from(w, h, decoded.data))
+        Ok(ImageBuf::new_from(w, h, Layout::Interleaved, decoded.data))
     }
 
     /// Convert RAW image to linear RGB<f32>
     pub fn to_linear_rgb(&self, w: usize, h: usize) -> Result<ImageBuf<f32, Rgb>, Error> {
         let decoded = self.image.to_linear_rgb(w, h)?;
-        Ok(ImageBuf::new_from(w, h, decoded.data))
+        Ok(ImageBuf::new_from(w, h, Layout::Interleaved, decoded.data))
     }
 
     /// Convert RAW image to SRGB<u8>
     pub fn to_srgb(&self, w: usize, h: usize) -> Result<ImageBuf<u8, Rgb>, Error> {
         let decoded = self.image.to_srgb(w, h)?;
-        Ok(ImageBuf::new_from(w, h, decoded.data))
+        Ok(ImageBuf::new_from(w, h, Layout::Interleaved, decoded.data))
     }
 }

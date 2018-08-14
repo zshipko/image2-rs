@@ -37,15 +37,13 @@ pub mod transform;
 mod ty;
 mod image_buf;
 mod image_ref;
-mod planar;
 
 pub use color::{Color, Gray, Rgb, Rgba};
 pub use error::Error;
 pub use filter::Filter;
-pub use image::Image;
+pub use image::{Layout, Image};
 pub use image_buf::ImageBuf;
 pub use image_ref::ImageRef;
 pub use kernel::Kernel;
 pub use pixel::{Pixel, PixelMut, PixelVec};
 pub use ty::Type;
-pub use planar::Planar;

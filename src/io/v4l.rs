@@ -1,4 +1,5 @@
 use std::io::Result;
+use image::Layout;
 
 use rscam;
 
@@ -38,6 +39,7 @@ impl Webcam {
         Ok(::ImageBuf::new_from(
             width as usize,
             height as usize,
+            Layout::Interleaved,
             (*frame).to_vec(),
         ))
     }
