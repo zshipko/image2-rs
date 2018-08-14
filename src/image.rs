@@ -12,9 +12,12 @@ pub enum Layout {
     Interleaved
 }
 
-/// `image2_for_each_at` allows you to iterate over each pixel in an image using a nested for-loop,
-/// this is provided for convenience to avoid having to write this for-loop by hand over and
-/// over again
+impl Default for Layout {
+    fn default() -> Layout {
+        Layout::Interleaved
+    }
+}
+
 #[macro_export]
 macro_rules! image2_for_each_at {
     ($image:expr, $i:ident, $j:ident, $px:ident, $body:block) => {

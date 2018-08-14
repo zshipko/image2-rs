@@ -110,7 +110,7 @@ impl Magick {
         &self,
         path: P,
     ) -> Result<ImageBuf<T, C>, Error> {
-        self.read_with_layout(path, Layout::Interleaved)
+        self.read_with_layout(path, Layout::default())
     }
 
     pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(

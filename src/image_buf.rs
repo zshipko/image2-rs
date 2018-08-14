@@ -48,7 +48,7 @@ impl<T: Type, C: Color> ImageBuf<T, C> {
     }
 
     pub fn new(width: usize, height: usize) -> Self {
-        Self::new_with_layout(width, height, Layout::Interleaved)
+        Self::new_with_layout(width, height, Layout::default())
     }
 
     pub fn inner(self) -> Vec<T> {
