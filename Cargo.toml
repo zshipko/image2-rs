@@ -2,6 +2,12 @@
 name = "image2"
 version = "0.1.0"
 authors = ["Zach Shipko <zachshipko@gmail.com>"]
+LICENSE = "ISC"
+keywords = ["image", "image-processing"]
+repository = "https://github.com/zshipko/image2-rs"
+documentation = "https://docs.rs/image2"
+description = "A simple image processing library"
+readme = "README.md"
 
 [dependencies]
 num = "0.2"
