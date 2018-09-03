@@ -59,7 +59,7 @@ impl Filter for Kernel {
         for ky in -r2..r2 + 1 {
             let kr = &self.data[(ky + r2) as usize];
             for kx in -c2..c2 + 1 {
-                let x = input[0].get((x as isize + kx) as usize, (y as isize + ky) as usize, c);
+                let x = input[0].get_f((x as isize + kx) as usize, (y as isize + ky) as usize, c);
                 f += x * kr[(kx + c2) as usize];
             }
         }
@@ -171,7 +171,7 @@ macro_rules! op {
                     let kr = &self.a.data[(ky + r2) as usize];
                     let kr1 = &self.b.data[(ky + r2) as usize];
                     for kx in -c2..c2 + 1 {
-                        let x = input[0].get((x as isize + kx) as usize, (y as isize + ky) as usize, c);
+                        let x = input[0].get_f((x as isize + kx) as usize, (y as isize + ky) as usize, c);
                         f += $f(x * kr[(kx + c2) as usize], x * kr1[(kx + c2) as usize]);
                     }
                 }

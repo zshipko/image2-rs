@@ -38,7 +38,7 @@ image2_filter!(RgbToRgba, x, y, c, input, {
         return T::max_f();
     }
 
-    input[0].get(x, y, c)
+    input[0].get_f(x, y, c)
 });
 
 

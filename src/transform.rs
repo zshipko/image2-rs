@@ -14,7 +14,7 @@ impl Filter for Transform {
     ) -> f64 {
         let pt = Point::new(x as f64, y as f64);
         let dest = self.0.transform_point(&pt);
-        (input[0].get(dest.x.floor() as usize, dest.y.floor() as usize, c) + input[0].get(dest.x.ceil() as usize, dest.y.ceil() as usize, c)) / 2.
+        (input[0].get_f(dest.x.floor() as usize, dest.y.floor() as usize, c) + input[0].get_f(dest.x.ceil() as usize, dest.y.ceil() as usize, c)) / 2.
     }
 }
 

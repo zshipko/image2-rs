@@ -23,7 +23,7 @@ macro_rules! image2_for_each_at {
     ($image:expr, $i:ident, $j:ident, $px:ident, $body:block) => {
         for $j in 0..$image.height() {
             for $i in 0..$image.width() {
-                let $px = $image.at($i, $j);
+                let $px = $image.at_mut($i, $j);
                 $body
             }
         }
@@ -84,7 +84,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         vec![T::zero(); C::channels()]
     }
 
-    fn at(&mut self, x: usize, y: usize) -> Vec<&mut T> {
+    fn at_mut(&mut self, x: usize, y: usize) -> Vec<&mut T> {
         let mut px = Vec::with_capacity(C::channels());
         let (width, height, channels) = self.shape();
         let layout = self.layout().clone();
@@ -93,6 +93,20 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
             let index = index(&layout, width, height, channels, x, y, i);
             unsafe {
                 px.push(&mut *data.offset(index as isize))
+            }
+        }
+        px
+    }
+
+    fn at<'a>(&self, x: usize, y: usize) -> Vec<&'a T> {
+        let mut px = Vec::with_capacity(C::channels());
+        let (width, height, channels) = self.shape();
+        let layout = self.layout().clone();
+        let data = self.data().as_ptr();
+        for i in 0..C::channels() {
+            let index = index(&layout, width, height, channels, x, y, i);
+            unsafe {
+                px.push(&*data.offset(index as isize))
             }
         }
         px
@@ -112,7 +126,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         }
     }
 
-    fn get(&self, x: usize, y: usize, c: usize) -> f64 {
+    fn get_f(&self, x: usize, y: usize, c: usize) -> f64 {
         let (width, height, channels) = self.shape();
         if x >= width || y >= height || c >= channels {
             return 0.0;
@@ -124,7 +138,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         }
     }
 
-    fn set(&mut self, x: usize, y: usize, c: usize, f: f64) {
+    fn set_f(&mut self, x: usize, y: usize, c: usize, f: f64) {
         let (width, height, channels) = self.shape();
         if x >= width || y >= height || c >= channels {
             return;
@@ -134,6 +148,24 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
             Some(f) => self.data_mut()[index] = f,
             None => (),
         }
+    }
+
+    fn get(&self, x: usize, y: usize, c: usize) -> T {
+        let (width, height, channels) = self.shape();
+        if x >= width || y >= height || c >= channels {
+            return T::zero();
+        }
+        let index = self.index(x, y, c);
+        self.data()[index]
+    }
+
+    fn set(&mut self, x: usize, y: usize, c: usize, t: T) {
+        let (width, height, channels) = self.shape();
+        if x >= width || y >= height || c >= channels {
+            return;
+        }
+        let index = self.index(x, y, c);
+        self.data_mut()[index] = t;
     }
 
     fn convert_type<U: Type, I: Image<U, C>>(&self, dest: &mut I) {
@@ -200,6 +232,19 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         variance -= &mean * &mean;
 
         (mean.to_vec::<C>(), variance.to_vec::<C>())
+    }
+
+    fn crop(&self, x: usize, y: usize, width: usize, height: usize) -> ImageBuf<T, C> {
+        let mut dest = ImageBuf::new(width, height);
+
+        dest.for_each(|(i, j), mut px| {
+            let src = self.at(x + i, y + j);
+            for c in 0 .. C::channels() {
+                *px[c] = *src[c]
+            }
+        });
+
+        dest
     }
 }
 

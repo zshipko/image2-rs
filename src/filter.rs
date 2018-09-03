@@ -62,7 +62,7 @@ pub trait Filter: Sized + Sync {
         for y in 0..height {
             for x in 0..width {
                 for c in 0..channels {
-                    output.set(x, y, c, T::clamp(self.compute_at(x, y, c, input)));
+                    output.set_f(x, y, c, T::clamp(self.compute_at(x, y, c, input)));
                 }
             }
         }
@@ -127,15 +127,15 @@ macro_rules! image2_filter {
     };
 }
 
-image2_filter!(Invert, x, y, c, input, { T::max_f() - input[0].get(x, y, c) });
+image2_filter!(Invert, x, y, c, input, { T::max_f() - input[0].get_f(x, y, c) });
 
 image2_filter!(Blend, x, y, c, input, {
-    (input[0].get(x, y, c) + input[1].get(x, y, c)) / 2.0
+    (input[0].get_f(x, y, c) + input[1].get_f(x, y, c)) / 2.0
 });
 
 image2_filter!(ToGrayscale, x, y, _c, input, {
     let a = input[0];
-    a.get(x, y, 0) * 0.21 + a.get(x, y, 1) * 0.72 + a.get(x, y, 2) * 0.07
+    a.get_f(x, y, 0) * 0.21 + a.get_f(x, y, 1) * 0.72 + a.get_f(x, y, 2) * 0.07
 });
 
-image2_filter!(ToColor, x, y, _c, input, { input[0].get(x, y, 0) });
+image2_filter!(ToColor, x, y, _c, input, { input[0].get_f(x, y, 0) });
