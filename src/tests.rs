@@ -11,8 +11,8 @@ use {Image, ImageBuf, Layout};
 fn test_image_buffer_new() {
     let mut image: ImageBuf<u8, Rgb> = ImageBuf::new(1000, 1000);
     let mut dest = image.new_like();
-    image.set(3, 15, 0, 1.);
-    assert_eq!(image.get(3, 15, 0), 1.);
+    image.set_f(3, 15, 0, 1.);
+    assert_eq!(image.get(3, 15, 0), 255);
     Invert.eval_s(&mut dest, &[&image]);
 }
 
