@@ -4,10 +4,6 @@ Another image processing library for Rust focused on generic, composable image o
 
 ## Installation
 
-Add the following to your `Cargo.toml`:
-
-    image2 = { git = "https://github.com/zshipko/image2-rs" }
-
 ### Crate features
 
 - `raw`
