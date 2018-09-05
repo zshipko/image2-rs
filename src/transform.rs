@@ -76,33 +76,32 @@ pub fn rotate180<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I) {
 
 #[cfg(test)]
 mod test {
-    use test::Bencher;
     use {
         io::magick, Image, ImageBuf, Rgb,
         transform::{rotate180, rotate90, scale, resize},
     };
 
-    #[bench]
-    fn test_rotate90(b: &mut Bencher) {
+    #[test]
+    fn test_rotate90() {
         let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
         let mut dest = ImageBuf::new(a.height(), a.width());
-        b.iter(|| rotate90(&mut dest, &a));
+        rotate90(&mut dest, &a);
         magick::write("test_rotate90.jpg", &dest).unwrap();
     }
 
-    #[bench]
-    fn test_rotate180(b: &mut Bencher) {
+    #[test]
+    fn test_rotate180() {
         let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
         let mut dest = ImageBuf::new(a.width(), a.height());
-        b.iter(|| rotate180(&mut dest, &a));
+        rotate180(&mut dest, &a);
         magick::write("test_rotate180.jpg", &dest).unwrap();
     }
 
-    #[bench]
-    fn test_scale(b: &mut Bencher) {
+    #[test]
+    fn test_scale() {
         let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
         let mut dest = ImageBuf::new(a.width() * 2, a.height() * 2);
-        b.iter(|| scale(&mut dest, &a, 2., 2.));
+        scale(&mut dest, &a, 2., 2.);
         magick::write("test_scale.jpg", &dest).unwrap();
     }
 

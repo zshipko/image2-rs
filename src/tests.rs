@@ -4,7 +4,6 @@ use color::{Gray, Rgb, Yuv};
 use filter::{Filter, Invert, ToGrayscale};
 use io::magick;
 use kernel::{sobel, Kernel};
-use test::Bencher;
 use {Image, ImageBuf, Layout};
 
 #[test]
@@ -16,88 +15,74 @@ fn test_image_buffer_new() {
     Invert.eval_s(&mut dest, &[&image]);
 }
 
-#[bench]
-fn bench_magick_read(b: &mut Bencher) {
-    b.iter(|| {
-        let _: ImageBuf<f32, Rgb> = magick::read("test/test.jpg").unwrap();
-    });
-}
-
-#[bench]
-fn bench_magick_write(b: &mut Bencher) {
+#[test]
+fn test_magick_read_write() {
     let a: ImageBuf<f32, Yuv> = magick::read("test/test.jpg").unwrap();
-    b.iter(|| {
-        magick::write("test0.jpg", &a).unwrap();
-    });
+    magick::write("test0.jpg", &a).unwrap();
 }
 
-#[bench]
-fn test_to_grayscale(b: &mut Bencher) {
+#[test]
+fn test_to_grayscale() {
     let image: ImageBuf<f32, Rgb> = magick::read("test/test.jpg").unwrap();
     let mut dest = image.new_like();
-    b.iter(|| ToGrayscale.eval(&mut dest, &[&image]));
+    ToGrayscale.eval(&mut dest, &[&image]);
     magick::write("test1.jpg", &dest).unwrap();
 }
 
-#[bench]
-fn bench_invert(b: &mut Bencher) {
+#[test]
+fn test_invert() {
     let image: ImageBuf<f32, Rgb> = magick::read("test/test.jpg").unwrap();
     let mut dest = image.new_like();
-    b.iter(|| Invert.eval_s(&mut dest, &[&image]));
+    Invert.eval_s(&mut dest, &[&image]);
     magick::write("test2.jpg", &dest).unwrap();
 }
 
-#[bench]
-fn bench_invert_parallel(b: &mut Bencher) {
+#[test]
+fn test_invert_parallel() {
     let image: ImageBuf<f32, Rgb> = magick::read("test/test.jpg").unwrap();
     let mut dest = image.new_like();
-    b.iter(|| Invert.eval(&mut dest, &[&image]));
+    Invert.eval(&mut dest, &[&image]);
     magick::write("test2p.jpg", &dest).unwrap();
 }
 
-#[bench]
-fn bench_kernel(b: &mut Bencher) {
+#[test]
+fn test_kernel() {
     let image: ImageBuf<f32, Gray> = magick::read("test/test.jpg").unwrap();
     let mut dest = image.new_like();
     let k = Kernel::from([[-1.0, -1.0, -1.0], [-1.0, 8.0, -1.0], [-1.0, -1.0, -1.0]]);
-
-    b.iter(|| k.eval_s(&mut dest, &[&image]));
+    k.eval_s(&mut dest, &[&image]);
     magick::write("test3.jpg", &dest).unwrap();
 }
 
-#[bench]
-fn bench_kernel_parallel(b: &mut Bencher) {
+#[test]
+fn test_kernel_parallel() {
     let image: ImageBuf<f32, Gray> = magick::read("test/test.jpg").unwrap();
     let mut dest = image.new_like();
     let k = Kernel::from([[-1.0, -1.0, -1.0], [-1.0, 8.0, -1.0], [-1.0, -1.0, -1.0]]);
-
-    b.iter(|| k.eval(&mut dest, &[&image]));
+    k.eval(&mut dest, &[&image]);
     magick::write("test3p.jpg", &dest).unwrap();
 }
 
-#[bench]
-fn bench_sobel(b: &mut Bencher) {
+#[test]
+fn test_sobel() {
     let image: ImageBuf<f32, Gray> = magick::read("test/test.jpg").unwrap();
     let mut dest = image.new_like();
     let k = sobel();
-    b.iter(|| k.eval(&mut dest, &[&image]));
+    k.eval(&mut dest, &[&image]);
     magick::write("test4.jpg", &dest).unwrap();
 }
 
-#[bench]
-fn bench_mean_stddev(b: &mut Bencher) {
+#[test]
+fn test_mean_stddev() {
     let image: ImageBuf<f32, Gray> = magick::read("test/test.jpg").unwrap();
-    b.iter(|| {
-        image.mean_stddev();
-    });
+    println!("{:?}", image.mean_stddev());
 }
 
-#[bench]
-fn bench_convert_to_planar(b: &mut Bencher) {
+#[test]
+fn test_convert_to_planar() {
     let image: ImageBuf<f32, Rgb> = magick::read("test/test.jpg").unwrap();
-    b.iter(|| {
-        image.clone().convert_layout(Layout::Planar);
-    });
+    image.clone().convert_layout(Layout::Planar);
+    magick::write("test5.jpg", &image).unwrap();
 }
 
 #[test]

@@ -1,5 +1,3 @@
-#![feature(test)]
-
 extern crate num;
 extern crate rayon;
 extern crate euclid;
@@ -12,8 +10,6 @@ extern crate serde;
 #[cfg(feature = "ser")]
 #[macro_use]
 extern crate serde_derive;
-
-extern crate test;
 
 #[cfg(feature = "v4l")]
 extern crate rscam;
