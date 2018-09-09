@@ -1,6 +1,6 @@
 [package]
 name = "image2"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Zach Shipko <zachshipko@gmail.com>"]
 license = "ISC"
 keywords = ["image", "image-processing"]
@@ -21,7 +21,7 @@ serde_derive = {version = "1", optional = true}
 
 [features]
 default = []
-all = ["v4l", "raw", "serde"]
+all = ["v4l", "raw", "ser"]
 v4l = ["rscam"]
 raw = ["rawloader"]
 ser = ["serde", "serde_derive"]

@@ -4,6 +4,13 @@ Another image processing library for Rust focused on generic, composable image o
 
 ## Installation
 
+Add the following to your `Cargo.toml`:
+
+```toml
+[dependencies]
+imaged = "0.2"
+```
+
 ### Crate features
 
 - `raw`
@@ -24,7 +31,7 @@ use image2::{
 };
 
 fn main() {
-    // Read an image using ImageMagick
+    // Read an image using ImageMagick, `io::magick` is provided by default
     let image: ImageBuf<f64, Rgb> = magick::read("../test/test.jpg").unwrap();
 
     // Setup a filter

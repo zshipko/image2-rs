@@ -20,6 +20,14 @@ pub trait Type:
     fn min_f() -> f64;
     fn max_f() -> f64;
 
+    fn is_float() -> bool {
+        Self::to_float(&Self::from_float(0.5)) == 0.5
+    }
+
+    fn is_signed() -> bool {
+        Self::to_float(&Self::from_float(-1.0)) < 0.0
+    }
+
     #[inline]
     fn normalize(f: f64) -> f64 {
         (f - Self::min_f()) / (Self::max_f() - Self::min_f())
@@ -94,3 +102,32 @@ make_type!(f32, 0, 1);
 make_type!(i64);
 make_type!(u64);
 make_type!(f64, 0, 1);
+
+#[cfg(test)]
+mod test {
+    use ::*;
+
+    #[test]
+    fn test_type_is_float() {
+        assert_eq!(u8::is_float(), false);
+        assert_eq!(u16::is_float(), false);
+        assert_eq!(i32::is_float(), false);
+        assert_eq!(u32::is_float(), false);
+        assert_eq!(i64::is_float(), false);
+        assert_eq!(u64::is_float(), false);
+        assert_eq!(f32::is_float(), true);
+        assert_eq!(f64::is_float(), true);
+    }
+
+    #[test]
+    fn test_type_is_signed() {
+        assert_eq!(u8::is_signed(), false);
+        assert_eq!(u16::is_signed(), false);
+        assert_eq!(i32::is_signed(), true);
+        assert_eq!(u32::is_signed(), false);
+        assert_eq!(i64::is_signed(), true);
+        assert_eq!(u64::is_signed(), false);
+        assert_eq!(f32::is_signed(), true);
+        assert_eq!(f64::is_signed(), true);
+    }
+}
