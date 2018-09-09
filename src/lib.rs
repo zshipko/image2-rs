@@ -17,6 +17,9 @@ extern crate rscam;
 #[cfg(feature = "raw")]
 extern crate rawloader;
 
+extern crate png;
+extern crate jpeg_decoder as jpeg;
+
 #[cfg(test)]
 mod tests;
 

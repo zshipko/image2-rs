@@ -138,4 +138,10 @@ image2_filter!(ToGrayscale, x, y, _c, input, {
     a.get_f(x, y, 0) * 0.21 + a.get_f(x, y, 1) * 0.72 + a.get_f(x, y, 2) * 0.07
 });
 
-image2_filter!(ToColor, x, y, _c, input, { input[0].get_f(x, y, 0) });
+image2_filter!(ToColor, x, y, c, input, {
+    if c == 4 && C::channels() < 4 {
+        return T::max_f();
+    }
+
+    input[0].get_f(x, y, 0)
+});

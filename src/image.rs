@@ -6,6 +6,7 @@ use image_buf::ImageBuf;
 
 use rayon::prelude::*;
 
+#[cfg_attr(feature = "ser", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Layout {
     Planar,

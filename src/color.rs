@@ -41,4 +41,9 @@ image2_filter!(RgbToRgba, x, y, c, input, {
     input[0].get_f(x, y, c)
 });
 
+image2_filter!(RgbaToRgb, x, y, c, input, {
+    let max = T::max_f();
+    input[0].get_f(x, y, c) * (input[0].get_f(x, y, 3) / max)
+});
+
 

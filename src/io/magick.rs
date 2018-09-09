@@ -38,6 +38,14 @@ pub const GM: Magick = Magick {
     convert: &["gm", "convert"],
 };
 
+pub static mut DEFAULT: Magick = IM;
+
+pub fn set_default(magick: Magick) {
+    unsafe {
+        DEFAULT = magick;
+    }
+}
+
 impl Magick {
     pub fn get_image_shape<P: AsRef<Path>>(&self, path: P) -> Result<(usize, usize), Error> {
         let identify = Command::new(self.identify[0])
@@ -163,16 +171,22 @@ impl Magick {
 }
 
 pub fn read_with_layout<P: AsRef<Path>, T: Type, C: Color>(path: P, layout: Layout) -> Result<ImageBuf<T, C>, Error> {
-    IM.read_with_layout(path, layout)
+    unsafe {
+        DEFAULT.read_with_layout(path, layout)
+    }
 }
 
 pub fn read<P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<ImageBuf<T, C>, Error> {
-    IM.read(path)
+    unsafe {
+        DEFAULT.read(path)
+    }
 }
 
 pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(
     path: P,
     image: &I,
 ) -> Result<(), Error> {
-    IM.write(path, image)
+    unsafe {
+        DEFAULT.write(path, image)
+    }
 }

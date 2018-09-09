@@ -1,8 +1,8 @@
 #![cfg(test)]
 
-use color::{Gray, Rgb, Yuv};
+use color::{Gray, Rgb};
 use filter::{Filter, Invert, ToGrayscale};
-use io::magick;
+use io::{png, jpg, magick};
 use kernel::{sobel, Kernel};
 use {Image, ImageBuf, Layout};
 
@@ -16,9 +16,13 @@ fn test_image_buffer_new() {
 }
 
 #[test]
-fn test_magick_read_write() {
-    let a: ImageBuf<f32, Yuv> = magick::read("test/test.jpg").unwrap();
+fn test_read_write() {
+    let a: ImageBuf<u8, Rgb> = jpg::read("test/test.jpg").unwrap();
     magick::write("test0.jpg", &a).unwrap();
+    png::write("test0a.png", &a).unwrap();
+
+    let b: ImageBuf<u8, Rgb> = png::read("test0.png").unwrap();
+    png::write("test0b.png", &b).unwrap();
 }
 
 #[test]
