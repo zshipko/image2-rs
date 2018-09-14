@@ -3,8 +3,8 @@
 use rawloader;
 
 use color::Rgb;
-use error::Error;
-use image::Layout;
+use image::{Image, Layout};
+use ty::Type;
 use image_buf::ImageBuf;
 
 use std::path::Path;
@@ -16,14 +16,14 @@ pub struct Raw {
 }
 
 impl Raw {
-    /// Decode a RAW image from a file
-    pub fn decode<P: AsRef<Path>>(path: &P) -> Option<Raw> {
+    /// Read a RAW image from a file
+    pub fn read<P: AsRef<Path>>(path: &P) -> Option<Raw> {
         let filename = match path.as_ref().to_str() {
             Some(f) => f,
             None => return None,
         };
 
-        let raw_image = match rawloader::decode(filename) {
+        let raw_image = match rawloader::decode_file(filename) {
             Ok(r) => r,
             Err(_) => return None,
         };
@@ -31,21 +31,24 @@ impl Raw {
         Some(Raw { image: raw_image })
     }
 
-    /// Convert RAW image to RGB<f32>
-    pub fn to_rgb(&self, w: usize, h: usize) -> Result<ImageBuf<f32, Rgb>, Error> {
-        let decoded = self.image.to_rgb(w, h)?;
-        Ok(ImageBuf::new_from(w, h, Layout::Interleaved, decoded.data))
-    }
+    pub fn as_image<T: Type>(self) -> Option<ImageBuf<T, Rgb>> {
+        if self.image.cpp == 1 {
+            return None
+        }
 
-    /// Convert RAW image to linear RGB<f32>
-    pub fn to_linear_rgb(&self, w: usize, h: usize) -> Result<ImageBuf<f32, Rgb>, Error> {
-        let decoded = self.image.to_linear_rgb(w, h)?;
-        Ok(ImageBuf::new_from(w, h, Layout::Interleaved, decoded.data))
-    }
-
-    /// Convert RAW image to SRGB<u8>
-    pub fn to_srgb(&self, w: usize, h: usize) -> Result<ImageBuf<u8, Rgb>, Error> {
-        let decoded = self.image.to_srgb(w, h)?;
-        Ok(ImageBuf::new_from(w, h, Layout::Interleaved, decoded.data))
+        match self.image.data {
+            rawloader::RawImageData::Integer(data) => {
+                let im = ImageBuf::new_from(self.image.width, self.image.height, Layout::Interleaved, data);
+                let mut  dest = ImageBuf::new(self.image.width, self.image.height);
+                im.convert_type(&mut dest);
+                Some(dest)
+            },
+            rawloader::RawImageData::Float(data) => {
+                let im = ImageBuf::new_from(self.image.width, self.image.height, Layout::Interleaved, data);
+                let mut  dest = ImageBuf::new(self.image.width, self.image.height);
+                im.convert_type(&mut dest);
+                Some(dest)
+            }
+        }
     }
 }
