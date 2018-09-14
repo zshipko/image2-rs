@@ -14,29 +14,6 @@ pub struct Kernel {
     data: Vec<Vec<f64>>,
 }
 
-macro_rules! kernel_from {
-    ($n:expr) => {
-        impl From<[[f64; $n]; $n]> for Kernel {
-            fn from(data: [[f64; $n]; $n]) -> Kernel {
-                let data = data.into_iter().map(|d| d.to_vec()).collect();
-                Kernel {
-                    data,
-                    rows: $n,
-                    cols: $n,
-                }
-            }
-        }
-    };
-    ($($n:expr,)*) => {
-        $(
-            kernel_from!($n);
-        )*
-    }
-}
-
-kernel_from!(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-             16, 17, 18, 19, 20,);
-
 impl From<Vec<Vec<f64>>> for Kernel {
     fn from(data: Vec<Vec<f64>>) -> Kernel {
         let rows = data.len();
@@ -44,6 +21,43 @@ impl From<Vec<Vec<f64>>> for Kernel {
         Kernel { data, rows, cols }
     }
 }
+
+impl<'a> From<&'a [&'a [f64]]> for Kernel {
+    fn from(data: &'a [&'a [f64]]) -> Kernel {
+        let rows = data.len();
+        let cols = data[0].len();
+        let mut v = Vec::new();
+        for d in data {
+            v.push(Vec::from(*d))
+        }
+        Kernel { data: v, rows, cols }
+    }
+}
+
+macro_rules! kernel_from {
+    ($n:expr) => {
+        impl From<[[f64; $n]; $n]> for Kernel {
+            fn from(data: [[f64; $n]; $n]) -> Kernel {
+               let data = data.into_iter().map(|d| d.to_vec()).collect();
+               Kernel {
+                   data,
+                   rows: $n,
+                   cols: $n,
+               }
+           }
+       }
+   };
+   ($($n:expr,)*) => {
+       $(
+           kernel_from!($n);
+       )*
+   }
+}
+
+kernel_from!(2, 3, 4, 5, 6, 7, 8, 9,
+             10, 11, 12, 13, 14, 15,
+             16, 17, 18, 19, 20,);
+
 
 impl Filter for Kernel {
     fn compute_at<T: Type, C: Color, I: Image<T, C>>(
@@ -70,9 +84,7 @@ impl Filter for Kernel {
 impl Kernel {
     pub fn new(rows: usize, cols: usize) -> Kernel {
         let data = vec![vec![0.0; cols]; rows];
-        let mut k = Kernel { data, rows, cols };
-        k.normalize();
-        k
+        Kernel { data, rows, cols }
     }
 
     pub fn normalize(&mut self) {
@@ -96,7 +108,6 @@ impl Kernel {
                 d[i] = f(i, j);
             }
         }
-        k.normalize();
         k
     }
 }
@@ -105,11 +116,13 @@ pub fn gaussian(n: usize, std: f64) -> Kernel {
     assert!(n % 2 != 0);
     let std2 = std * std;
     let a = 1.0 / (2.0 * f64::consts::PI * std2);
-    Kernel::create(n, n, |i, j| {
+    let mut k = Kernel::create(n, n, |i, j| {
         let x = (i * i + j * j) as f64 / (2.0 * std2);
         a * f64::consts::E.powf(-1.0 * x)
 
-    })
+    });
+    k.normalize();
+    k
 }
 
 lazy_static! {
