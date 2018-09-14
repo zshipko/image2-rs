@@ -70,7 +70,9 @@ impl Filter for Kernel {
 impl Kernel {
     pub fn new(rows: usize, cols: usize) -> Kernel {
         let data = vec![vec![0.0; cols]; rows];
-        Kernel { data, rows, cols }
+        let mut k = Kernel { data, rows, cols };
+        k.normalize();
+        k
     }
 
     pub fn normalize(&mut self) {
@@ -94,6 +96,7 @@ impl Kernel {
                 d[i] = f(i, j);
             }
         }
+        k.normalize();
         k
     }
 }
@@ -103,7 +106,7 @@ pub fn gaussian(n: usize, std: f64) -> Kernel {
     let std2 = std * std;
     let a = 1.0 / (2.0 * f64::consts::PI * std2);
     Kernel::create(n, n, |i, j| {
-        let x = (i * i + j * j) as f64 / 2.0 * std2;
+        let x = (i * i + j * j) as f64 / (2.0 * std2);
         a * f64::consts::E.powf(-1.0 * x)
 
     })

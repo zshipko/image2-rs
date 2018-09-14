@@ -3,8 +3,17 @@
 use color::{Gray, Rgb};
 use filter::{Filter, Invert, ToGrayscale};
 use io::{png, jpg, magick};
-use kernel::{sobel, Kernel};
+use kernel::{sobel, gaussian_5x5, Kernel};
 use {Image, ImageBuf, Layout};
+
+use std::time::{Instant};
+
+fn timer<F: FnMut()>(name: &str, mut f: F) {
+    let now = Instant::now();
+    f();
+    let t = now.elapsed();
+    println!("BENCHMARK {}: {}s", name, t.as_secs() as f64 + (t.subsec_millis() as f64 * 0.001))
+}
 
 #[test]
 fn test_image_buffer_new() {
@@ -18,35 +27,35 @@ fn test_image_buffer_new() {
 #[test]
 fn test_read_write() {
     let a: ImageBuf<u8, Rgb> = jpg::read("test/test.jpg").unwrap();
-    magick::write("test0.jpg", &a).unwrap();
-    png::write("test0a.png", &a).unwrap();
+    magick::write("test/test-read-write0.jpg", &a).unwrap();
+    png::write("test/test-read-write1.png", &a).unwrap();
 
-    let b: ImageBuf<u8, Rgb> = png::read("test0.png").unwrap();
-    png::write("test0b.png", &b).unwrap();
+    let b: ImageBuf<u8, Rgb> = png::read("test/test-read-write1.png").unwrap();
+    png::write("test/test-read-write2.png", &b).unwrap();
 }
 
 #[test]
 fn test_to_grayscale() {
     let image: ImageBuf<f32, Rgb> = magick::read("test/test.jpg").unwrap();
     let mut dest = image.new_like();
-    ToGrayscale.eval(&mut dest, &[&image]);
-    magick::write("test1.jpg", &dest).unwrap();
+    timer("ToGrayscale", || ToGrayscale.eval(&mut dest, &[&image]));
+    magick::write("test/test-grayscale.jpg", &dest).unwrap();
 }
 
 #[test]
 fn test_invert() {
     let image: ImageBuf<f32, Rgb> = magick::read("test/test.jpg").unwrap();
     let mut dest = image.new_like();
-    Invert.eval_s(&mut dest, &[&image]);
-    magick::write("test2.jpg", &dest).unwrap();
+    timer("Invert", || Invert.eval_s(&mut dest, &[&image]));
+    magick::write("test/test-invert.jpg", &dest).unwrap();
 }
 
 #[test]
 fn test_invert_parallel() {
     let image: ImageBuf<f32, Rgb> = magick::read("test/test.jpg").unwrap();
     let mut dest = image.new_like();
-    Invert.eval(&mut dest, &[&image]);
-    magick::write("test2p.jpg", &dest).unwrap();
+    timer("Invert parallel", || Invert.eval(&mut dest, &[&image]));
+    magick::write("test/test-invert-parallel.jpg", &dest).unwrap();
 }
 
 #[test]
@@ -54,8 +63,8 @@ fn test_kernel() {
     let image: ImageBuf<f32, Gray> = magick::read("test/test.jpg").unwrap();
     let mut dest = image.new_like();
     let k = Kernel::from([[-1.0, -1.0, -1.0], [-1.0, 8.0, -1.0], [-1.0, -1.0, -1.0]]);
-    k.eval_s(&mut dest, &[&image]);
-    magick::write("test3.jpg", &dest).unwrap();
+    timer("Kernel", || k.eval_s(&mut dest, &[&image]));
+    magick::write("test/test-simple-kernel.jpg", &dest).unwrap();
 }
 
 #[test]
@@ -63,8 +72,17 @@ fn test_kernel_parallel() {
     let image: ImageBuf<f32, Gray> = magick::read("test/test.jpg").unwrap();
     let mut dest = image.new_like();
     let k = Kernel::from([[-1.0, -1.0, -1.0], [-1.0, 8.0, -1.0], [-1.0, -1.0, -1.0]]);
-    k.eval(&mut dest, &[&image]);
-    magick::write("test3p.jpg", &dest).unwrap();
+    timer("Kernel parallel", || k.eval(&mut dest, &[&image]));
+    magick::write("test/test-simple-kernel-parallel.jpg", &dest).unwrap();
+}
+
+#[test]
+fn test_gaussian_blur() {
+    let image: ImageBuf<f32, Rgb> = magick::read("test/test.jpg").unwrap();
+    let mut dest = image.new_like();
+    let k = gaussian_5x5();
+    timer("Gaussian blur", || k.eval(&mut dest, &[&image]));
+    magick::write("test/test-gaussian-blur.jpg", &dest).unwrap();
 }
 
 #[test]
@@ -72,30 +90,24 @@ fn test_sobel() {
     let image: ImageBuf<f32, Gray> = magick::read("test/test.jpg").unwrap();
     let mut dest = image.new_like();
     let k = sobel();
-    k.eval(&mut dest, &[&image]);
-    magick::write("test4.jpg", &dest).unwrap();
-}
-
-#[test]
-fn test_mean_stddev() {
-    let image: ImageBuf<f32, Gray> = magick::read("test/test.jpg").unwrap();
-    println!("{:?}", image.mean_stddev());
+    timer("Sobel", || k.eval(&mut dest, &[&image]));
+    magick::write("test/test-sobel.jpg", &dest).unwrap();
 }
 
 #[test]
 fn test_convert_to_planar() {
     let image: ImageBuf<f32, Rgb> = magick::read("test/test.jpg").unwrap();
     image.clone().convert_layout(Layout::Planar);
-    magick::write("test5.jpg", &image).unwrap();
+    magick::write("test/test-convert-to-planar.jpg", &image).unwrap();
 }
 
 #[test]
 fn test_convert_layout_rountrip() {
     let mut image: ImageBuf<f32, Rgb> = magick::read("test/test.jpg").unwrap();
     image.convert_layout(Layout::Planar);
-    magick::write("test_layout_planar.jpg", &image).unwrap();
+    magick::write("test/test-layout-planar.jpg", &image).unwrap();
     image.convert_layout(Layout::Interleaved);
-    magick::write("test_layout_rountrip.jpg", &image).unwrap();
+    magick::write("test/test-layout-rountrip.jpg", &image).unwrap();
 }
 
 

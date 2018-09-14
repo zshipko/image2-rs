@@ -86,7 +86,7 @@ mod test {
         let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
         let mut dest = ImageBuf::new(a.height(), a.width());
         rotate90(&mut dest, &a);
-        magick::write("test_rotate90.jpg", &dest).unwrap();
+        magick::write("test/test-rotate90.jpg", &dest).unwrap();
     }
 
     #[test]
@@ -94,7 +94,7 @@ mod test {
         let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
         let mut dest = ImageBuf::new(a.width(), a.height());
         rotate180(&mut dest, &a);
-        magick::write("test_rotate180.jpg", &dest).unwrap();
+        magick::write("test/test-rotate180.jpg", &dest).unwrap();
     }
 
     #[test]
@@ -102,7 +102,7 @@ mod test {
         let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
         let mut dest = ImageBuf::new(a.width() * 2, a.height() * 2);
         scale(&mut dest, &a, 2., 2.);
-        magick::write("test_scale.jpg", &dest).unwrap();
+        magick::write("test/test-scale.jpg", &dest).unwrap();
     }
 
 
