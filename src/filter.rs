@@ -139,13 +139,22 @@ image2_filter!(Blend, x, y, c, input, {
 
 image2_filter!(ToGrayscale, x, y, _c, input, {
     let a = input[0];
-    a.get_f(x, y, 0) * 0.21 + a.get_f(x, y, 1) * 0.72 + a.get_f(x, y, 2) * 0.07
+    let v = a.get_f(x, y, 0) * 0.21 + a.get_f(x, y, 1) * 0.72 + a.get_f(x, y, 2) * 0.07;
+    if C::channels() == 4 {
+        return v * a.get_f(x, y, 3);
+    }
+    v
 });
 
 image2_filter!(ToColor, x, y, c, input, {
-    if c == 4 && C::channels() < 4 {
+    if c == 4 {
         return T::max_f();
     }
 
-    input[0].get_f(x, y, 0)
+    input[0].get_f(x, y, c % C::channels())
+});
+
+image2_filter!(RgbaToRgb, x, y, c, input, {
+    let a = input[0];
+    a.get_f(x, y, c) * a.get_f(x, y, 3)
 });

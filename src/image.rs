@@ -1,4 +1,5 @@
-use color::Color;
+use color::{Color, Gray, Rgb, Rgba};
+use filter::{Filter, RgbaToRgb, ToColor, ToGrayscale};
 use image_buf::ImageBuf;
 use image_ref::ImageRef;
 use pixel::{Pixel, PixelMut};
@@ -105,7 +106,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         px
     }
 
-    fn at<'a>(&self, x: usize, y: usize) -> Vec<&'a T> {
+    fn at(&self, x: usize, y: usize) -> Vec<&T> {
         let mut px = Vec::with_capacity(C::channels());
         let (width, height, channels) = self.shape();
         let layout = self.layout().clone();
@@ -237,5 +238,45 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         });
 
         dest
+    }
+}
+
+pub trait Convert<FromType: Type, FromColor: Color, ToType: Type, ToColor: Color> {
+    fn convert(&self, to: &mut impl Image<ToType, ToColor>);
+}
+
+impl<T: Type, U: Type, I: Image<T, Rgb>> Convert<T, Rgb, U, Rgba> for I {
+    fn convert(&self, to: &mut impl Image<U, Rgba>) {
+        ToColor.eval(to, &[self]);
+    }
+}
+
+impl<T: Type, U: Type, I: Image<T, Rgba>> Convert<T, Rgba, U, Rgb> for I {
+    fn convert(&self, to: &mut impl Image<U, Rgb>) {
+        RgbaToRgb.eval(to, &[self]);
+    }
+}
+
+impl<T: Type, U: Type, I: Image<T, Rgb>> Convert<T, Rgb, U, Gray> for I {
+    fn convert(&self, to: &mut impl Image<U, Gray>) {
+        ToGrayscale.eval(to, &[self]);
+    }
+}
+
+impl<T: Type, U: Type, I: Image<T, Rgba>> Convert<T, Rgba, U, Gray> for I {
+    fn convert(&self, to: &mut impl Image<U, Gray>) {
+        ToGrayscale.eval(to, &[self]);
+    }
+}
+
+impl<T: Type, U: Type, I: Image<T, Gray>> Convert<T, Gray, U, Rgb> for I {
+    fn convert(&self, to: &mut impl Image<U, Rgb>) {
+        ToColor.eval(to, &[self]);
+    }
+}
+
+impl<T: Type, U: Type, I: Image<T, Gray>> Convert<T, Gray, U, Rgba> for I {
+    fn convert(&self, to: &mut impl Image<U, Rgba>) {
+        ToColor.eval(to, &[self]);
     }
 }

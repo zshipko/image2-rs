@@ -3,7 +3,7 @@ use jpeg;
 use std::fs::File;
 use std::path::Path;
 
-use color::{Color, Gray, Rgb, RgbToRgba};
+use color::{Color, Gray, Rgb};
 use error::Error;
 use filter::{Filter, ToColor, ToGrayscale};
 use image::{Image, Layout};
@@ -46,7 +46,7 @@ pub fn read<P: AsRef<Path>, C: Color>(path: P) -> Result<ImageBuf<u8, C>, Error>
                 pixels,
             );
             let mut dest: ImageBuf<u8, C> = ImageBuf::new(tmp.width(), tmp.height());
-            RgbToRgba.eval(&mut dest, &[&tmp]);
+            ToColor.eval(&mut dest, &[&tmp]);
             Ok(dest)
         }
         ("rgb", jpeg::PixelFormat::L8) => {

@@ -24,7 +24,7 @@ extern crate png;
 mod tests;
 
 #[macro_use]
-mod image;
+pub mod image;
 #[macro_use]
 pub mod filter;
 pub mod color;

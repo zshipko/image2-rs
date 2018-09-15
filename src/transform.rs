@@ -65,6 +65,12 @@ pub fn rotate180<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I) {
     rotate(dest, src, 180., Point::new(dwidth / 2., height / 2.));
 }
 
+pub fn rotate270<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I) {
+    let width = src.height() as f64;
+    let dheight = dest.width() as f64;
+    rotate(dest, src, 270., Point::new(width / 2., dheight / 2.));
+}
+
 #[cfg(test)]
 mod test {
     use {

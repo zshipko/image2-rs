@@ -4,9 +4,9 @@ use png::HasParameters;
 use std::fs::File;
 use std::path::Path;
 
-use color::{Color, Gray, Rgb, RgbToRgba, Rgba, RgbaToRgb};
+use color::{Color, Gray, Rgb, Rgba};
 use error::Error;
-use filter::{Filter, ToColor, ToGrayscale};
+use filter::{Filter, RgbaToRgb, ToColor, ToGrayscale};
 use image::Image;
 use image_buf::ImageBuf;
 
@@ -82,7 +82,7 @@ pub fn read<P: AsRef<Path>, C: Color>(path: P) -> Result<ImageBuf<u8, C>, Error>
             reader.next_frame(image.data_mut())?;
             let mut dest: ImageBuf<u8, C> =
                 ImageBuf::new(info.width as usize, info.height as usize);
-            RgbToRgba.eval(&mut dest, &[&image]);
+            ToColor.eval(&mut dest, &[&image]);
             Ok(dest)
         }
         ("rgba", png::ColorType::RGBA) => {
