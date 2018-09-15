@@ -3,8 +3,8 @@ use filter::Filter;
 use image::Image;
 use ty::Type;
 
-use std::ops;
 use std::f64;
+use std::ops;
 
 #[cfg_attr(feature = "ser", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
@@ -30,7 +30,11 @@ impl<'a> From<&'a [&'a [f64]]> for Kernel {
         for d in data {
             v.push(Vec::from(*d))
         }
-        Kernel { data: v, rows, cols }
+        Kernel {
+            data: v,
+            rows,
+            cols,
+        }
     }
 }
 
@@ -54,10 +58,7 @@ macro_rules! kernel_from {
    }
 }
 
-kernel_from!(2, 3, 4, 5, 6, 7, 8, 9,
-             10, 11, 12, 13, 14, 15,
-             16, 17, 18, 19, 20,);
-
+kernel_from!(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,);
 
 impl Filter for Kernel {
     fn compute_at<T: Type, C: Color, I: Image<T, C>>(
@@ -90,7 +91,7 @@ impl Kernel {
     pub fn normalize(&mut self) {
         let sum: f64 = self.data.iter().map(|x| -> f64 { x.iter().sum() }).sum();
         if sum == 0.0 {
-            return
+            return;
         }
 
         for j in 0..self.rows {
@@ -119,7 +120,6 @@ pub fn gaussian(n: usize, std: f64) -> Kernel {
     let mut k = Kernel::create(n, n, |i, j| {
         let x = (i * i + j * j) as f64 / (2.0 * std2);
         a * f64::consts::E.powf(-1.0 * x)
-
     });
     k.normalize();
     k
@@ -158,8 +158,8 @@ lazy_static! {
         rows: 3,
         cols: 3,
         data: vec![
-            vec![ 1.0,  2.0,  1.0],
-            vec![ 0.0,  0.0,  0.0],
+            vec![1.0, 2.0, 1.0],
+            vec![0.0, 0.0, 0.0],
             vec![-1.0, -2.0, -1.0],
         ]
     };
@@ -187,7 +187,11 @@ macro_rules! op {
                     let kr = &self.a.data[(ky + r2) as usize];
                     let kr1 = &self.b.data[(ky + r2) as usize];
                     for kx in -c2..c2 + 1 {
-                        let x = input[0].get_f((x as isize + kx) as usize, (y as isize + ky) as usize, c);
+                        let x = input[0].get_f(
+                            (x as isize + kx) as usize,
+                            (y as isize + ky) as usize,
+                            c,
+                        );
                         f += $f(x * kr[(kx + c2) as usize], x * kr1[(kx + c2) as usize]);
                     }
                 }
@@ -199,13 +203,10 @@ macro_rules! op {
             type Output = $name;
 
             fn $fx(self, other: Kernel) -> $name {
-                $name {
-                    a: self,
-                    b: other,
-                }
+                $name { a: self, b: other }
             }
         }
-    }
+    };
 }
 
 op!(Add, add, |a, b| a + b);
@@ -233,4 +234,3 @@ pub fn gaussian_7x7() -> Kernel {
 pub fn gaussian_9x9() -> Kernel {
     GAUSSIAN_9X9.clone()
 }
-

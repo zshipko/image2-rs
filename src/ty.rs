@@ -20,6 +20,14 @@ pub trait Type:
     fn min_f() -> f64;
     fn max_f() -> f64;
 
+    fn min() -> Self {
+        Self::from_float(Self::min_f())
+    }
+
+    fn max() -> Self {
+        Self::from_float(Self::max_f())
+    }
+
     fn is_float() -> bool {
         Self::to_float(&Self::from_float(0.5)) == 0.5
     }
@@ -105,7 +113,7 @@ make_type!(f64, 0, 1);
 
 #[cfg(test)]
 mod test {
-    use ::*;
+    use *;
 
     #[test]
     fn test_type_is_float() {

@@ -2,17 +2,21 @@
 
 use color::{Gray, Rgb};
 use filter::{Filter, Invert, ToGrayscale};
-use io::{png, jpg, magick};
-use kernel::{sobel, gaussian_5x5, Kernel};
+use io::{jpg, magick, png};
+use kernel::{gaussian_5x5, sobel, Kernel};
 use {Image, ImageBuf, Layout};
 
-use std::time::{Instant};
+use std::time::Instant;
 
 fn timer<F: FnMut()>(name: &str, mut f: F) {
     let now = Instant::now();
     f();
     let t = now.elapsed();
-    println!("BENCHMARK {}: {}s", name, t.as_secs() as f64 + (t.subsec_millis() as f64 * 0.001))
+    println!(
+        "BENCHMARK {}: {}s",
+        name,
+        t.as_secs() as f64 + (t.subsec_millis() as f64 * 0.001)
+    )
 }
 
 #[test]
@@ -109,5 +113,3 @@ fn test_convert_layout_rountrip() {
     image.convert_layout(Layout::Interleaved);
     magick::write("test/test-layout-rountrip.jpg", &image).unwrap();
 }
-
-

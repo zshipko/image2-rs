@@ -1,16 +1,17 @@
 use color::Color;
-use ty::Type;
-use pixel::{Pixel, PixelVec, PixelMut};
-use image_ref::ImageRef;
 use image_buf::ImageBuf;
+use image_ref::ImageRef;
+use pixel::{Pixel, PixelMut};
+use ty::Type;
 
 use rayon::prelude::*;
 
 #[cfg_attr(feature = "ser", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[repr(C)]
 pub enum Layout {
     Planar,
-    Interleaved
+    Interleaved,
 }
 
 impl Default for Layout {
@@ -28,7 +29,7 @@ macro_rules! image2_for_each_at {
                 $body
             }
         }
-    }
+    };
 }
 
 #[macro_export]
@@ -41,15 +42,22 @@ macro_rules! image2_for_each_get {
                 $body
             }
         }
-    }
+    };
 }
 
-
 #[inline]
-pub fn index(layout: &Layout, width: usize, height: usize, channels: usize, x: usize, y: usize, c: usize) -> usize {
+pub fn index(
+    layout: &Layout,
+    width: usize,
+    height: usize,
+    channels: usize,
+    x: usize,
+    y: usize,
+    c: usize,
+) -> usize {
     match layout {
         Layout::Planar => width * height * c + width * y + x,
-        Layout::Interleaved => width * channels * y + channels * x + c
+        Layout::Interleaved => width * channels * y + channels * x + c,
     }
 }
 
@@ -92,9 +100,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         let data = self.data_mut().as_mut_ptr();
         for i in 0..C::channels() {
             let index = index(&layout, width, height, channels, x, y, i);
-            unsafe {
-                px.push(&mut *data.offset(index as isize))
-            }
+            unsafe { px.push(&mut *data.offset(index as isize)) }
         }
         px
     }
@@ -106,21 +112,19 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         let data = self.data().as_ptr();
         for i in 0..C::channels() {
             let index = index(&layout, width, height, channels, x, y, i);
-            unsafe {
-                px.push(&*data.offset(index as isize))
-            }
+            unsafe { px.push(&*data.offset(index as isize)) }
         }
         px
     }
 
-    fn get_pixel<'a, P: PixelMut<'a, T>>(&self, x: usize, y: usize, px: &mut P) {
+    fn get_pixel<'a, P: PixelMut<'a, T, C>>(&self, x: usize, y: usize, px: &mut P) {
         for i in 0..C::channels() {
             let index = self.index(x, y, i);
             px.as_mut()[i] = self.data()[index]
         }
     }
 
-    fn set_pixel<'a, P: Pixel<'a, T>>(&mut self, x: usize, y: usize, px: &P) {
+    fn set_pixel<'a, P: Pixel<'a, T, C>>(&mut self, x: usize, y: usize, px: &P) {
         for i in 0..C::channels() {
             let index = self.index(x, y, i);
             self.data_mut()[index] = px.as_ref()[i]
@@ -178,10 +182,11 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
 
     fn convert_layout(&mut self, layout: Layout) {
         if self.layout() == &layout {
-            return
+            return;
         }
 
-        let mut buf: ImageBuf<T, C> = ImageBuf::new_with_layout(self.width(), self.height(), layout);
+        let mut buf: ImageBuf<T, C> =
+            ImageBuf::new_with_layout(self.width(), self.height(), layout);
         buf.for_each(|(x, y), mut px| {
             for i in 0..C::channels() {
                 let index = self.index(x, y, i);
@@ -193,7 +198,12 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
     }
 
     fn as_image_ref(&mut self) -> ImageRef<T, C> {
-        ImageRef::new(self.width(), self.height(), self.layout().clone(), self.data_mut().as_mut())
+        ImageRef::new(
+            self.width(),
+            self.height(),
+            self.layout().clone(),
+            self.data_mut().as_mut(),
+        )
     }
 
     fn for_each<F: Sync + Send + Fn((usize, usize), Vec<&mut T>)>(&mut self, f: F) {
@@ -209,30 +219,11 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
                         let x = n - (y * width);
                         f((x, y), pixel)
                     });
-            },
+            }
             Layout::Planar => {
-                image2_for_each_at!(self, x, y, px, {
-                    f((x, y), px)
-                });
+                image2_for_each_at!(self, x, y, px, { f((x, y), px) });
             }
         }
-    }
-
-    fn mean_stddev(&self) -> (Vec<f64>, Vec<f64>) {
-        let mut mean = PixelVec::empty();
-        let mut variance = PixelVec::empty();
-
-        image2_for_each_get!(self, i, j, px, {
-            let v = px.to_pixel_vec();
-            mean += v.clone();
-            variance += &v * &v;
-        });
-
-        mean = mean.map(|x| x / (self.width() * self.height()) as f64);
-        variance = variance.map(|x| (x / (self.width() * self.height()) as f64));
-        variance -= &mean * &mean;
-
-        (mean.to_vec::<C>(), variance.to_vec::<C>())
     }
 
     fn crop(&self, x: usize, y: usize, width: usize, height: usize) -> ImageBuf<T, C> {
@@ -240,7 +231,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
 
         dest.for_each(|(i, j), mut px| {
             let src = self.at(x + i, y + j);
-            for c in 0 .. C::channels() {
+            for c in 0..C::channels() {
                 *px[c] = *src[c]
             }
         });
@@ -248,4 +239,3 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         dest
     }
 }
-

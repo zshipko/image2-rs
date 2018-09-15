@@ -1,5 +1,5 @@
-use std::io::Result;
 use image::Layout;
+use std::io::Result;
 
 use rscam;
 

@@ -85,7 +85,9 @@ pub trait Filter: Sized + Sync {
         output
             .data_mut()
             .par_iter_mut()
-            .chunks(channels).enumerate().for_each(|(n, mut pixel)| {
+            .chunks(channels)
+            .enumerate()
+            .for_each(|(n, mut pixel)| {
                 let y = n / width;
                 let x = n - (y * width);
                 for c in 0..channels {
@@ -127,7 +129,9 @@ macro_rules! image2_filter {
     };
 }
 
-image2_filter!(Invert, x, y, c, input, { T::max_f() - input[0].get_f(x, y, c) });
+image2_filter!(Invert, x, y, c, input, {
+    T::max_f() - input[0].get_f(x, y, c)
+});
 
 image2_filter!(Blend, x, y, c, input, {
     (input[0].get_f(x, y, c) + input[1].get_f(x, y, c)) / 2.0

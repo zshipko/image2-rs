@@ -1,6 +1,6 @@
-use ty::Type;
 use color::Color;
-use image::{Layout, Image};
+use image::{Image, Layout};
+use ty::Type;
 
 use std::marker::PhantomData;
 

@@ -1,6 +1,6 @@
+extern crate euclid;
 extern crate num;
 extern crate rayon;
-extern crate euclid;
 #[macro_use]
 extern crate lazy_static;
 
@@ -17,8 +17,8 @@ extern crate rscam;
 #[cfg(feature = "raw")]
 extern crate rawloader;
 
-extern crate png;
 extern crate jpeg_decoder as jpeg;
+extern crate png;
 
 #[cfg(test)]
 mod tests;
@@ -29,18 +29,18 @@ mod image;
 pub mod filter;
 pub mod color;
 mod error;
+mod image_buf;
+mod image_ref;
 pub mod io;
 pub mod kernel;
 mod pixel;
 pub mod transform;
 mod ty;
-mod image_buf;
-mod image_ref;
 
 pub use color::{Color, Gray, Rgb, Rgba};
 pub use error::Error;
 pub use filter::Filter;
-pub use image::{Layout, Image};
+pub use image::{Image, Layout};
 pub use image_buf::ImageBuf;
 pub use image_ref::ImageRef;
 pub use kernel::Kernel;

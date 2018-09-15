@@ -1,5 +1,5 @@
 use euclid;
-use ::{Color, Filter, Image, Type};
+use {Color, Filter, Image, Type};
 
 pub type Point<T> = euclid::Point2D<T>;
 pub struct Transform(pub euclid::Transform2D<f64>);
@@ -14,7 +14,9 @@ impl Filter for Transform {
     ) -> f64 {
         let pt = Point::new(x as f64, y as f64);
         let dest = self.0.transform_point(&pt);
-        (input[0].get_f(dest.x.floor() as usize, dest.y.floor() as usize, c) + input[0].get_f(dest.x.ceil() as usize, dest.y.ceil() as usize, c)) / 2.
+        (input[0].get_f(dest.x.floor() as usize, dest.y.floor() as usize, c)
+            + input[0].get_f(dest.x.ceil() as usize, dest.y.ceil() as usize, c))
+            / 2.
     }
 }
 
@@ -35,29 +37,18 @@ pub fn rotate<T: Type, C: Color, I: Image<T, C>>(
 }
 
 #[inline]
-pub fn scale<T: Type, C: Color, I: Image<T, C>>(
-    dest: &mut I,
-    src: &I,
-    x: f64,
-    y: f64,
-) {
-    let filter = Transform(
-        euclid::Transform2D::create_scale(1.0 / x, 1.0 / y)
-    );
+pub fn scale<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I, x: f64, y: f64) {
+    let filter = Transform(euclid::Transform2D::create_scale(1.0 / x, 1.0 / y));
 
     filter.eval(dest, &[src])
 }
 
 #[inline]
-pub fn resize<T: Type, C: Color, I: Image<T, C>>(
-    dest: &mut I,
-    src: &I,
-    x: usize,
-    y: usize,
-) {
-    let filter = Transform(
-        euclid::Transform2D::create_scale(src.width() as f64 / x as f64, src.height() as f64 / y as f64)
-    );
+pub fn resize<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I, x: usize, y: usize) {
+    let filter = Transform(euclid::Transform2D::create_scale(
+        src.width() as f64 / x as f64,
+        src.height() as f64 / y as f64,
+    ));
 
     filter.eval(dest, &[src])
 }
@@ -77,8 +68,9 @@ pub fn rotate180<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I) {
 #[cfg(test)]
 mod test {
     use {
-        io::magick, Image, ImageBuf, Rgb,
-        transform::{rotate180, rotate90, scale, resize},
+        io::magick,
+        transform::{resize, rotate180, rotate90, scale},
+        Image, ImageBuf, Rgb,
     };
 
     #[test]
@@ -104,7 +96,6 @@ mod test {
         scale(&mut dest, &a, 2., 2.);
         magick::write("test/test-scale.jpg", &dest).unwrap();
     }
-
 
     #[test]
     fn test_scale_resize() {

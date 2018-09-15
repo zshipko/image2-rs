@@ -1,10 +1,16 @@
-use ty::Type;
 use image::Image;
+use pixel::PixelMut;
+use ty::Type;
 
 pub trait Color: Sync + Send {
     fn name() -> &'static str;
     fn channels() -> usize;
     fn has_alpha() -> bool;
+}
+
+pub trait ConvertColor<'a, T: Type>: Color {
+    type To: Color;
+    fn convert(&self, to: &mut impl PixelMut<'a, T, Self::To>);
 }
 
 macro_rules! make_color {
@@ -45,5 +51,3 @@ image2_filter!(RgbaToRgb, x, y, c, input, {
     let max = T::max_f();
     input[0].get_f(x, y, c) * (input[0].get_f(x, y, 3) / max)
 });
-
-

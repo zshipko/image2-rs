@@ -1,8 +1,8 @@
 use io;
 use std::io::Error as IOError;
 
-use png;
 use jpeg;
+use png;
 
 #[derive(Debug)]
 pub enum Error {

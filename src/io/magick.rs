@@ -5,7 +5,7 @@ use std::process::{Command, Stdio};
 use std::usize;
 
 use color::Color;
-use image::{Layout, Image};
+use image::{Image, Layout};
 use image_buf::ImageBuf;
 use ty::Type;
 
@@ -70,7 +70,7 @@ impl Magick {
             .collect::<Vec<Result<usize, ParseIntError>>>();
 
         if t.len() < 2 {
-            return Err(Error::InvalidImageShape)
+            return Err(Error::InvalidImageShape);
         }
 
         let a = t[0].clone();
@@ -150,11 +150,7 @@ impl Magick {
 
         {
             let mut stdin = proc.stdin.take().unwrap();
-            let wdata: Vec<u8> = image
-                .data()
-                .iter()
-                .map(|x| x.convert())
-                .collect();
+            let wdata: Vec<u8> = image.data().iter().map(|x| x.convert()).collect();
             match stdin.write_all(&wdata) {
                 Ok(()) => (),
                 Err(_) => return Err(Error::ErrorWritingImage),
@@ -170,23 +166,20 @@ impl Magick {
     }
 }
 
-pub fn read_with_layout<P: AsRef<Path>, T: Type, C: Color>(path: P, layout: Layout) -> Result<ImageBuf<T, C>, Error> {
-    unsafe {
-        DEFAULT.read_with_layout(path, layout)
-    }
+pub fn read_with_layout<P: AsRef<Path>, T: Type, C: Color>(
+    path: P,
+    layout: Layout,
+) -> Result<ImageBuf<T, C>, Error> {
+    unsafe { DEFAULT.read_with_layout(path, layout) }
 }
 
 pub fn read<P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<ImageBuf<T, C>, Error> {
-    unsafe {
-        DEFAULT.read(path)
-    }
+    unsafe { DEFAULT.read(path) }
 }
 
 pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(
     path: P,
     image: &I,
 ) -> Result<(), Error> {
-    unsafe {
-        DEFAULT.write(path, image)
-    }
+    unsafe { DEFAULT.write(path, image) }
 }
