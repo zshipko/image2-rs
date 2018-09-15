@@ -1,6 +1,6 @@
 # image2
 
-Another image processing library for Rust focused on generic, composable image operations.
+A Rust image processing crate focused on supporting a wide range of datatypes.
 
 ## Installation
 
@@ -46,6 +46,6 @@ fn main() {
     filter.eval_p(&mut output, &[&image]);
 
     // Save the image using ImageMagick
-    magick::write("interted_grayscale.jpg", &output).unwrap();
+    magick::write("inverted_grayscale.jpg", &output).unwrap();
 }
 ```
