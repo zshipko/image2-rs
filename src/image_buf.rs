@@ -4,6 +4,7 @@ use ty::Type;
 
 use std::marker::PhantomData;
 
+/// Image implementation that uses a Vec for image data
 #[cfg_attr(feature = "ser", derive(Serialize, Deserialize))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct ImageBuf<T: Type, C: Color> {
@@ -37,6 +38,7 @@ impl<T: Type, C: Color> Image<T, C> for ImageBuf<T, C> {
 }
 
 impl<T: Type, C: Color> ImageBuf<T, C> {
+    /// Create a new ImageBuf with the given size and layout
     pub fn new_with_layout(width: usize, height: usize, layout: Layout) -> Self {
         ImageBuf {
             width,
@@ -47,14 +49,17 @@ impl<T: Type, C: Color> ImageBuf<T, C> {
         }
     }
 
+    /// Create a new ImageBuf with the default layout
     pub fn new(width: usize, height: usize) -> Self {
         Self::new_with_layout(width, height, Layout::default())
     }
 
+    /// Convert the ImageBuf back to the underlying data buffer
     pub fn inner(self) -> Vec<T> {
         self.data
     }
 
+    /// Create a new image with the same type, shape and layout as an existing image
     pub fn new_like(&self) -> Self {
         Self::new_with_layout(self.width, self.height, self.layout)
     }

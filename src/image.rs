@@ -21,20 +21,22 @@ impl Default for Layout {
     }
 }
 
+/// Iterate over pixels using Image::at_mut
 #[macro_export]
-macro_rules! image2_for_each_at {
+macro_rules! image2_for_each_mut {
     ($image:expr, $i:ident, $j:ident, $px:ident, $body:block) => {
         for $j in 0..$image.height() {
             for $i in 0..$image.width() {
-                let $px = $image.at_mut($i, $j);
+                let mut $px = $image.at_mut($i, $j);
                 $body
             }
         }
     };
 }
 
+/// Iterate over pixels using Image::get_pixel
 #[macro_export]
-macro_rules! image2_for_each_get {
+macro_rules! image2_for_each {
     ($image:expr, $i:ident, $j:ident, $px:ident, $body:block) => {
         let mut $px = $image.empty_pixel();
         for $j in 0..$image.height() {
@@ -62,12 +64,21 @@ pub fn index(
     }
 }
 
+/// The Image trait defines many methods for interaction with images in a generic manner
 pub trait Image<T: Type, C: Color>: Sync + Send {
+    /// Returns the width, height and channels of an image
     fn shape(&self) -> (usize, usize, usize);
+
+    /// Determines the layout of image data
     fn layout(&self) -> &Layout;
+
+    /// Change layout without changing any image data
     fn set_layout(&mut self, layout: Layout);
 
+    /// An immutable reference to the underlying image data
     fn data(&self) -> &[T];
+
+    /// A mutable reference to the underlying image data
     fn data_mut(&mut self) -> &mut [T];
 
     fn width(&self) -> usize {
@@ -85,15 +96,18 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         channels
     }
 
+    /// Get the offset of the component at (x, y, c)
     fn index(&self, x: usize, y: usize, c: usize) -> usize {
         let (width, height, channels) = self.shape();
         index(self.layout(), width, height, channels, x, y, c)
     }
 
+    /// Create a new, empty pixel with each component set to 0
     fn empty_pixel(&self) -> Vec<T> {
         vec![T::zero(); C::channels()]
     }
 
+    /// Get a vector of mutable references to each component at (x, y)
     fn at_mut(&mut self, x: usize, y: usize) -> Vec<&mut T> {
         let mut px = Vec::with_capacity(C::channels());
         let (width, height, channels) = self.shape();
@@ -106,6 +120,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         px
     }
 
+    /// Get a vector of immutable references to each component at (x, y)
     fn at(&self, x: usize, y: usize) -> Vec<&T> {
         let mut px = Vec::with_capacity(C::channels());
         let (width, height, channels) = self.shape();
@@ -118,6 +133,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         px
     }
 
+    /// Load data from the pixel at (x, y) into px
     fn get_pixel<'a, P: PixelMut<'a, T, C>>(&self, x: usize, y: usize, px: &mut P) {
         for i in 0..C::channels() {
             let index = self.index(x, y, i);
@@ -125,6 +141,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         }
     }
 
+    /// Set data at (x, y) from px
     fn set_pixel<'a, P: Pixel<'a, T, C>>(&mut self, x: usize, y: usize, px: &P) {
         for i in 0..C::channels() {
             let index = self.index(x, y, i);
@@ -132,6 +149,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         }
     }
 
+    /// Get a single component at (x, y, c) as a noramlized f64 value
     fn get_f(&self, x: usize, y: usize, c: usize) -> f64 {
         let (width, height, channels) = self.shape();
         if x >= width || y >= height || c >= channels {
@@ -144,6 +162,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         }
     }
 
+    /// Set the component at (x, y, c) using a normalized f64 value
     fn set_f(&mut self, x: usize, y: usize, c: usize, f: f64) {
         let (width, height, channels) = self.shape();
         if x >= width || y >= height || c >= channels {
@@ -156,6 +175,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         }
     }
 
+    /// Get a single component at (x, y, c)
     fn get(&self, x: usize, y: usize, c: usize) -> T {
         let (width, height, channels) = self.shape();
         if x >= width || y >= height || c >= channels {
@@ -165,6 +185,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         self.data()[index]
     }
 
+    /// Set a single component at (x, y, c)
     fn set(&mut self, x: usize, y: usize, c: usize, t: T) {
         let (width, height, channels) = self.shape();
         if x >= width || y >= height || c >= channels {
@@ -174,6 +195,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         self.data_mut()[index] = t;
     }
 
+    /// Convert from type T to type U
     fn convert_type<U: Type, I: Image<U, C>>(&self, dest: &mut I) {
         let ddata = dest.data_mut();
         for (i, x) in self.data().iter().enumerate() {
@@ -181,6 +203,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         }
     }
 
+    /// Convert image layout type
     fn convert_layout(&mut self, layout: Layout) {
         if self.layout() == &layout {
             return;
@@ -198,6 +221,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         self.set_layout(layout);
     }
 
+    /// Convert Image to ImageRef
     fn as_image_ref(&mut self) -> ImageRef<T, C> {
         ImageRef::new(
             self.width(),
@@ -207,6 +231,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         )
     }
 
+    /// Iterate over each pixel in parallel
     fn for_each<F: Sync + Send + Fn((usize, usize), Vec<&mut T>)>(&mut self, f: F) {
         match self.layout() {
             Layout::Interleaved => {
@@ -222,11 +247,12 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
                     });
             }
             Layout::Planar => {
-                image2_for_each_at!(self, x, y, px, { f((x, y), px) });
+                image2_for_each_mut!(self, x, y, px, { f((x, y), px) });
             }
         }
     }
 
+    /// Create a new image from the region specified by (x, y, width, height)
     fn crop(&self, x: usize, y: usize, width: usize, height: usize) -> ImageBuf<T, C> {
         let mut dest = ImageBuf::new(width, height);
 
@@ -241,6 +267,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
     }
 }
 
+/// Provides a way to convert between image types
 pub trait Convert<FromType: Type, FromColor: Color, ToType: Type, ToColor: Color> {
     fn convert(&self, to: &mut impl Image<ToType, ToColor>);
 }
