@@ -17,5 +17,5 @@ imaged = "0.3"
     * RAW image support via [rawloader](https://crates.io/crates/rawloader)
 - `v4l`
     * Webcam capture on Linux via [rscam](https://github.com/loyd/rscam)
-- `serce`
+- `serde`
     * Serde support for many datatypes in `image2`
