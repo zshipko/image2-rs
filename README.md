@@ -8,7 +8,7 @@ Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-image2 = "0.3"
+image2 = "0.4"
 ```
 
 ### Optional crate features

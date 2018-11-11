@@ -4,7 +4,7 @@ use color::Color;
 use image::Image;
 use ty::Type;
 
-pub struct Combine<'a, A: 'a + Filter, B: Filter, F: Fn(f64, f64) -> f64> {
+pub struct Join<'a, A: 'a + Filter, B: Filter, F: Fn(f64, f64) -> f64> {
     a: &'a A,
     b: B,
     f: F,
@@ -28,7 +28,7 @@ impl<'a, A: Filter, F: Sync + Fn(f64) -> f64> Filter for AndThen<'a, A, F> {
     }
 }
 
-impl<'a, A: Filter, B: Filter, F: Sync + Fn(f64, f64) -> f64> Filter for Combine<'a, A, B, F> {
+impl<'a, A: Filter, B: Filter, F: Sync + Fn(f64, f64) -> f64> Filter for Join<'a, A, B, F> {
     fn compute_at<T: Type, C: Color, I: Image<T, C>>(
         &self,
         x: usize,
@@ -97,8 +97,8 @@ pub trait Filter: Sized + Sync {
             });
     }
 
-    fn combine<A: Filter, F: Fn(f64, f64) -> f64>(&self, other: A, f: F) -> Combine<Self, A, F> {
-        Combine {
+    fn join<A: Filter, F: Fn(f64, f64) -> f64>(&self, other: A, f: F) -> Join<Self, A, F> {
+        Join {
             a: self,
             b: other,
             f,
