@@ -1,6 +1,3 @@
-use image::Image;
-use ty::Type;
-
 pub trait Color: Sync + Send {
     fn name() -> &'static str;
     fn channels() -> usize;
@@ -29,11 +26,9 @@ macro_rules! make_color {
 
 make_color!(Gray, "gray", 1, false);
 make_color!(Rgb, "rgb", 3, false);
+make_color!(Bgr, "bgr", 3, false);
+make_color!(RgbPacked, "rgb_packed", 1, false);
 make_color!(Rgba, "rgba", 4, true);
+make_color!(Bgra, "bgra", 4, true);
 make_color!(Cmyk, "cmyk", 4, false);
 make_color!(Yuv, "yuv", 3, false);
-
-image2_filter!(RgbaToRgb, x, y, c, input, {
-    let max = T::max_f();
-    input[0].get_f(x, y, c) * (input[0].get_f(x, y, 3) / max)
-});

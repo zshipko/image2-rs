@@ -158,3 +158,13 @@ image2_filter!(RgbaToRgb, x, y, c, input, {
     let a = input[0];
     a.get_f(x, y, c) * a.get_f(x, y, 3)
 });
+
+image2_filter!(RgbToBgr, x, y, c, input, {
+    if c == 0 {
+        input[0].get_f(x, y, 2)
+    } else if c == 2 {
+        input[0].get_f(x, y, 0)
+    } else {
+        input[0].get_f(x, y, c)
+    }
+});

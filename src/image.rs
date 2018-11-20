@@ -1,5 +1,5 @@
-use color::{Color, Gray, Rgb, Rgba};
-use filter::{Filter, RgbaToRgb, ToColor, ToGrayscale};
+use color::{Bgr, Color, Gray, Rgb, Rgba};
+use filter::{Filter, RgbToBgr, RgbaToRgb, ToColor, ToGrayscale};
 use image_buf::ImageBuf;
 use image_ref::ImageRef;
 use pixel::{Pixel, PixelMut};
@@ -299,5 +299,17 @@ impl<T: Type, U: Type, I: Image<T, Gray>> Convert<T, Gray, U, Rgb> for I {
 impl<T: Type, U: Type, I: Image<T, Gray>> Convert<T, Gray, U, Rgba> for I {
     fn convert(&self, to: &mut impl Image<U, Rgba>) {
         ToColor.eval(to, &[self]);
+    }
+}
+
+impl<T: Type, U: Type, I: Image<T, Rgb>> Convert<T, Rgb, U, Bgr> for I {
+    fn convert(&self, to: &mut impl Image<U, Bgr>) {
+        RgbToBgr.eval(to, &[self]);
+    }
+}
+
+impl<T: Type, U: Type, I: Image<T, Bgr>> Convert<T, Bgr, U, Rgb> for I {
+    fn convert(&self, to: &mut impl Image<U, Rgb>) {
+        RgbToBgr.eval(to, &[self]);
     }
 }
