@@ -19,15 +19,15 @@ impl<'a, T: Type, C: Color> Image<T, C> for ImageRef<'a, T, C> {
     }
 
     fn data(&self) -> &[T] {
-        self.data.as_ref()
+        self.data
     }
 
     fn data_mut(&mut self) -> &mut [T] {
-        self.data.as_mut()
+        self.data
     }
 
-    fn layout(&self) -> &Layout {
-        &self.layout
+    fn layout(&self) -> Layout {
+        self.layout
     }
 
     fn set_layout(&mut self, layout: Layout) {

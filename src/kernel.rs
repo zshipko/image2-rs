@@ -71,9 +71,9 @@ impl Filter for Kernel {
         let r2 = (self.rows / 2) as isize;
         let c2 = (self.cols / 2) as isize;
         let mut f = 0.0;
-        for ky in -r2..r2 + 1 {
+        for ky in -r2..=r2 {
             let kr = &self.data[(ky + r2) as usize];
-            for kx in -c2..c2 + 1 {
+            for kx in -c2..=c2 {
                 let x = input[0].get_f((x as isize + kx) as usize, (y as isize + ky) as usize, c);
                 f += x * kr[(kx + c2) as usize];
             }
@@ -105,8 +105,8 @@ impl Kernel {
         let mut k = Self::new(rows, cols);
         for j in 0..rows {
             let mut d = &mut k.data[j];
-            for i in 0..cols {
-                d[i] = f(i, j);
+            for (i, item) in d.iter_mut().enumerate() {
+                *item = f(i, j);
             }
         }
         k
@@ -183,10 +183,10 @@ macro_rules! op {
                 let r2 = (self.a.rows / 2) as isize;
                 let c2 = (self.a.cols / 2) as isize;
                 let mut f = 0.0;
-                for ky in -r2..r2 + 1 {
+                for ky in -r2..=r2 {
                     let kr = &self.a.data[(ky + r2) as usize];
                     let kr1 = &self.b.data[(ky + r2) as usize];
-                    for kx in -c2..c2 + 1 {
+                    for kx in -c2..=c2 {
                         let x = input[0].get_f(
                             (x as isize + kx) as usize,
                             (y as isize + ky) as usize,

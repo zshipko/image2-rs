@@ -29,7 +29,8 @@ pub trait Type:
     }
 
     fn is_float() -> bool {
-        Self::to_float(&Self::from_float(0.5)) == 0.5
+        let x = Self::to_float(&Self::from_float(0.5));
+        x > 0.0 && x < 1.0
     }
 
     fn is_signed() -> bool {

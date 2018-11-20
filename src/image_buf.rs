@@ -28,8 +28,8 @@ impl<T: Type, C: Color> Image<T, C> for ImageBuf<T, C> {
         self.data.as_mut()
     }
 
-    fn layout(&self) -> &Layout {
-        &self.layout
+    fn layout(&self) -> Layout {
+        self.layout
     }
 
     fn set_layout(&mut self, layout: Layout) {
@@ -44,7 +44,7 @@ impl<T: Type, C: Color> ImageBuf<T, C> {
             width,
             height,
             data: vec![T::zero(); width * height * C::channels()],
-            layout: layout,
+            layout,
             _color: PhantomData,
         }
     }

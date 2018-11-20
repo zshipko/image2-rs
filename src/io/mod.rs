@@ -48,7 +48,8 @@ pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(
                 image.convert_type(&mut dest);
                 png::write(filename, &dest)
             } else {
-                Ok(magick::write(filename, image)?)
+                magick::write(filename, image)?;
+                Ok(())
             }
         }
         None => Err(Error::Message("Invalid extension".to_owned())),

@@ -111,5 +111,6 @@ pub fn write<P: AsRef<Path>, C: Color, I: Image<u8, C>>(
         x.set(png::BitDepth::Eight);
     }
     let mut writer = encoder.write_header().unwrap();
-    Ok(writer.write_image_data(image.data())?)
+    writer.write_image_data(image.data())?;
+    Ok(())
 }

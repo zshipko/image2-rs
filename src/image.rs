@@ -50,7 +50,7 @@ macro_rules! image2_for_each {
 
 #[inline]
 pub fn index(
-    layout: &Layout,
+    layout: Layout,
     width: usize,
     height: usize,
     channels: usize,
@@ -70,7 +70,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
     fn shape(&self) -> (usize, usize, usize);
 
     /// Determines the layout of image data
-    fn layout(&self) -> &Layout;
+    fn layout(&self) -> Layout;
 
     /// Change layout without changing any image data
     fn set_layout(&mut self, layout: Layout);
@@ -111,11 +111,11 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
     fn at_mut(&mut self, x: usize, y: usize) -> Vec<&mut T> {
         let mut px = Vec::with_capacity(C::channels());
         let (width, height, channels) = self.shape();
-        let layout = self.layout().clone();
+        let layout = self.layout();
         let data = self.data_mut().as_mut_ptr();
         for i in 0..C::channels() {
-            let index = index(&layout, width, height, channels, x, y, i);
-            unsafe { px.push(&mut *data.offset(index as isize)) }
+            let index = index(layout, width, height, channels, x, y, i);
+            unsafe { px.push(&mut *data.add(index)) }
         }
         px
     }
@@ -124,11 +124,11 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
     fn at(&self, x: usize, y: usize) -> Vec<&T> {
         let mut px = Vec::with_capacity(C::channels());
         let (width, height, channels) = self.shape();
-        let layout = self.layout().clone();
+        let layout = self.layout();
         let data = self.data().as_ptr();
         for i in 0..C::channels() {
-            let index = index(&layout, width, height, channels, x, y, i);
-            unsafe { px.push(&*data.offset(index as isize)) }
+            let index = index(layout, width, height, channels, x, y, i);
+            unsafe { px.push(&*data.add(index)) }
         }
         px
     }
@@ -169,9 +169,8 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
             return;
         }
         let index = self.index(x, y, c);
-        match T::from(T::denormalize(f)) {
-            Some(f) => self.data_mut()[index] = f,
-            None => (),
+        if let Some(f) = T::from(T::denormalize(f)) {
+            self.data_mut()[index] = f
         }
     }
 
@@ -205,7 +204,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
 
     /// Convert image layout type
     fn convert_layout(&mut self, layout: Layout) {
-        if self.layout() == &layout {
+        if self.layout() == layout {
             return;
         }
 
@@ -223,12 +222,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
 
     /// Convert Image to ImageRef
     fn as_image_ref(&mut self) -> ImageRef<T, C> {
-        ImageRef::new(
-            self.width(),
-            self.height(),
-            self.layout().clone(),
-            self.data_mut().as_mut(),
-        )
+        ImageRef::new(self.width(), self.height(), self.layout(), self.data_mut())
     }
 
     /// Iterate over each pixel in parallel

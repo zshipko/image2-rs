@@ -65,7 +65,7 @@ impl Magick {
         };
 
         let t = shape
-            .split(" ")
+            .split(' ')
             .map(|a| a.trim().parse::<usize>())
             .collect::<Vec<Result<usize, ParseIntError>>>();
 
@@ -158,11 +158,10 @@ impl Magick {
             let _ = stdin.flush();
         }
 
-        let res = match proc.wait() {
+        match proc.wait() {
             Ok(_) => Ok(()),
             Err(_) => Err(Error::UnableToExecuteCommand),
-        };
-        res
+        }
     }
 }
 

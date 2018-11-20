@@ -21,11 +21,10 @@ pub trait Pixel<'a, T: Type, C: Color>: AsRef<[T]> {
     }
 
     fn map<F: FnMut(&T) -> T>(&self, mut f: F) -> PixelVec<T> {
-        let len = self.as_ref().len();
         let mut dest: PixelVec<T> = PixelVec::empty();
         let data = self.as_ref();
-        for i in 0..len {
-            (dest.0)[i] = f(&data[i])
+        for (i, item) in data.iter().enumerate() {
+            (dest.0)[i] = f(item)
         }
         dest
     }
@@ -67,7 +66,7 @@ impl<T: Type> PixelVec<T> {
         PixelVec([a, b, c, d])
     }
 
-    pub fn from_pixel<'a, P: AsRef<[T]>>(pixel: P) -> PixelVec<T> {
+    pub fn from_pixel<P: AsRef<[T]>>(pixel: P) -> PixelVec<T> {
         let data: &[T] = pixel.as_ref();
         let len = data.len();
 
