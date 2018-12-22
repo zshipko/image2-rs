@@ -114,7 +114,7 @@ make_type!(f64, 0, 1);
 
 #[cfg(test)]
 mod test {
-    use *;
+    use crate::*;
 
     #[test]
     fn test_type_is_float() {

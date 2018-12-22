@@ -1,10 +1,10 @@
 #![cfg(test)]
 
-use color::{Gray, Rgb};
-use filter::{Filter, Invert, ToGrayscale};
-use io::{jpg, magick, png};
-use kernel::{gaussian_5x5, sobel, Kernel};
-use {Image, ImageBuf, Layout};
+use crate::color::{Gray, Rgb};
+use crate::filter::{Filter, Invert, ToGrayscale};
+use crate::io::magick;
+use crate::kernel::{gaussian_5x5, sobel, Kernel};
+use crate::{Image, ImageBuf};
 
 use std::time::Instant;
 
@@ -30,12 +30,12 @@ fn test_image_buffer_new() {
 
 #[test]
 fn test_read_write() {
-    let a: ImageBuf<u8, Rgb> = jpg::read("test/test.jpg").unwrap();
+    let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
     magick::write("test/test-read-write0.jpg", &a).unwrap();
-    png::write("test/test-read-write1.png", &a).unwrap();
+    magick::write("test/test-read-write1.png", &a).unwrap();
 
-    let b: ImageBuf<u8, Rgb> = png::read("test/test-read-write1.png").unwrap();
-    png::write("test/test-read-write2.png", &b).unwrap();
+    let b: ImageBuf<u8, Rgb> = magick::read("test/test-read-write1.png").unwrap();
+    magick::write("test/test-read-write2.png", &b).unwrap();
 }
 
 #[test]
@@ -96,20 +96,4 @@ fn test_sobel() {
     let k = sobel();
     timer("Sobel", || k.eval(&mut dest, &[&image]));
     magick::write("test/test-sobel.jpg", &dest).unwrap();
-}
-
-#[test]
-fn test_convert_to_planar() {
-    let image: ImageBuf<f32, Rgb> = magick::read("test/test.jpg").unwrap();
-    image.clone().convert_layout(Layout::Planar);
-    magick::write("test/test-convert-to-planar.jpg", &image).unwrap();
-}
-
-#[test]
-fn test_convert_layout_rountrip() {
-    let mut image: ImageBuf<f32, Rgb> = magick::read("test/test.jpg").unwrap();
-    image.convert_layout(Layout::Planar);
-    magick::write("test/test-layout-planar.jpg", &image).unwrap();
-    image.convert_layout(Layout::Interleaved);
-    magick::write("test/test-layout-rountrip.jpg", &image).unwrap();
 }

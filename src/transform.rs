@@ -73,7 +73,7 @@ pub fn rotate270<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I) {
 
 #[cfg(test)]
 mod test {
-    use {
+    use crate::{
         io::magick,
         transform::{resize, rotate180, rotate90, scale},
         Image, ImageBuf, Rgb,
