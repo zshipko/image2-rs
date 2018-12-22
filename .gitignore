@@ -3,3 +3,5 @@
 Cargo.lock
 *.jpg
 *.png
+stb.o
+libstb.a

@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 
-use color::Color;
-use image::Image;
-use ty::Type;
+use crate::color::Color;
+use crate::image::Image;
+use crate::ty::Type;
 
 pub struct Join<'a, A: 'a + Filter, B: Filter, F: Fn(f64, f64) -> f64> {
     a: &'a A,

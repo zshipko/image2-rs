@@ -53,9 +53,6 @@ extern crate rscam;
 #[cfg(feature = "raw")]
 extern crate rawloader;
 
-extern crate jpeg_decoder as jpeg;
-extern crate png;
-
 #[cfg(test)]
 mod tests;
 
@@ -66,6 +63,7 @@ pub mod filter;
 pub mod color;
 mod error;
 mod image_buf;
+mod image_ptr;
 mod image_ref;
 pub mod io;
 pub mod kernel;
@@ -73,12 +71,13 @@ mod pixel;
 pub mod transform;
 mod ty;
 
-pub use color::{Color, Gray, Rgb, Rgba};
-pub use error::Error;
-pub use filter::Filter;
-pub use image::{Image, Layout};
-pub use image_buf::ImageBuf;
-pub use image_ref::ImageRef;
-pub use kernel::Kernel;
-pub use pixel::{Pixel, PixelMut, PixelVec};
-pub use ty::Type;
+pub use self::color::{Color, Gray, Rgb, Rgba};
+pub use self::error::Error;
+pub use self::filter::Filter;
+pub use self::image::Image;
+pub use self::image_buf::ImageBuf;
+pub use self::image_ptr::ImagePtr;
+pub use self::image_ref::ImageRef;
+pub use self::kernel::Kernel;
+pub use self::pixel::{Pixel, PixelMut, PixelVec};
+pub use self::ty::Type;

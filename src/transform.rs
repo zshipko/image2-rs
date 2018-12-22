@@ -1,5 +1,5 @@
+use crate::{Color, Filter, Image, Type};
 use euclid;
-use {Color, Filter, Image, Type};
 
 pub type Point<T> = euclid::Point2D<T>;
 pub struct Transform(pub euclid::Transform2D<f64>);

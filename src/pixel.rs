@@ -1,5 +1,4 @@
-use color::{Color, Gray, Rgb, Rgba};
-use ty::Type;
+use crate::{Color, Gray, Rgb, Rgba, Type};
 
 use std::ops;
 

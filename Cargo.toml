@@ -1,6 +1,6 @@
 [package]
 name = "image2"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Zach Shipko <zachshipko@gmail.com>"]
 license = "ISC"
 keywords = ["image", "image-processing"]
@@ -8,6 +8,7 @@ repository = "https://github.com/zshipko/image2-rs"
 documentation = "https://docs.rs/image2"
 description = "A simple image processing library"
 readme = "README.md"
+edition = "2018"
 
 [dependencies]
 num = "0.2"
@@ -18,8 +19,6 @@ rawloader = { version = "0.35", optional = true }
 rscam = {version = "0.5", optional = true}
 serde = {version = "1", optional = true}
 serde_derive = {version = "1", optional = true}
-png = "0.13"
-jpeg-decoder =" 0.1"
 
 [features]
 default = []

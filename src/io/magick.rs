@@ -4,10 +4,10 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::usize;
 
-use color::Color;
-use image::{Image, Layout};
-use image_buf::ImageBuf;
-use ty::Type;
+use crate::color::Color;
+use crate::image::Image;
+use crate::image_buf::ImageBuf;
+use crate::ty::Type;
 
 #[derive(Debug)]
 pub enum Error {
@@ -82,25 +82,19 @@ impl Magick {
         }
     }
 
-    pub fn read_with_layout<P: AsRef<Path>, T: Type, C: Color>(
+    pub fn read<P: AsRef<Path>, T: Type, C: Color>(
         &self,
         path: P,
-        layout: Layout,
     ) -> Result<ImageBuf<T, C>, Error> {
         let (width, height) = match self.get_image_shape(&path) {
             Ok((width, height)) => (width, height),
             Err(e) => return Err(e),
         };
         let kind = kind::<C>();
-        let interlace = match layout {
-            Layout::Planar => "Plane",
-            Layout::Interleaved => "None",
-        };
         let cmd = Command::new(self.convert[0])
             .args(self.convert[1..].iter())
             .arg(path.as_ref())
             .args(&["-depth", "8"])
-            .args(&["-interlace", interlace])
             .arg(kind)
             .output();
 
@@ -111,14 +105,7 @@ impl Magick {
 
         let data = cmd.stdout.iter().map(|x| x.convert()).collect::<Vec<T>>();
 
-        Ok(ImageBuf::new_from(width, height, layout, data))
-    }
-
-    pub fn read<P: AsRef<Path>, T: Type, C: Color>(
-        &self,
-        path: P,
-    ) -> Result<ImageBuf<T, C>, Error> {
-        self.read_with_layout(path, Layout::default())
+        Ok(ImageBuf::new_from(width, height, data))
     }
 
     pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(
@@ -129,16 +116,11 @@ impl Magick {
         let kind = kind::<C>();
         let (width, height, _) = image.shape();
         let size = format!("{}x{}", width, height);
-        let interlace = match image.layout() {
-            Layout::Planar => "Plane",
-            Layout::Interleaved => "None",
-        };
         let cmd = Command::new(self.convert[0])
             .args(self.convert[1..].iter())
             .stdin(Stdio::piped())
             .args(&["-depth", "8"])
             .args(&["-size", size.as_str()])
-            .args(&["-interlace", interlace])
             .arg(kind)
             .arg(path.as_ref())
             .spawn();
@@ -163,13 +145,6 @@ impl Magick {
             Err(_) => Err(Error::UnableToExecuteCommand),
         }
     }
-}
-
-pub fn read_with_layout<P: AsRef<Path>, T: Type, C: Color>(
-    path: P,
-    layout: Layout,
-) -> Result<ImageBuf<T, C>, Error> {
-    unsafe { DEFAULT.read_with_layout(path, layout) }
 }
 
 pub fn read<P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<ImageBuf<T, C>, Error> {

@@ -1,7 +1,7 @@
-use color::Color;
-use filter::Filter;
-use image::Image;
-use ty::Type;
+use crate::color::Color;
+use crate::filter::Filter;
+use crate::image::Image;
+use crate::ty::Type;
 
 use std::f64;
 use std::ops;
@@ -104,7 +104,7 @@ impl Kernel {
     pub fn create<F: Fn(usize, usize) -> f64>(rows: usize, cols: usize, f: F) -> Kernel {
         let mut k = Self::new(rows, cols);
         for j in 0..rows {
-            let mut d = &mut k.data[j];
+            let d = &mut k.data[j];
             for (i, item) in d.iter_mut().enumerate() {
                 *item = f(i, j);
             }

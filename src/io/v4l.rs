@@ -1,4 +1,3 @@
-use image::Layout;
 use std::io::Result;
 
 use rscam;
@@ -33,13 +32,12 @@ impl Webcam {
         self.handle.start(&cfg)
     }
 
-    pub fn capture(&mut self) -> Result<::ImageBuf<u8, ::Rgb>> {
+    pub fn capture(&mut self) -> Result<crate::ImageBuf<u8, crate::Rgb>> {
         let frame = self.handle.capture()?;
         let (width, height) = frame.resolution;
-        Ok(::ImageBuf::new_from(
+        Ok(crate::ImageBuf::new_from(
             width as usize,
             height as usize,
-            Layout::Interleaved,
             (*frame).to_vec(),
         ))
     }
