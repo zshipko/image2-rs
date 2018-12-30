@@ -1,6 +1,6 @@
 # image2
 
-A Rust library focused on generic image processing for a wide range of datatypes. [stb_image](https://github.com/nothings/stb) is used as the default encoder/decoder and supportes the following formats:
+A Rust library focused on generic image processing for a wide range of datatypes. [stb_image](https://github.com/nothings/stb) is used as the default encoder/decoder and supports the following formats:
 
 - JPEG [RW]
 - PNG [RW]
