@@ -4,6 +4,7 @@ use std::io::Error as IOError;
 #[derive(Debug)]
 pub enum Error {
     Magick(io::magick::Error),
+    FFmpeg(io::ffmpeg::Error),
     IO(IOError),
     Message(String),
     InvalidColor,
@@ -13,6 +14,12 @@ pub enum Error {
 impl From<io::magick::Error> for Error {
     fn from(err: io::magick::Error) -> Error {
         Error::Magick(err)
+    }
+}
+
+impl From<io::ffmpeg::Error> for Error {
+    fn from(err: io::ffmpeg::Error) -> Error {
+        Error::FFmpeg(err)
     }
 }
 

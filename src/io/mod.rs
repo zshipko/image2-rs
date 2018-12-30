@@ -1,5 +1,6 @@
+pub mod ffmpeg;
 pub mod magick;
-pub mod stb;
+mod stb;
 
 #[cfg(feature = "v4l")]
 pub mod v4l;
@@ -110,6 +111,76 @@ pub fn readf<'a, P: AsRef<Path>, C: Color>(path: P) -> Result<ImagePtr<'a, f32, 
 
 pub fn read<'a, P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<ImageBuf<T, C>, Error> {
     let x = read_u16(path)?;
+    let mut y = ImageBuf::new(x.width(), x.height());
+    x.convert_type(&mut y);
+    Ok(y)
+}
+
+pub fn decode_u8<'a, Data: AsRef<[u8]>, C: Color>(
+    data: Data,
+) -> Result<ImagePtr<'a, u8, C>, Error> {
+    let mut width = 0;
+    let mut height = 0;
+    let mut channels = 0;
+
+    let ptr = unsafe {
+        stbi_load_from_memory(
+            data.as_ref().as_ptr(),
+            data.as_ref().len() as i32,
+            &mut width,
+            &mut height,
+            &mut channels,
+            C::channels() as i32,
+        )
+    };
+
+    Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
+}
+
+pub fn decode_u16<'a, Data: AsRef<[u8]>, C: Color>(
+    data: Data,
+) -> Result<ImagePtr<'a, u16, C>, Error> {
+    let mut width = 0;
+    let mut height = 0;
+    let mut channels = 0;
+
+    let ptr = unsafe {
+        stbi_load_16_from_memory(
+            data.as_ref().as_ptr(),
+            data.as_ref().len() as i32,
+            &mut width,
+            &mut height,
+            &mut channels,
+            C::channels() as i32,
+        )
+    };
+
+    Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
+}
+
+pub fn decodef<'a, Data: AsRef<[u8]>, C: Color>(data: Data) -> Result<ImagePtr<'a, f32, C>, Error> {
+    let mut width = 0;
+    let mut height = 0;
+    let mut channels = 0;
+
+    let ptr = unsafe {
+        stbi_loadf_from_memory(
+            data.as_ref().as_ptr(),
+            data.as_ref().len() as i32,
+            &mut width,
+            &mut height,
+            &mut channels,
+            C::channels() as i32,
+        )
+    };
+
+    Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
+}
+
+pub fn decode<'a, Data: AsRef<[u8]>, T: Type, C: Color>(
+    data: Data,
+) -> Result<ImageBuf<T, C>, Error> {
+    let x = decode_u16(data)?;
     let mut y = ImageBuf::new(x.width(), x.height());
     x.convert_type(&mut y);
     Ok(y)

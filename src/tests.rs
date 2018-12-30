@@ -2,7 +2,7 @@
 
 use crate::color::{Gray, Rgb};
 use crate::filter::{Filter, Invert, ToGrayscale};
-use crate::io::{read, write};
+use crate::io::{ffmpeg, read, write};
 use crate::kernel::{gaussian_5x5, sobel, Kernel};
 use crate::{Image, ImageBuf};
 
@@ -96,4 +96,29 @@ fn test_sobel() {
     let k = sobel();
     timer("Sobel", || k.eval(&mut dest, &[&image]));
     write("test/test-sobel.jpg", &dest).unwrap();
+}
+
+#[test]
+fn test_ffmpeg() {
+    let path = std::path::PathBuf::from("test/test.mp4");
+
+    if !path.exists() {
+        return;
+    }
+
+    let mut ffmpeg = ffmpeg::Ffmpeg::open("test/test.mp4").unwrap();
+
+    let image = ffmpeg.next();
+
+    assert!(image != None);
+    assert!(ffmpeg.index == 1);
+
+    match image {
+        Some(image) => write("test/test-ffmpeg.jpg", &image).unwrap(),
+        None => (),
+    }
+
+    ffmpeg.skip(ffmpeg.frames - 1);
+
+    assert!(ffmpeg.next() == None);
 }

@@ -5,6 +5,17 @@
 pub type stbi_uc = ::std::os::raw::c_uchar;
 pub type stbi_us = ::std::os::raw::c_ushort;
 extern "C" {
+    #[doc = ""]
+    pub fn stbi_load_from_memory(
+        buffer: *const stbi_uc,
+        len: ::std::os::raw::c_int,
+        x: *mut ::std::os::raw::c_int,
+        y: *mut ::std::os::raw::c_int,
+        channels_in_file: *mut ::std::os::raw::c_int,
+        desired_channels: ::std::os::raw::c_int,
+    ) -> *mut stbi_uc;
+}
+extern "C" {
     pub fn stbi_load(
         filename: *const ::std::os::raw::c_char,
         x: *mut ::std::os::raw::c_int,
@@ -14,6 +25,17 @@ extern "C" {
     ) -> *mut stbi_uc;
 }
 extern "C" {
+    #[doc = ""]
+    pub fn stbi_load_16_from_memory(
+        buffer: *const stbi_uc,
+        len: ::std::os::raw::c_int,
+        x: *mut ::std::os::raw::c_int,
+        y: *mut ::std::os::raw::c_int,
+        channels_in_file: *mut ::std::os::raw::c_int,
+        desired_channels: ::std::os::raw::c_int,
+    ) -> *mut stbi_us;
+}
+extern "C" {
     pub fn stbi_load_16(
         filename: *const ::std::os::raw::c_char,
         x: *mut ::std::os::raw::c_int,
@@ -21,6 +43,16 @@ extern "C" {
         channels_in_file: *mut ::std::os::raw::c_int,
         desired_channels: ::std::os::raw::c_int,
     ) -> *mut stbi_us;
+}
+extern "C" {
+    pub fn stbi_loadf_from_memory(
+        buffer: *const stbi_uc,
+        len: ::std::os::raw::c_int,
+        x: *mut ::std::os::raw::c_int,
+        y: *mut ::std::os::raw::c_int,
+        channels_in_file: *mut ::std::os::raw::c_int,
+        desired_channels: ::std::os::raw::c_int,
+    ) -> *mut f32;
 }
 extern "C" {
     pub fn stbi_loadf(

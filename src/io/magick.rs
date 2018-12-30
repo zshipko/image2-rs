@@ -73,11 +73,8 @@ impl Magick {
             return Err(Error::InvalidImageShape);
         }
 
-        let a = t[0].clone();
-        let b = t[1].clone();
-
-        match (a, b) {
-            (Ok(a), Ok(b)) => Ok((a, b)),
+        match (&t[0], &t[1]) {
+            (Ok(a), Ok(b)) => Ok((a.clone(), b.clone())),
             (Err(_), _) | (_, Err(_)) => Err(Error::InvalidImageShape),
         }
     }
