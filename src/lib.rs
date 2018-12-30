@@ -1,23 +1,20 @@
 //! `image2` is an image processing crate with a focus on ease-of-use, support for a wide range
 //! of datatypes and composable operations.
 //!
-//! As you may notice, `image2` optionally depends on ImageMagick/GraphicsMagick for loading
-//! images. `io::magick` defines methods for loading and saving images of many data/color types.
-//!
 //! Getting started:
 //! ```rust
 //! use image2::{
 //!    ImageBuf,
 //!    Rgb, Gray,
 //!    Type,
-//!    io::magick,
+//!    io,
 //!    Filter,
 //!    filter::ToGrayscale
 //! };
 //!
 //! fn main() {
-//!    // Read an image using ImageMagick, `io::magick` is provided by default
-//!    let image: ImageBuf<f64, Rgb> = magick::read("test/test.jpg").unwrap();
+//!    // Read an image using the default JPEG decoder (stb_image)
+//!    let image: ImageBuf<f64, Rgb> = io::read("test/test.jpg").unwrap();
 //!
 //!    // Setup a filter
 //!    let filter = ToGrayscale.and_then(|f| {
@@ -30,8 +27,8 @@
 //!    // Execute the filter
 //!    filter.eval(&mut output, &[&image]);
 //!
-//!    // Save the image using ImageMagick
-//!    magick::write("inverted_grayscale.jpg", &output).unwrap();
+//!    // Save the image using the default PNG encoder (stb_image)
+//!    io::write("example.png", &output).unwrap();
 //!}
 //!```
 extern crate euclid;

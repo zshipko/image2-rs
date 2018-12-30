@@ -7,10 +7,9 @@ pub mod v4l;
 #[cfg(feature = "raw")]
 pub mod raw;
 
-use std::ffi::OsStr;
 use std::path::Path;
 
-use crate::color::{Color, Rgb};
+use crate::color::Color;
 use crate::error::Error;
 use crate::image::Image;
 use crate::image_buf::ImageBuf;
@@ -114,4 +113,140 @@ pub fn read<'a, P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<ImageBuf<T
     let mut y = ImageBuf::new(x.width(), x.height());
     x.convert_type(&mut y);
     Ok(y)
+}
+
+pub fn write_png_u8<C: Color, I: Image<u8, C>, P: AsRef<Path>>(
+    path: P,
+    im: &I,
+) -> Result<(), Error> {
+    let f = match path.as_ref().to_str() {
+        Some(f) => f,
+        None => {
+            return Err(Error::Message(format!(
+                "Invalid filename: {:?}",
+                path.as_ref()
+            )));
+        }
+    };
+
+    let filename = cstring!(f);
+
+    let (w, h, c) = im.shape();
+    let result = unsafe {
+        stbi_write_png(
+            filename.as_str().as_ptr() as *mut i8,
+            w as i32,
+            h as i32,
+            c as i32,
+            im.data().as_ptr() as *const std::ffi::c_void,
+            (c * w) as i32,
+        )
+    };
+
+    if result == 0 {
+        return Err(Error::Message(format!("Unable to open file: {}", f)));
+    }
+
+    Ok(())
+}
+
+pub fn write_jpg_u8<C: Color, I: Image<u8, C>, P: AsRef<Path>>(
+    path: P,
+    im: &I,
+    quality: i32,
+) -> Result<(), Error> {
+    let f = match path.as_ref().to_str() {
+        Some(f) => f,
+        None => {
+            return Err(Error::Message(format!(
+                "Invalid filename: {:?}",
+                path.as_ref()
+            )));
+        }
+    };
+
+    let filename = cstring!(f);
+
+    let (w, h, c) = im.shape();
+    let result = unsafe {
+        stbi_write_jpg(
+            filename.as_str().as_ptr() as *mut i8,
+            w as i32,
+            h as i32,
+            c as i32,
+            im.data().as_ptr() as *const std::ffi::c_void,
+            quality,
+        )
+    };
+
+    if result == 0 {
+        return Err(Error::Message(format!("Unable to open file: {}", f)));
+    }
+
+    Ok(())
+}
+
+pub fn write_hdr_f32<C: Color, I: Image<f32, C>, P: AsRef<Path>>(
+    path: P,
+    im: &I,
+) -> Result<(), Error> {
+    let f = match path.as_ref().to_str() {
+        Some(f) => f,
+        None => {
+            return Err(Error::Message(format!(
+                "Invalid filename: {:?}",
+                path.as_ref()
+            )));
+        }
+    };
+
+    let filename = cstring!(f);
+
+    let (w, h, c) = im.shape();
+    let result = unsafe {
+        stbi_write_hdr(
+            filename.as_str().as_ptr() as *mut i8,
+            w as i32,
+            h as i32,
+            c as i32,
+            im.data().as_ptr(),
+        )
+    };
+
+    if result == 0 {
+        return Err(Error::Message(format!("Unable to open file: {}", f)));
+    }
+
+    Ok(())
+}
+
+pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(
+    path: P,
+    image: &I,
+) -> Result<(), Error> {
+    let path = path.as_ref();
+
+    match path.extension() {
+        Some(s) => match s.to_str() {
+            Some("jpg") | Some("jpeg") | Some("JPG") | Some("JPEG") => {
+                let mut tmp: ImageBuf<u8, C> = ImageBuf::new(image.width(), image.height());
+                image.convert_type(&mut tmp);
+                write_jpg_u8(path, &tmp, 95)
+            }
+            Some("hdr") | Some("HDR") => {
+                let mut tmp: ImageBuf<f32, C> = ImageBuf::new(image.width(), image.height());
+                image.convert_type(&mut tmp);
+                write_hdr_f32(path, &tmp)
+            }
+            _ => {
+                let mut tmp: ImageBuf<u8, C> = ImageBuf::new(image.width(), image.height());
+                image.convert_type(&mut tmp);
+                write_png_u8(path, &tmp)
+            }
+        },
+        None => Err(Error::Message(format!(
+            "Unable to determine output format: {:?}",
+            path,
+        ))),
+    }
 }
