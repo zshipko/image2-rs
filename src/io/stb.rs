@@ -74,6 +74,15 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn stbi_write_bmp(
+        filename: *const ::std::os::raw::c_char,
+        w: ::std::os::raw::c_int,
+        h: ::std::os::raw::c_int,
+        comp: ::std::os::raw::c_int,
+        data: *const ::std::os::raw::c_void,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn stbi_write_tga(
         filename: *const ::std::os::raw::c_char,
         w: ::std::os::raw::c_int,
@@ -100,4 +109,14 @@ extern "C" {
         data: *const ::std::os::raw::c_void,
         quality: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn stbi_write_png_to_mem(
+        pixels: *mut ::std::os::raw::c_uchar,
+        stride_bytes: ::std::os::raw::c_int,
+        x: ::std::os::raw::c_int,
+        y: ::std::os::raw::c_int,
+        n: ::std::os::raw::c_int,
+        out_len: *mut ::std::os::raw::c_int,
+    ) -> *mut ::std::os::raw::c_uchar;
 }

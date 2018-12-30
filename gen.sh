@@ -8,6 +8,8 @@ bindgen  \
   --whitelist-function stbi_write_png \
   --whitelist-function stbi_write_jpg \
   --whitelist-function stbi_write_tga \
+  --whitelist-function stbi_write_bmp \
   --whitelist-function stbi_write_hdr \
+  --whitelist-function stbi_write_png_to_mem \
   --raw-line  "#![allow(non_camel_case_types)]" \
   stb/stb.c > src/io/stb.rs

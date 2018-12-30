@@ -5,6 +5,7 @@ use crate::image_ref::ImageRef;
 use crate::pixel::{Pixel, PixelMut};
 use crate::ty::Type;
 
+#[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
 /// Iterate over pixels using Image::at_mut
@@ -166,10 +167,25 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
     }
 
     /// Iterate over each pixel
+    #[cfg(feature = "parallel")]
     fn for_each<F: Sync + Send + Fn((usize, usize), &mut [T])>(&mut self, f: F) {
         let (width, _height, channels) = self.shape();
         self.data_mut()
             .par_chunks_mut(channels)
+            .enumerate()
+            .for_each(|(n, pixel)| {
+                let y = n / width;
+                let x = n - (y * width);
+                f((x, y), pixel)
+            });
+    }
+
+    /// Iterate over each pixel
+    #[cfg(not(feature = "parallel"))]
+    fn for_each<F: Sync + Send + Fn((usize, usize), &mut [T])>(&mut self, f: F) {
+        let (width, _height, channels) = self.shape();
+        self.data_mut()
+            .chunks_mut(channels)
             .enumerate()
             .for_each(|(n, pixel)| {
                 let y = n / width;

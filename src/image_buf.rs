@@ -5,7 +5,10 @@ use crate::ty::Type;
 use std::marker::PhantomData;
 
 /// Image implementation that uses a Vec for image data
-#[cfg_attr(feature = "ser", derive(Serialize, Deserialize))]
+#[cfg_attr(
+    feature = "ser",
+    derive(serde_derive::Serialize, serde_derive::Deserialize)
+)]
 #[derive(Debug, PartialEq, Clone)]
 pub struct ImageBuf<T: Type, C: Color> {
     width: usize,

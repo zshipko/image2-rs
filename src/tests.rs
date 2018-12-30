@@ -114,7 +114,7 @@ fn test_ffmpeg() {
     assert!(ffmpeg.index == 1);
 
     match image {
-        Some(image) => write("test/test-ffmpeg.jpg", &image).unwrap(),
+        Some(image) => write("test/test-ffmpeg.png", &image).unwrap(),
         None => (),
     }
 

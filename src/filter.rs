@@ -1,5 +1,3 @@
-use rayon::prelude::*;
-
 use crate::color::Color;
 use crate::image::Image;
 use crate::ty::Type;
@@ -80,21 +78,11 @@ pub trait Filter: Sized + Sync {
         output: &mut I,
         input: &[&J],
     ) {
-        let (width, _height, channels) = output.shape();
-
-        output
-            .data_mut()
-            .par_iter_mut()
-            .chunks(channels)
-            .enumerate()
-            .for_each(|(n, mut pixel)| {
-                let y = n / width;
-                let x = n - (y * width);
-                for c in 0..channels {
-                    *pixel[c] =
-                        T::from_float(T::denormalize(T::clamp(self.compute_at(x, y, c, input))));
-                }
-            });
+        output.for_each(|(x, y), pixel| {
+            for c in 0..C::channels() {
+                pixel[c] = T::from_float(T::denormalize(T::clamp(self.compute_at(x, y, c, input))));
+            }
+        });
     }
 
     fn join<A: Filter, F: Fn(f64, f64) -> f64>(&self, other: A, f: F) -> Join<Self, A, F> {

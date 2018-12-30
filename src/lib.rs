@@ -31,25 +31,6 @@
 //!    io::write("example.png", &output).unwrap();
 //!}
 //!```
-extern crate euclid;
-extern crate num;
-extern crate rayon;
-#[macro_use]
-extern crate lazy_static;
-
-#[cfg(feature = "ser")]
-extern crate serde;
-
-#[cfg(feature = "ser")]
-#[macro_use]
-extern crate serde_derive;
-
-#[cfg(feature = "v4l")]
-extern crate rscam;
-
-#[cfg(feature = "raw")]
-extern crate rawloader;
-
 #[cfg(test)]
 mod tests;
 

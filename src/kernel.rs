@@ -1,12 +1,17 @@
+use std::f64;
+use std::ops;
+
+use lazy_static::lazy_static;
+
 use crate::color::Color;
 use crate::filter::Filter;
 use crate::image::Image;
 use crate::ty::Type;
 
-use std::f64;
-use std::ops;
-
-#[cfg_attr(feature = "ser", derive(Serialize, Deserialize))]
+#[cfg_attr(
+    feature = "ser",
+    derive(serde_derive::Serialize, serde_derive::Deserialize)
+)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Kernel {
     rows: usize,

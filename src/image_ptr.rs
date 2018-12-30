@@ -26,7 +26,7 @@ impl<'a, T: Type, C: Color> Image<T, C> for ImagePtr<'a, T, C> {
 }
 
 extern "C" {
-    fn free(ptr: *mut std::ffi::c_void);
+    pub(crate) fn free(ptr: *mut std::ffi::c_void);
 }
 
 fn default_free<T>(ptr: *mut T) {

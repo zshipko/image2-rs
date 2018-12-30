@@ -1,6 +1,6 @@
 [package]
 name = "image2"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Zach Shipko <zachshipko@gmail.com>"]
 license = "ISC"
 keywords = ["image", "image-processing"]
@@ -12,7 +12,7 @@ edition = "2018"
 
 [dependencies]
 num = "0.2"
-rayon = "1"
+rayon = {version = "1", optional = true}
 euclid = "0.19"
 lazy_static = "1"
 rawloader = { version = "0.35", optional = true }
@@ -24,8 +24,9 @@ serde_derive = {version = "1", optional = true}
 cc = "1"
 
 [features]
-default = []
-all = ["v4l", "raw", "ser"]
+default = ["parallel"]
+all = ["v4l", "raw", "ser", "rayon"]
 v4l = ["rscam"]
 raw = ["rawloader"]
 ser = ["serde", "serde_derive"]
+parallel = ["rayon"]

@@ -81,7 +81,7 @@ pub fn read_u16<'a, P: AsRef<Path>, C: Color>(path: P) -> Result<ImagePtr<'a, u1
     Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
 }
 
-pub fn readf<'a, P: AsRef<Path>, C: Color>(path: P) -> Result<ImagePtr<'a, f32, C>, Error> {
+pub fn read_f32<'a, P: AsRef<Path>, C: Color>(path: P) -> Result<ImagePtr<'a, f32, C>, Error> {
     let filename = match path.as_ref().to_str() {
         Some(f) => cstring!(f),
         None => {
@@ -110,7 +110,7 @@ pub fn readf<'a, P: AsRef<Path>, C: Color>(path: P) -> Result<ImagePtr<'a, f32, 
 }
 
 pub fn read<'a, P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<ImageBuf<T, C>, Error> {
-    let x = read_u16(path)?;
+    let x = read_u8(path)?;
     let mut y = ImageBuf::new(x.width(), x.height());
     x.convert_type(&mut y);
     Ok(y)
@@ -158,7 +158,9 @@ pub fn decode_u16<'a, Data: AsRef<[u8]>, C: Color>(
     Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
 }
 
-pub fn decodef<'a, Data: AsRef<[u8]>, C: Color>(data: Data) -> Result<ImagePtr<'a, f32, C>, Error> {
+pub fn decode_f32<'a, Data: AsRef<[u8]>, C: Color>(
+    data: Data,
+) -> Result<ImagePtr<'a, f32, C>, Error> {
     let mut width = 0;
     let mut height = 0;
     let mut channels = 0;
@@ -180,7 +182,7 @@ pub fn decodef<'a, Data: AsRef<[u8]>, C: Color>(data: Data) -> Result<ImagePtr<'
 pub fn decode<'a, Data: AsRef<[u8]>, T: Type, C: Color>(
     data: Data,
 ) -> Result<ImageBuf<T, C>, Error> {
-    let x = decode_u16(data)?;
+    let x = decode_u8(data)?;
     let mut y = ImageBuf::new(x.width(), x.height());
     x.convert_type(&mut y);
     Ok(y)
@@ -211,6 +213,74 @@ pub fn write_png_u8<C: Color, I: Image<u8, C>, P: AsRef<Path>>(
             c as i32,
             im.data().as_ptr() as *const std::ffi::c_void,
             (c * w) as i32,
+        )
+    };
+
+    if result == 0 {
+        return Err(Error::Message(format!("Unable to open file: {}", f)));
+    }
+
+    Ok(())
+}
+
+pub fn write_bmp_u8<C: Color, I: Image<u8, C>, P: AsRef<Path>>(
+    path: P,
+    im: &I,
+) -> Result<(), Error> {
+    let f = match path.as_ref().to_str() {
+        Some(f) => f,
+        None => {
+            return Err(Error::Message(format!(
+                "Invalid filename: {:?}",
+                path.as_ref()
+            )));
+        }
+    };
+
+    let filename = cstring!(f);
+
+    let (w, h, c) = im.shape();
+    let result = unsafe {
+        stbi_write_bmp(
+            filename.as_str().as_ptr() as *mut i8,
+            w as i32,
+            h as i32,
+            c as i32,
+            im.data().as_ptr() as *const std::ffi::c_void,
+        )
+    };
+
+    if result == 0 {
+        return Err(Error::Message(format!("Unable to open file: {}", f)));
+    }
+
+    Ok(())
+}
+
+pub fn write_tga_u8<C: Color, I: Image<u8, C>, P: AsRef<Path>>(
+    path: P,
+    im: &I,
+) -> Result<(), Error> {
+    let f = match path.as_ref().to_str() {
+        Some(f) => f,
+        None => {
+            return Err(Error::Message(format!(
+                "Invalid filename: {:?}",
+                path.as_ref()
+            )));
+        }
+    };
+
+    let filename = cstring!(f);
+
+    let (w, h, c) = im.shape();
+    let result = unsafe {
+        stbi_write_tga(
+            filename.as_str().as_ptr() as *mut i8,
+            w as i32,
+            h as i32,
+            c as i32,
+            im.data().as_ptr() as *const std::ffi::c_void,
         )
     };
 
@@ -309,15 +379,51 @@ pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(
                 image.convert_type(&mut tmp);
                 write_hdr_f32(path, &tmp)
             }
-            _ => {
+            Some("tga") | Some("TGA") => {
+                let mut tmp: ImageBuf<u8, C> = ImageBuf::new(image.width(), image.height());
+                image.convert_type(&mut tmp);
+                write_tga_u8(path, &tmp)
+            }
+            Some("bmp") | Some("BMP") => {
+                let mut tmp: ImageBuf<u8, C> = ImageBuf::new(image.width(), image.height());
+                image.convert_type(&mut tmp);
+                write_bmp_u8(path, &tmp)
+            }
+            None | Some("png") | Some("PNG") => {
                 let mut tmp: ImageBuf<u8, C> = ImageBuf::new(image.width(), image.height());
                 image.convert_type(&mut tmp);
                 write_png_u8(path, &tmp)
             }
+            Some(x) => Err(Error::Message(format!("Invalid output format: {}", x))),
         },
         None => Err(Error::Message(format!(
             "Unable to determine output format: {:?}",
             path,
         ))),
     }
+}
+
+pub fn encode_png<T: Type, C: Color, I: Image<T, C>>(image: &I) -> Result<Vec<u8>, Error> {
+    let (w, h, c) = image.shape();
+    let mut outlen = 0;
+    let ptr = unsafe {
+        stbi_write_png_to_mem(
+            image.data().as_ptr() as *mut u8,
+            (w * c) as i32,
+            w as i32,
+            h as i32,
+            c as i32,
+            &mut outlen,
+        )
+    };
+
+    let mut dest = vec![0; outlen as usize];
+
+    unsafe {
+        std::ptr::copy(ptr, dest.as_mut_ptr(), outlen as usize);
+    }
+
+    unsafe { crate::image_ptr::free(ptr as *mut std::ffi::c_void) }
+
+    Ok(dest)
 }

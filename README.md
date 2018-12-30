@@ -2,13 +2,13 @@
 
 A Rust image processing crate focused on generic image processing for a wide range of datatypes. [stb_image](https://github.com/nothings/stb) is used as the default encoder/decoder and supportes the following formats:
 
-- JPEG[RW]
-- PNG[RW]
-- TGA[RW]
-- BMP[RW]
-- PSD[R]
-- GIF[R]
-- HDR[RW]
+- JPEG [RW]
+- PNG [RW]
+- TGA [RW]
+- BMP [RW]
+- PSD [R]
+- GIF [R]
+- HDR [RW]
 
 Support for additional formats is provided by:
 
@@ -25,6 +25,8 @@ Support for additional formats is provided by:
     * Enables support for webcam capture on Linux
 - `serde`
     * Automatically derive serde traits for images and many other datatyes
+- `parallel`
+    * Uses rayon to iterate over pixels in parallel (enabled by default)
 
 ## Installation
 

@@ -1,6 +1,6 @@
-use crate::{Color, Gray, Rgb, Rgba, Type};
-
 use std::ops;
+
+use crate::{Color, Gray, Rgb, Rgba, Type};
 
 pub trait Pixel<'a, T: Type, C: Color>: AsRef<[T]> {
     fn to_float(&self) -> Vec<f64> {
@@ -52,7 +52,10 @@ impl<'a, T: Type, C: Color> Pixel<'a, T, C> for &'a Vec<T> {}
 impl<'a, T: Type, C: Color> Pixel<'a, T, C> for &'a mut Vec<T> {}
 impl<'a, T: Type, C: Color> PixelMut<'a, T, C> for &'a mut Vec<T> {}
 
-#[cfg_attr(feature = "ser", derive(Serialize, Deserialize))]
+#[cfg_attr(
+    feature = "ser",
+    derive(serde_derive::Serialize, serde_derive::Deserialize)
+)]
 #[derive(Debug, Clone, Copy)]
 pub struct PixelVec<T: Type>([T; 4]);
 
