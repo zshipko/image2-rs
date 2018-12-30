@@ -1,6 +1,6 @@
 # image2
 
-A Rust image processing crate focused on generic image processing for a wide range of datatypes. [stb_image](https://github.com/nothings/stb) is used as the default encoder/decoder and supportes the following formats:
+A Rust library focused on generic image processing for a wide range of datatypes. [stb_image](https://github.com/nothings/stb) is used as the default encoder/decoder and supportes the following formats:
 
 - JPEG [RW]
 - PNG [RW]
@@ -10,9 +10,9 @@ A Rust image processing crate focused on generic image processing for a wide ran
 - GIF [R]
 - HDR [RW]
 
-Support for additional formats is provided by:
+Additional formats are provided by:
 
-- [https://imagemagick.org/script/formats.php](ImageMagick)/[http://www.graphicsmagick.org/formats.html](GraphicsMagick)
+- [ImageMagick](https://imagemagick.org/script/formats.php)/[GraphicsMagick](http://www.graphicsmagick.org/formats.html)
 - [FFmpeg](https://ffmpeg.org)
 - [rawloader](https://crates.io/crates/rawloader)
 - [rscam](https://github.com/loyd/rscam)
@@ -23,7 +23,7 @@ Support for additional formats is provided by:
     * Enables support for [many RAW formats](https://github.com/pedrocr/rawloader#current-state)
 - `v4l`
     * Enables support for webcam capture on Linux
-- `serde`
+- `ser`
     * Automatically derive serde traits for images and many other datatyes
 - `parallel`
     * Uses rayon to iterate over pixels in parallel (enabled by default)
