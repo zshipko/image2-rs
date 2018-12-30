@@ -11,6 +11,7 @@ pub enum Error {
     InvalidFrameCount,
 }
 
+/// Stores information about a video file
 pub struct Ffmpeg {
     path: PathBuf,
     width: usize,
@@ -88,6 +89,17 @@ impl Ffmpeg {
         Ok(frames)
     }
 
+    /// Returns the number of frames in a video file
+    pub fn num_frames(&self) -> usize {
+        self.frames
+    }
+
+    /// Returns the size of each frame of the video
+    pub fn shape(&self) -> (usize, usize) {
+        (self.width, self.height)
+    }
+
+    /// Open a video file using FFmpeg
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Ffmpeg, error::Error> {
         let path = path.as_ref().to_path_buf();
         if !path.exists() {
@@ -108,18 +120,22 @@ impl Ffmpeg {
         })
     }
 
+    /// Add FFmpeg argument
     pub fn arg<S: AsRef<str>>(&mut self, arg: S) {
         self.args.push(String::from(arg.as_ref()))
     }
 
+    /// Set frame index to 0
     pub fn reset(&mut self) {
         self.index = 0;
     }
 
+    /// Skip `n` frames
     pub fn skip(&mut self, n: usize) {
         self.index += n;
     }
 
+    /// Rewind `n`n frames
     pub fn rewind(&mut self, n: usize) {
         if n < self.index {
             self.index = 0;
@@ -128,6 +144,7 @@ impl Ffmpeg {
         }
     }
 
+    /// Get next frame
     pub fn next(&mut self) -> Option<ImageBuf<u8, Rgb>> {
         if self.index >= self.frames {
             return None;
@@ -154,6 +171,7 @@ impl Ffmpeg {
         Some(ImageBuf::new_from(self.width, self.height, cmd.stdout))
     }
 
+    /// Get next `n` frames
     pub fn next_n(&mut self, n: usize) -> Vec<ImageBuf<u8, Rgb>> {
         let mut v = Vec::new();
 

@@ -40,6 +40,7 @@ pub const GM: Magick = Magick {
 
 pub static mut DEFAULT: Magick = IM;
 
+/// Change default command
 pub fn set_default(magick: Magick) {
     unsafe {
         DEFAULT = magick;
@@ -47,6 +48,7 @@ pub fn set_default(magick: Magick) {
 }
 
 impl Magick {
+    /// Get size of image using identify command
     pub fn get_image_shape<P: AsRef<Path>>(&self, path: P) -> Result<(usize, usize), Error> {
         let identify = Command::new(self.identify[0])
             .args(self.identify[1..].iter())
@@ -79,6 +81,7 @@ impl Magick {
         }
     }
 
+    /// Read image from disk using ImageMagick/GraphicsMagick
     pub fn read<P: AsRef<Path>, T: Type, C: Color>(
         &self,
         path: P,
@@ -105,6 +108,7 @@ impl Magick {
         Ok(ImageBuf::new_from(width, height, data))
     }
 
+    /// Write image to disk using ImageMagick/GraphicsMagick
     pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(
         &self,
         path: P,
@@ -144,10 +148,12 @@ impl Magick {
     }
 }
 
+/// Read image from disk using default command-line tool
 pub fn read<P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<ImageBuf<T, C>, Error> {
     unsafe { DEFAULT.read(path) }
 }
 
+/// Write image to disk using default command-line tool
 pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(
     path: P,
     image: &I,

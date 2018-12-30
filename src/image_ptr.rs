@@ -36,6 +36,8 @@ fn default_free<T>(ptr: *mut T) {
 }
 
 impl<'a, T: 'a + Type, C: Color> ImagePtr<'a, T, C> {
+    /// Create a new ImagePtr with the given `free` function used when the image is dropped, if
+    /// no free function is provided then `free` from the C stdlib will be used
     pub fn new(width: usize, height: usize, data: *mut T, free: Option<fn(*mut T)>) -> Self {
         let data = unsafe { std::slice::from_raw_parts_mut(data, width * height * C::channels()) };
 
@@ -48,6 +50,7 @@ impl<'a, T: 'a + Type, C: Color> ImagePtr<'a, T, C> {
         }
     }
 
+    /// Get data slice
     pub fn inner(self) -> &'a mut [T] {
         self.data
     }

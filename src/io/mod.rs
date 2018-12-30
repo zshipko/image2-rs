@@ -25,16 +25,24 @@ macro_rules! cstring {
     };
 }
 
-pub fn read_u8<'a, P: AsRef<Path>, C: Color>(path: P) -> Result<ImagePtr<'a, u8, C>, Error> {
-    let filename = match path.as_ref().to_str() {
-        Some(f) => cstring!(f),
-        None => {
-            return Err(Error::Message(format!(
-                "Invalid filename: {:?}",
-                path.as_ref()
-            )));
-        }
+macro_rules! path {
+    ($p:expr) => {
+        match $p.as_ref().to_str() {
+            Some(f) => f,
+            None => {
+                return Err(Error::Message(format!(
+                    "Invalid filename: {:?}",
+                    $p.as_ref()
+                )));
+            }
+        };
     };
+}
+
+/// Read an image with u8 components using stb_image
+pub fn read_u8<'a, P: AsRef<Path>, C: Color>(path: P) -> Result<ImagePtr<'a, u8, C>, Error> {
+    let f = path!(path);
+    let filename = cstring!(f);
 
     let mut width = 0;
     let mut height = 0;
@@ -53,16 +61,10 @@ pub fn read_u8<'a, P: AsRef<Path>, C: Color>(path: P) -> Result<ImagePtr<'a, u8,
     Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
 }
 
+/// Read an image with u16 components using stb_image
 pub fn read_u16<'a, P: AsRef<Path>, C: Color>(path: P) -> Result<ImagePtr<'a, u16, C>, Error> {
-    let filename = match path.as_ref().to_str() {
-        Some(f) => cstring!(f),
-        None => {
-            return Err(Error::Message(format!(
-                "Invalid filename: {:?}",
-                path.as_ref()
-            )));
-        }
-    };
+    let f = path!(path);
+    let filename = cstring!(f);
 
     let mut width = 0;
     let mut height = 0;
@@ -81,16 +83,10 @@ pub fn read_u16<'a, P: AsRef<Path>, C: Color>(path: P) -> Result<ImagePtr<'a, u1
     Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
 }
 
+/// Read an image with f32 components using stb_image
 pub fn read_f32<'a, P: AsRef<Path>, C: Color>(path: P) -> Result<ImagePtr<'a, f32, C>, Error> {
-    let filename = match path.as_ref().to_str() {
-        Some(f) => cstring!(f),
-        None => {
-            return Err(Error::Message(format!(
-                "Invalid filename: {:?}",
-                path.as_ref()
-            )));
-        }
-    };
+    let f = path!(path);
+    let filename = cstring!(f);
 
     let mut width = 0;
     let mut height = 0;
@@ -109,6 +105,7 @@ pub fn read_f32<'a, P: AsRef<Path>, C: Color>(path: P) -> Result<ImagePtr<'a, f3
     Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
 }
 
+/// Read any type of image using stb_image
 pub fn read<'a, P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<ImageBuf<T, C>, Error> {
     let x = read_u8(path)?;
     let mut y = ImageBuf::new(x.width(), x.height());
@@ -116,6 +113,7 @@ pub fn read<'a, P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<ImageBuf<T
     Ok(y)
 }
 
+/// Decode an image with u8 components from memory
 pub fn decode_u8<'a, Data: AsRef<[u8]>, C: Color>(
     data: Data,
 ) -> Result<ImagePtr<'a, u8, C>, Error> {
@@ -137,6 +135,7 @@ pub fn decode_u8<'a, Data: AsRef<[u8]>, C: Color>(
     Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
 }
 
+/// Decode an image with u16 components from memory
 pub fn decode_u16<'a, Data: AsRef<[u8]>, C: Color>(
     data: Data,
 ) -> Result<ImagePtr<'a, u16, C>, Error> {
@@ -158,6 +157,7 @@ pub fn decode_u16<'a, Data: AsRef<[u8]>, C: Color>(
     Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
 }
 
+/// Decode an image with f32 components from memory
 pub fn decode_f32<'a, Data: AsRef<[u8]>, C: Color>(
     data: Data,
 ) -> Result<ImagePtr<'a, f32, C>, Error> {
@@ -179,6 +179,7 @@ pub fn decode_f32<'a, Data: AsRef<[u8]>, C: Color>(
     Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
 }
 
+/// Decode an image from memory
 pub fn decode<'a, Data: AsRef<[u8]>, T: Type, C: Color>(
     data: Data,
 ) -> Result<ImageBuf<T, C>, Error> {
@@ -188,20 +189,12 @@ pub fn decode<'a, Data: AsRef<[u8]>, T: Type, C: Color>(
     Ok(y)
 }
 
+/// Write png image to disk
 pub fn write_png_u8<C: Color, I: Image<u8, C>, P: AsRef<Path>>(
     path: P,
     im: &I,
 ) -> Result<(), Error> {
-    let f = match path.as_ref().to_str() {
-        Some(f) => f,
-        None => {
-            return Err(Error::Message(format!(
-                "Invalid filename: {:?}",
-                path.as_ref()
-            )));
-        }
-    };
-
+    let f = path!(path);
     let filename = cstring!(f);
 
     let (w, h, c) = im.shape();
@@ -223,20 +216,12 @@ pub fn write_png_u8<C: Color, I: Image<u8, C>, P: AsRef<Path>>(
     Ok(())
 }
 
+/// Write bmp image to disk
 pub fn write_bmp_u8<C: Color, I: Image<u8, C>, P: AsRef<Path>>(
     path: P,
     im: &I,
 ) -> Result<(), Error> {
-    let f = match path.as_ref().to_str() {
-        Some(f) => f,
-        None => {
-            return Err(Error::Message(format!(
-                "Invalid filename: {:?}",
-                path.as_ref()
-            )));
-        }
-    };
-
+    let f = path!(path);
     let filename = cstring!(f);
 
     let (w, h, c) = im.shape();
@@ -257,20 +242,12 @@ pub fn write_bmp_u8<C: Color, I: Image<u8, C>, P: AsRef<Path>>(
     Ok(())
 }
 
+/// Write tga image to disk
 pub fn write_tga_u8<C: Color, I: Image<u8, C>, P: AsRef<Path>>(
     path: P,
     im: &I,
 ) -> Result<(), Error> {
-    let f = match path.as_ref().to_str() {
-        Some(f) => f,
-        None => {
-            return Err(Error::Message(format!(
-                "Invalid filename: {:?}",
-                path.as_ref()
-            )));
-        }
-    };
-
+    let f = path!(path);
     let filename = cstring!(f);
 
     let (w, h, c) = im.shape();
@@ -291,21 +268,13 @@ pub fn write_tga_u8<C: Color, I: Image<u8, C>, P: AsRef<Path>>(
     Ok(())
 }
 
+/// Write jpg image to disk
 pub fn write_jpg_u8<C: Color, I: Image<u8, C>, P: AsRef<Path>>(
     path: P,
     im: &I,
     quality: i32,
 ) -> Result<(), Error> {
-    let f = match path.as_ref().to_str() {
-        Some(f) => f,
-        None => {
-            return Err(Error::Message(format!(
-                "Invalid filename: {:?}",
-                path.as_ref()
-            )));
-        }
-    };
-
+    let f = path!(path);
     let filename = cstring!(f);
 
     let (w, h, c) = im.shape();
@@ -327,20 +296,12 @@ pub fn write_jpg_u8<C: Color, I: Image<u8, C>, P: AsRef<Path>>(
     Ok(())
 }
 
+/// Write hdr image to disk
 pub fn write_hdr_f32<C: Color, I: Image<f32, C>, P: AsRef<Path>>(
     path: P,
     im: &I,
 ) -> Result<(), Error> {
-    let f = match path.as_ref().to_str() {
-        Some(f) => f,
-        None => {
-            return Err(Error::Message(format!(
-                "Invalid filename: {:?}",
-                path.as_ref()
-            )));
-        }
-    };
-
+    let f = path!(path);
     let filename = cstring!(f);
 
     let (w, h, c) = im.shape();
@@ -361,6 +322,7 @@ pub fn write_hdr_f32<C: Color, I: Image<f32, C>, P: AsRef<Path>>(
     Ok(())
 }
 
+/// Write image to disk, the output type is determined by the extension of the output image path
 pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(
     path: P,
     image: &I,
@@ -403,7 +365,8 @@ pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(
     }
 }
 
-pub fn encode_png<T: Type, C: Color, I: Image<T, C>>(image: &I) -> Result<Vec<u8>, Error> {
+/// Encode u8 image to png in memory
+pub fn encode_png_u8<C: Color, I: Image<u8, C>>(image: &I) -> Result<Vec<u8>, Error> {
     let (w, h, c) = image.shape();
     let mut outlen = 0;
     let ptr = unsafe {
@@ -426,4 +389,11 @@ pub fn encode_png<T: Type, C: Color, I: Image<T, C>>(image: &I) -> Result<Vec<u8
     unsafe { crate::image_ptr::free(ptr as *mut std::ffi::c_void) }
 
     Ok(dest)
+}
+
+/// Encode image to png in memory
+pub fn encode_png<T: Type, C: Color, I: Image<T, C>>(image: &I) -> Result<Vec<u8>, Error> {
+    let mut tmp = ImageBuf::new(image.width(), image.height());
+    image.convert_type(&mut tmp);
+    encode_png_u8(&tmp)
 }
