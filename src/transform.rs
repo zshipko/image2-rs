@@ -21,9 +21,9 @@ impl Filter for Transform {
 }
 
 #[inline]
-pub fn rotate<T: Type, C: Color, I: Image<T, C>>(
+pub fn rotate<T: Type, C: Color, I: Image<T, C>, J: Image<T, C>>(
     dest: &mut I,
-    src: &I,
+    src: &J,
     deg: f64,
     center: Point<f64>,
 ) {
@@ -44,7 +44,12 @@ pub fn scale<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I, x: f64, y
 }
 
 #[inline]
-pub fn resize<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I, x: usize, y: usize) {
+pub fn resize<T: Type, C: Color, I: Image<T, C>, J: Image<T, C>>(
+    dest: &mut I,
+    src: &J,
+    x: usize,
+    y: usize,
+) {
     let filter = Transform(euclid::Transform2D::create_scale(
         src.width() as f64 / x as f64,
         src.height() as f64 / y as f64,
@@ -53,19 +58,19 @@ pub fn resize<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I, x: usize
     filter.eval(dest, &[src])
 }
 
-pub fn rotate90<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I) {
+pub fn rotate90<T: Type, C: Color, I: Image<T, C>, J: Image<T, C>>(dest: &mut I, src: &J) {
     let dwidth = dest.width() as f64;
     let height = src.height() as f64;
     rotate(dest, src, 90., Point::new(dwidth / 2., height / 2.));
 }
 
-pub fn rotate180<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I) {
+pub fn rotate180<T: Type, C: Color, I: Image<T, C>, J: Image<T, C>>(dest: &mut I, src: &J) {
     let dwidth = src.width() as f64;
     let height = src.height() as f64;
     rotate(dest, src, 180., Point::new(dwidth / 2., height / 2.));
 }
 
-pub fn rotate270<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I) {
+pub fn rotate270<T: Type, C: Color, I: Image<T, C>, J: Image<T, C>>(dest: &mut I, src: &J) {
     let width = src.height() as f64;
     let dheight = dest.width() as f64;
     rotate(dest, src, 270., Point::new(width / 2., dheight / 2.));

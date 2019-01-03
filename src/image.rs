@@ -42,7 +42,7 @@ pub fn index(width: usize, channels: usize, x: usize, y: usize, c: usize) -> usi
 }
 
 /// The Image trait defines many methods for interaction with images in a generic manner
-pub trait Image<T: Type, C: Color>: Sync + Send {
+pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     /// Returns the width, height and channels of an image
     fn shape(&self) -> (usize, usize, usize);
 
@@ -208,7 +208,7 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         dest
     }
 
-    fn copy(&self) -> ImageBuf<T, C> {
+    fn clone(&self) -> ImageBuf<T, C> {
         let (width, height, _) = self.shape();
         let mut dest = ImageBuf::new(width, height);
 
@@ -220,6 +220,28 @@ pub trait Image<T: Type, C: Color>: Sync + Send {
         });
 
         dest
+    }
+
+    fn hash(&self) -> u64 {
+        let mut small = ImageBuf::new(8, 8);
+        crate::transform::resize(&mut small, self, 8, 8);
+        let mut hash = 0u64;
+        let mut index = 0;
+        let mut px = self.empty_pixel();
+        for j in 0..8 {
+            for i in 0..8 {
+                small.get_pixel(i, j, &mut px);
+                let avg: T = px.iter().map(|x| *x).sum();
+                let f = T::normalize(T::to_float(&avg) / C::channels() as f64);
+                if f > 0.5 {
+                    hash = hash | (1 << index)
+                } else {
+                    hash = hash & !(1 << index)
+                }
+                index += 1
+            }
+        }
+        hash
     }
 }
 

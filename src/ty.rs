@@ -16,6 +16,7 @@ pub trait Type:
     + Mul<Output = Self>
     + Div<Output = Self>
     + Rem<Output = Self>
+    + std::iter::Sum<Self>
 {
     fn min_f() -> f64;
     fn max_f() -> f64;

@@ -55,6 +55,17 @@ fn test_invert() {
 }
 
 #[test]
+fn test_hash() {
+    let a: ImageBuf<f32, Rgb> = read("test/test.jpg").unwrap();
+    let b: ImageBuf<f32, Rgb> = read("test/test.jpg").unwrap();
+    timer("Hash", || assert!(a.hash() == b.hash()));
+    println!("{:08x}", a.hash());
+    let mut c = a.new_like();
+    Invert.eval(&mut c, &[&a]);
+    assert!(c.hash() != a.hash());
+}
+
+#[test]
 fn test_invert_parallel() {
     let image: ImageBuf<f32, Rgb> = read("test/test.jpg").unwrap();
     let mut dest = image.new_like();

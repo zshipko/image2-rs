@@ -2,7 +2,7 @@
 
 use rawloader;
 
-use crate::color::Rgb;
+use crate::color::{Gray, Rgb};
 use crate::image::Image;
 use crate::image_buf::ImageBuf;
 use crate::ty::Type;
@@ -11,7 +11,7 @@ use std::path::Path;
 
 /// RAW image type
 pub struct Raw {
-    /// A reference to the rawloader image
+    /// A rawloader image
     pub image: rawloader::RawImage,
 }
 
@@ -31,8 +31,29 @@ impl Raw {
         Some(Raw { image: raw_image })
     }
 
-    pub fn as_image<T: Type>(self) -> Option<ImageBuf<T, Rgb>> {
+    pub fn as_rgb_image<T: Type>(self) -> Option<ImageBuf<T, Rgb>> {
         if self.image.cpp == 1 {
+            return None;
+        }
+
+        match self.image.data {
+            rawloader::RawImageData::Integer(data) => {
+                let im = ImageBuf::new_from(self.image.width, self.image.height, data);
+                let mut dest = ImageBuf::new(self.image.width, self.image.height);
+                im.convert_type(&mut dest);
+                Some(dest)
+            }
+            rawloader::RawImageData::Float(data) => {
+                let im = ImageBuf::new_from(self.image.width, self.image.height, data);
+                let mut dest = ImageBuf::new(self.image.width, self.image.height);
+                im.convert_type(&mut dest);
+                Some(dest)
+            }
+        }
+    }
+
+    pub fn as_gray_image<T: Type>(self) -> Option<ImageBuf<T, Gray>> {
+        if self.image.cpp != 1 {
             return None;
         }
 
