@@ -39,7 +39,7 @@ fn default_free<T>(ptr: *mut T) {
 
 fn ignore_free<T>(_: *mut T) {}
 
-/// Determines how to free an allocated pointer
+/// Determines how to free a pointer stored in an ImagePtr
 pub enum Free<T> {
     /// Default uses the system defined `free` functions
     Default,

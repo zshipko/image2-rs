@@ -4,6 +4,7 @@ use crate::ty::Type;
 
 use std::marker::PhantomData;
 
+/// Image implementation backed by a mutable array reference
 #[derive(Debug, PartialEq)]
 pub struct ImageRef<'a, T: 'a + Type, C: Color> {
     width: usize,
@@ -27,6 +28,10 @@ impl<'a, T: Type, C: Color> Image<T, C> for ImageRef<'a, T, C> {
 }
 
 impl<'a, T: 'a + Type, C: Color> ImageRef<'a, T, C> {
+    /// Create a new ImageRef with the given dimensions and data
+    ///
+    /// Note: this functions does not do any bounds checking regarding the specified size and
+    /// length of the data
     pub fn new(width: usize, height: usize, data: &'a mut [T]) -> Self {
         ImageRef {
             width,
