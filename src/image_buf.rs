@@ -4,7 +4,7 @@ use crate::ty::Type;
 
 use std::marker::PhantomData;
 
-/// Image implementation that uses a Vec for image data
+/// Image implementation using `Vec<T>` to store data
 #[cfg_attr(
     feature = "ser",
     derive(serde_derive::Serialize, serde_derive::Deserialize)
@@ -47,19 +47,25 @@ impl<T: Type, C: Color> ImageBuf<T, C> {
         self.data
     }
 
-    /// Create a new image with the same type, shape and layout as an existing image
+    /// Create a new image with the same type, shape and color as an existing image
     pub fn new_like(&self) -> Self {
         Self::new(self.width, self.height)
     }
 
+    /// Create a new image with the given type and the same shape and color
     pub fn new_like_with_type<U: Type>(&self) -> ImageBuf<U, C> {
         ImageBuf::new(self.width, self.height)
     }
 
+    /// Create a new image with the given color and the same shape and type
     pub fn new_like_with_color<D: Color>(&self) -> ImageBuf<T, D> {
         ImageBuf::new(self.width, self.height)
     }
 
+    /// Create a new image from existing data
+    ///
+    /// Note: This function does not do bounds checking, so you need to ensure that `data` is the
+    /// correct length to handle the specified width and height
     pub fn new_from(width: usize, height: usize, data: Vec<T>) -> Self {
         ImageBuf {
             width,

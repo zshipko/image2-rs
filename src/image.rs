@@ -1,5 +1,5 @@
 use crate::color::{Bgr, Color, Gray, Rgb, Rgba};
-use crate::filter::{Filter, RgbToBgr, RgbaToRgb, ToColor, ToGrayscale};
+use crate::filter::{AlphaBlend, Filter, SwapChannel, ToColor, ToGrayscale};
 use crate::image_buf::ImageBuf;
 use crate::image_ref::ImageRef;
 use crate::pixel::{Pixel, PixelMut};
@@ -10,13 +10,13 @@ use rayon::prelude::*;
 
 /// Iterate over pixels using Image::at_mut
 #[macro_export]
-macro_rules! image2_for_each_mut {
-    ($image:expr, $i:ident, $j:ident, $px:ident, $body:block) => {
-        for $j in 0..$image.height() {
-            for $i in 0..$image.width() {
+macro_rules! for_each_mut {
+    ($image:expr, $i:expr, $j:expr, $w:expr, $h:expr, $body:expr) => {
+        for x in $j..$j + $h {
+            for y in $i..$i + $w {
                 #[allow(unused_mut)]
-                let mut $px = $image.at_mut($i, $j);
-                $body
+                let mut px = $image.at_mut(x, y);
+                $body(x, y, px)
             }
         }
     };
@@ -24,13 +24,13 @@ macro_rules! image2_for_each_mut {
 
 /// Iterate over pixels using Image::get_pixel
 #[macro_export]
-macro_rules! image2_for_each {
-    ($image:expr, $i:ident, $j:ident, $px:ident, $body:block) => {
+macro_rules! for_each {
+    ($image:expr, $i:ident, $j:ident, $w:expr, $h:expr, $body:expr) => {
         let mut $px = $image.empty_pixel();
         for $j in 0..$image.height() {
             for $i in 0..$image.width() {
-                $image.get_pixel($i, $j, &mut $px);
-                $body
+                let px = $image.at(x, y);
+                $body(x, y, px)
             }
         }
     };
@@ -94,17 +94,41 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
 
     /// Load data from the pixel at (x, y) into px
     fn get_pixel<'a, P: PixelMut<'a, T, C>>(&self, x: usize, y: usize, px: &mut P) {
+        let data = self.data();
+        let px = px.as_mut();
+        let index = self.index(x, y, 0);
         for i in 0..C::channels() {
-            let index = self.index(x, y, i);
-            px.as_mut()[i] = self.data()[index]
+            px[i] = data[index + i]
         }
     }
 
-    /// Set data at (x, y) from px
-    fn set_pixel<'a, P: Pixel<'a, T, C>>(&mut self, x: usize, y: usize, px: &P) {
+    /// Load data from the pixel at (x, y) into px and convert to normalized f64
+    fn get_pixel_f<'a, P: PixelMut<'a, f64, C>>(&self, x: usize, y: usize, px: &mut P) {
+        let data = self.data();
+        let index = self.index(x, y, 0);
+        let px = px.as_mut();
         for i in 0..C::channels() {
-            let index = self.index(x, y, i);
-            self.data_mut()[index] = px.as_ref()[i]
+            px[i] = T::normalize(T::to_float(&data[index + i]))
+        }
+    }
+
+    /// Set data at (x, y) to px
+    fn set_pixel<'a, P: Pixel<'a, T, C>>(&mut self, x: usize, y: usize, px: &P) {
+        let index = self.index(x, y, 0);
+        let data = self.data_mut();
+        let px = px.as_ref();
+        for i in 0..C::channels() {
+            data[index + i] = px[i]
+        }
+    }
+
+    /// Set data at (x, y) to px after denormalizing
+    fn set_pixel_f<'a, P: Pixel<'a, f64, C>>(&mut self, x: usize, y: usize, px: &P) {
+        let index = self.index(x, y, 0);
+        let data = self.data_mut();
+        let px = px.as_ref();
+        for i in 0..C::channels() {
+            data[index + i] = T::from_float(T::denormalize(px[i]))
         }
     }
 
@@ -114,6 +138,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         if x >= width || y >= height || c >= channels {
             return 0.0;
         }
+
         let index = self.index(x, y, c);
         match self.data()[index].to_f64() {
             Some(f) => T::normalize(f),
@@ -127,6 +152,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         if x >= width || y >= height || c >= channels {
             return;
         }
+
         let index = self.index(x, y, c);
         if let Some(f) = T::from(T::denormalize(f)) {
             self.data_mut()[index] = f
@@ -139,6 +165,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         if x >= width || y >= height || c >= channels {
             return T::zero();
         }
+
         let index = self.index(x, y, c);
         self.data()[index]
     }
@@ -149,6 +176,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         if x >= width || y >= height || c >= channels {
             return;
         }
+
         let index = self.index(x, y, c);
         self.data_mut()[index] = t;
     }
@@ -231,7 +259,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         for j in 0..8 {
             for i in 0..8 {
                 small.get_pixel(i, j, &mut px);
-                let avg: T = px.iter().map(|x| *x).sum();
+                let avg: T = Pixel::<T, C>::iter(&px).map(|x| *x).sum();
                 let f = T::normalize(T::to_float(&avg) / C::channels() as f64);
                 if f > 0.5 {
                     hash = hash | (1 << index)
@@ -258,7 +286,7 @@ impl<T: Type, U: Type, I: Image<T, Rgb>> Convert<T, Rgb, U, Rgba> for I {
 
 impl<T: Type, U: Type, I: Image<T, Rgba>> Convert<T, Rgba, U, Rgb> for I {
     fn convert(&self, to: &mut impl Image<U, Rgb>) {
-        RgbaToRgb.eval(to, &[self]);
+        AlphaBlend.eval(to, &[self]);
     }
 }
 
@@ -288,12 +316,12 @@ impl<T: Type, U: Type, I: Image<T, Gray>> Convert<T, Gray, U, Rgba> for I {
 
 impl<T: Type, U: Type, I: Image<T, Rgb>> Convert<T, Rgb, U, Bgr> for I {
     fn convert(&self, to: &mut impl Image<U, Bgr>) {
-        RgbToBgr.eval(to, &[self]);
+        SwapChannel(0, 2).eval(to, &[self]);
     }
 }
 
 impl<T: Type, U: Type, I: Image<T, Bgr>> Convert<T, Bgr, U, Rgb> for I {
     fn convert(&self, to: &mut impl Image<U, Rgb>) {
-        RgbToBgr.eval(to, &[self]);
+        SwapChannel(0, 2).eval(to, &[self]);
     }
 }

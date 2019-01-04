@@ -2,6 +2,8 @@ use std::marker::PhantomData;
 
 use crate::{Color, Image, Type};
 
+/// Image implementation backed by a raw pointer, typically used for storing C pointers allocated using
+/// malloc.
 #[derive(Debug, PartialEq)]
 pub struct ImagePtr<'a, T: 'a + Type, C: Color> {
     width: usize,
@@ -35,18 +37,36 @@ fn default_free<T>(ptr: *mut T) {
     }
 }
 
+fn ignore_free<T>(_: *mut T) {}
+
+/// Determines how to free an allocated pointer
+pub enum Free<T> {
+    /// Default uses the system defined `free` functions
+    Default,
+    /// Ignore does nothing
+    Ignore,
+    /// Function allows for a custom function to be specified
+    Function(fn(*mut T)),
+}
+
 impl<'a, T: 'a + Type, C: Color> ImagePtr<'a, T, C> {
     /// Create a new ImagePtr with the given `free` function used when the image is dropped, if
     /// no free function is provided then `free` from the C stdlib will be used
-    pub fn new(width: usize, height: usize, data: *mut T, free: Option<fn(*mut T)>) -> Self {
+    pub fn new(width: usize, height: usize, data: *mut T, free: Free<T>) -> Self {
         let data = unsafe { std::slice::from_raw_parts_mut(data, width * height * C::channels()) };
+
+        let free = match free {
+            Free::Default => default_free,
+            Free::Ignore => ignore_free,
+            Free::Function(f) => f,
+        };
 
         ImagePtr {
             width,
             height,
             data,
+            free,
             _color: PhantomData,
-            free: free.unwrap_or(default_free),
         }
     }
 

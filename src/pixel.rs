@@ -1,24 +1,40 @@
 use std::ops;
 
-use crate::{Color, Gray, Rgb, Rgba, Type};
+use crate::{Color, Type};
 
+/// Pixel is used to access chunks of image data
 pub trait Pixel<'a, T: Type, C: Color>: AsRef<[T]> {
-    fn to_float(&self) -> Vec<f64> {
+    /// Create a new Vec<T> from existing pixel data
+    fn to_vec(&self) -> Vec<T> {
+        self.as_ref().iter().map(|x| x.clone()).collect()
+    }
+
+    /// Create a new Vec<f64> of normalized values from existing pixel data
+    fn to_vec_f(&self) -> Vec<f64> {
         self.as_ref().iter().map(|x| T::to_float(x)).collect()
     }
 
+    /// Create a new PixelVec<T> from existing pixel data
     fn to_pixel_vec(&self) -> PixelVec<T> {
         PixelVec::from_pixel(self)
     }
 
+    /// Create a new PixelVec<f64> of normalized values from existing pixel data
+    fn to_pixel_vec_f(&self) -> PixelVec<f64> {
+        PixelVec::from_pixel(self).to_f()
+    }
+
+    /// Returns true when every value is > 0
     fn is_true(&self) -> bool {
         self.as_ref().iter().all(|x| *x != T::zero())
     }
 
+    /// Returns true when every value == 0
     fn is_false(&self) -> bool {
         self.as_ref().iter().all(|x| *x == T::zero())
     }
 
+    /// Create a new PixelVec by executing `f` for each channel
     fn map<F: FnMut(&T) -> T>(&self, mut f: F) -> PixelVec<T> {
         let mut dest: PixelVec<T> = PixelVec::empty();
         let data = self.as_ref();
@@ -27,19 +43,31 @@ pub trait Pixel<'a, T: Type, C: Color>: AsRef<[T]> {
         }
         dest
     }
+
+    fn iter(&self) -> std::slice::Iter<T> {
+        self.as_ref().iter()
+    }
 }
 
+/// PixelMut is used to access mutable chunks of image data
 pub trait PixelMut<'a, T: Type, C: Color>: Pixel<'a, T, C> + AsMut<[T]> {
-    fn set_from_float<P: Pixel<'a, f64, C>>(&mut self, other: &P) {
+    /// Copy values from a normalized f64 pixel
+    fn set_f<P: Pixel<'a, f64, C>>(&mut self, other: &P) {
         let a = self.as_mut().iter_mut();
         let b = other.as_ref().iter();
-        a.zip(b).for_each(|(x, y)| *x = T::from_float(*y))
+        a.zip(b)
+            .for_each(|(x, y)| *x = T::from_float(T::normalize(*y)))
     }
 
-    fn set_from<P: Pixel<'a, T, C>>(&mut self, other: &P) {
+    /// Copy values from another pixel
+    fn set<P: Pixel<'a, T, C>>(&mut self, other: &P) {
         let a = self.as_mut().iter_mut();
         let b = other.as_ref().iter();
         a.zip(b).for_each(|(x, y)| *x = *y)
+    }
+
+    fn iter_mut(&mut self) -> std::slice::IterMut<T> {
+        self.as_mut().iter_mut()
     }
 }
 
@@ -52,6 +80,7 @@ impl<'a, T: Type, C: Color> Pixel<'a, T, C> for &'a Vec<T> {}
 impl<'a, T: Type, C: Color> Pixel<'a, T, C> for &'a mut Vec<T> {}
 impl<'a, T: Type, C: Color> PixelMut<'a, T, C> for &'a mut Vec<T> {}
 
+/// PixelVec is a 4-channel pixel backed by a static array
 #[cfg_attr(
     feature = "ser",
     derive(serde_derive::Serialize, serde_derive::Deserialize)
@@ -60,14 +89,23 @@ impl<'a, T: Type, C: Color> PixelMut<'a, T, C> for &'a mut Vec<T> {}
 pub struct PixelVec<T: Type>([T; 4]);
 
 impl<T: Type> PixelVec<T> {
+    /// Create a new PixelVec, each channel set to 0
     pub fn empty() -> PixelVec<T> {
         PixelVec([T::zero(); 4])
     }
 
+    /// Create a new PixelVec with the given values
     pub fn new(a: T, b: T, c: T, d: T) -> PixelVec<T> {
         PixelVec([a, b, c, d])
     }
 
+    /// Create a new PixelBec with every channel set to the given value. The alpha channel is set
+    /// to `T::max()`
+    pub fn new_gray(a: T) -> PixelVec<T> {
+        PixelVec([a, a, a, T::max()])
+    }
+
+    /// Create a new PixelVec from an existing Pixel
     pub fn from_pixel<P: AsRef<[T]>>(pixel: P) -> PixelVec<T> {
         let data: &[T] = pixel.as_ref();
         let len = data.len();
@@ -95,6 +133,7 @@ impl<T: Type> PixelVec<T> {
         }
     }
 
+    /// Create a new PixelVec by mapping `f` over an existing PixelVec
     pub fn map<U: Type, F: Fn(&T) -> U>(&self, f: F) -> PixelVec<U> {
         let mut vec = PixelVec::empty();
         for i in 0..4 {
@@ -103,20 +142,28 @@ impl<T: Type> PixelVec<T> {
         vec
     }
 
+    /// Convert from `PixelVec<T>` to `Vec<T>`
     pub fn to_vec<C: Color>(&self) -> Vec<T> {
         let mut vec = self.0.to_vec();
         vec.truncate(C::channels());
         vec
     }
 
+    /// Convert from `PixelVec<T>` to `Vec<f64>` and normalize values
     pub fn to_vec_f<C: Color>(&self) -> Vec<f64> {
-        let mut vec: Vec<f64> = self.0.to_vec().iter().map(|x| T::to_float(x)).collect();
+        let mut vec: Vec<f64> = self
+            .0
+            .to_vec()
+            .into_iter()
+            .map(|x| T::normalize(T::to_float(&x)))
+            .collect();
         vec.truncate(C::channels());
         vec
     }
 
-    pub fn f(&self) -> PixelVec<f64> {
-        self.map(|x| T::to_float(x))
+    /// Convert from `PixelVec<T>` to `PixelVec<f64>` and normalize values
+    pub fn to_f(&self) -> PixelVec<f64> {
+        self.map(|x| T::normalize(T::to_float(x)))
     }
 }
 
@@ -132,12 +179,8 @@ impl<T: Type> AsMut<[T]> for PixelVec<T> {
     }
 }
 
-impl<'a, T: Type> Pixel<'a, T, Gray> for PixelVec<T> {}
-impl<'a, T: Type> Pixel<'a, T, Rgb> for PixelVec<T> {}
-impl<'a, T: Type> Pixel<'a, T, Rgba> for PixelVec<T> {}
-impl<'a, T: Type> PixelMut<'a, T, Gray> for PixelVec<T> {}
-impl<'a, T: Type> PixelMut<'a, T, Rgb> for PixelVec<T> {}
-impl<'a, T: Type> PixelMut<'a, T, Rgba> for PixelVec<T> {}
+impl<'a, T: Type, C: Color> Pixel<'a, T, C> for PixelVec<T> {}
+impl<'a, T: Type, C: Color> PixelMut<'a, T, C> for PixelVec<T> {}
 
 macro_rules! pixelvec_op {
     ($name:ident, $fx:ident, $f:expr) => {

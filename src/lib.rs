@@ -54,7 +54,7 @@ pub use self::error::Error;
 pub use self::filter::Filter;
 pub use self::image::Image;
 pub use self::image_buf::ImageBuf;
-pub use self::image_ptr::ImagePtr;
+pub use self::image_ptr::{Free, ImagePtr};
 pub use self::image_ref::ImageRef;
 pub use self::kernel::Kernel;
 pub use self::pixel::{Pixel, PixelMut, PixelVec};

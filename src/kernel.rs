@@ -8,6 +8,7 @@ use crate::filter::Filter;
 use crate::image::Image;
 use crate::ty::Type;
 
+/// Kernels defines a 2-dimensional convolution filter
 #[cfg_attr(
     feature = "ser",
     derive(serde_derive::Serialize, serde_derive::Deserialize)
@@ -88,11 +89,18 @@ impl Filter for Kernel {
 }
 
 impl Kernel {
+    /// Create a new kernel with the given number of rows and columns
     pub fn new(rows: usize, cols: usize) -> Kernel {
         let data = vec![vec![0.0; cols]; rows];
         Kernel { data, rows, cols }
     }
 
+    /// Create a new, square kernel
+    pub fn square(x: usize) -> Kernel {
+        Self::new(x, x)
+    }
+
+    /// Ensures the sum of the kernel is <= 1
     pub fn normalize(&mut self) {
         let sum: f64 = self.data.iter().map(|x| -> f64 { x.iter().sum() }).sum();
         if sum == 0.0 {
@@ -106,6 +114,7 @@ impl Kernel {
         }
     }
 
+    /// Create a new kernel and fill it by executing `f` with each possible (row, col) pair
     pub fn create<F: Fn(usize, usize) -> f64>(rows: usize, cols: usize, f: F) -> Kernel {
         let mut k = Self::new(rows, cols);
         for j in 0..rows {

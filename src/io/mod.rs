@@ -14,7 +14,7 @@ use crate::color::Color;
 use crate::error::Error;
 use crate::image::Image;
 use crate::image_buf::ImageBuf;
-use crate::image_ptr::ImagePtr;
+use crate::image_ptr::{Free, ImagePtr};
 use crate::ty::Type;
 
 pub use self::stb::*;
@@ -58,7 +58,12 @@ pub fn read_u8<'a, P: AsRef<Path>, C: Color>(path: P) -> Result<ImagePtr<'a, u8,
         )
     };
 
-    Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
+    Ok(ImagePtr::new(
+        width as usize,
+        height as usize,
+        ptr,
+        Free::Default,
+    ))
 }
 
 /// Read an image with u16 components using stb_image
@@ -80,7 +85,12 @@ pub fn read_u16<'a, P: AsRef<Path>, C: Color>(path: P) -> Result<ImagePtr<'a, u1
         )
     };
 
-    Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
+    Ok(ImagePtr::new(
+        width as usize,
+        height as usize,
+        ptr,
+        Free::Default,
+    ))
 }
 
 /// Read an image with f32 components using stb_image
@@ -102,7 +112,12 @@ pub fn read_f32<'a, P: AsRef<Path>, C: Color>(path: P) -> Result<ImagePtr<'a, f3
         )
     };
 
-    Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
+    Ok(ImagePtr::new(
+        width as usize,
+        height as usize,
+        ptr,
+        Free::Default,
+    ))
 }
 
 /// Read any type of image using stb_image
@@ -132,7 +147,12 @@ pub fn decode_u8<'a, Data: AsRef<[u8]>, C: Color>(
         )
     };
 
-    Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
+    Ok(ImagePtr::new(
+        width as usize,
+        height as usize,
+        ptr,
+        Free::Default,
+    ))
 }
 
 /// Decode an image with u16 components from memory
@@ -154,7 +174,12 @@ pub fn decode_u16<'a, Data: AsRef<[u8]>, C: Color>(
         )
     };
 
-    Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
+    Ok(ImagePtr::new(
+        width as usize,
+        height as usize,
+        ptr,
+        Free::Default,
+    ))
 }
 
 /// Decode an image with f32 components from memory
@@ -176,7 +201,12 @@ pub fn decode_f32<'a, Data: AsRef<[u8]>, C: Color>(
         )
     };
 
-    Ok(ImagePtr::new(width as usize, height as usize, ptr, None))
+    Ok(ImagePtr::new(
+        width as usize,
+        height as usize,
+        ptr,
+        Free::Default,
+    ))
 }
 
 /// Decode an image from memory

@@ -1,6 +1,7 @@
 use num::{FromPrimitive, NumCast, ToPrimitive, Zero};
 use std::ops::*;
 
+/// Implementing `Type` allows for a type to be used as values contained in an Image
 pub trait Type:
     NumCast
     + FromPrimitive
@@ -18,7 +19,10 @@ pub trait Type:
     + Rem<Output = Self>
     + std::iter::Sum<Self>
 {
+    /// Minimum value
     fn min_f() -> f64;
+
+    /// Maximum value
     fn max_f() -> f64;
 
     fn min() -> Self {
