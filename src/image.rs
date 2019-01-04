@@ -8,34 +8,6 @@ use crate::ty::Type;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-/// Iterate over pixels using Image::at_mut
-#[macro_export]
-macro_rules! for_each_mut {
-    ($image:expr, $i:expr, $j:expr, $w:expr, $h:expr, $body:expr) => {
-        for x in $j..$j + $h {
-            for y in $i..$i + $w {
-                #[allow(unused_mut)]
-                let mut px = $image.at_mut(x, y);
-                $body(x, y, px)
-            }
-        }
-    };
-}
-
-/// Iterate over pixels using Image::get_pixel
-#[macro_export]
-macro_rules! for_each {
-    ($image:expr, $i:ident, $j:ident, $w:expr, $h:expr, $body:expr) => {
-        let mut $px = $image.empty_pixel();
-        for $j in 0..$image.height() {
-            for $i in 0..$image.width() {
-                let px = $image.at(x, y);
-                $body(x, y, px)
-            }
-        }
-    };
-}
-
 #[inline]
 pub fn index(width: usize, channels: usize, x: usize, y: usize, c: usize) -> usize {
     width * channels * y + channels * x + c

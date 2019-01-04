@@ -54,21 +54,28 @@ pub trait Filter: Sized + Sync {
         input: &[&I],
     ) -> f64;
 
-    fn eval_s<T: Type, C: Color, U: Type, D: Color, I: Image<T, C>, J: Image<U, D>>(
+    /// Evaluate a filter on part of an image
+    fn eval_partial<T: Type, C: Color, U: Type, D: Color, I: Image<T, C>, J: Image<U, D>>(
         &self,
+        start_x: usize,
+        start_y: usize,
+        width: usize,
+        height: usize,
         output: &mut I,
         input: &[&J],
     ) {
-        let (width, height, channels) = output.shape();
-        for y in 0..height {
-            for x in 0..width {
-                for c in 0..channels {
-                    output.set_f(x, y, c, T::clamp(self.compute_at(x, y, c, input)));
+        for y in start_y..start_y + height {
+            for x in start_x..start_x + width {
+                let px = output.at_mut(x, y);
+                for c in 0..C::channels() {
+                    px[c] =
+                        T::from_float(T::denormalize(T::clamp(self.compute_at(x, y, c, input))));
                 }
             }
         }
     }
 
+    /// Evaluate filter in parallel
     fn eval<
         T: Send + Type,
         C: Color,

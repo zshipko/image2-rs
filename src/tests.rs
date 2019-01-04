@@ -25,7 +25,7 @@ fn test_image_buffer_new() {
     let mut dest = image.new_like();
     image.set_f(3, 15, 0, 1.);
     assert_eq!(image.get(3, 15, 0), 255);
-    Invert.eval_s(&mut dest, &[&image]);
+    Invert.eval(&mut dest, &[&image]);
 }
 
 #[test]
@@ -50,7 +50,7 @@ fn test_to_grayscale() {
 fn test_invert() {
     let image: ImageBuf<f32, Rgb> = read("test/test.jpg").unwrap();
     let mut dest = image.new_like();
-    timer("Invert", || Invert.eval_s(&mut dest, &[&image]));
+    timer("Invert", || Invert.eval(&mut dest, &[&image]));
     write("test/test-invert.jpg", &dest).unwrap();
 }
 
@@ -66,29 +66,12 @@ fn test_hash() {
 }
 
 #[test]
-fn test_invert_parallel() {
-    let image: ImageBuf<f32, Rgb> = read("test/test.jpg").unwrap();
-    let mut dest = image.new_like();
-    timer("Invert parallel", || Invert.eval(&mut dest, &[&image]));
-    write("test/test-invert-parallel.jpg", &dest).unwrap();
-}
-
-#[test]
 fn test_kernel() {
     let image: ImageBuf<f32, Gray> = read("test/test.jpg").unwrap();
     let mut dest = image.new_like();
     let k = Kernel::from([[-1.0, -1.0, -1.0], [-1.0, 8.0, -1.0], [-1.0, -1.0, -1.0]]);
-    timer("Kernel", || k.eval_s(&mut dest, &[&image]));
+    timer("Kernel", || k.eval(&mut dest, &[&image]));
     write("test/test-simple-kernel.jpg", &dest).unwrap();
-}
-
-#[test]
-fn test_kernel_parallel() {
-    let image: ImageBuf<f32, Gray> = read("test/test.jpg").unwrap();
-    let mut dest = image.new_like();
-    let k = Kernel::from([[-1.0, -1.0, -1.0], [-1.0, 8.0, -1.0], [-1.0, -1.0, -1.0]]);
-    timer("Kernel parallel", || k.eval(&mut dest, &[&image]));
-    write("test/test-simple-kernel-parallel.jpg", &dest).unwrap();
 }
 
 #[test]
