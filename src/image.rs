@@ -13,6 +13,22 @@ pub fn index(width: usize, channels: usize, x: usize, y: usize, c: usize) -> usi
     width * channels * y + channels * x + c
 }
 
+#[derive(Debug, Clone)]
+pub struct Diff(std::collections::HashMap<(usize, usize, usize), f64>);
+
+impl Diff {
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn apply<T: Type, C: Color, I: Image<T, C>>(&self, image: &mut I) {
+        self.0.iter().for_each(|((x, y, c), v)| {
+            let f = image.get_f(*x, *y, *c);
+            image.set_f(*x, *y, *c, f + v);
+        });
+    }
+}
+
 /// The Image trait defines many methods for interaction with images in a generic manner
 pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     /// Returns the width, height and channels of an image
@@ -194,6 +210,46 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
             });
     }
 
+    /// Iterate over each pixel
+    #[cfg(feature = "parallel")]
+    fn for_each2<F: Sync + Send + Fn((usize, usize), &mut [T], &[T]), I: Image<T, C>>(
+        &mut self,
+        other: &I,
+        f: F,
+    ) {
+        let (width, _height, channels) = self.shape();
+        let b = other.data().par_chunks(channels);
+        self.data_mut()
+            .par_chunks_mut(channels)
+            .zip(b)
+            .enumerate()
+            .for_each(|(n, (pixel, pixel1))| {
+                let y = n / width;
+                let x = n - (y * width);
+                f((x, y), pixel, pixel1)
+            });
+    }
+
+    /// Iterate over each pixel
+    #[cfg(not(feature = "parallel"))]
+    fn for_each<F: Sync + Send + Fn((usize, usize), &mut [T], &[T]), I: Image<T, C>>(
+        &mut self,
+        other: &I,
+        f: F,
+    ) {
+        let (width, _height, channels) = self.shape();
+        let b = other.data().chunks(channels);
+        self.data_mut()
+            .chunks_mut(channels)
+            .zip(b)
+            .enumerate()
+            .for_each(|(n, pixel, pixel1)| {
+                let y = n / width;
+                let x = n - (y * width);
+                f((x, y), pixel, pixel1)
+            });
+    }
+
     /// Create a new image from the region specified by (x, y, width, height)
     fn crop(&self, x: usize, y: usize, width: usize, height: usize) -> ImageBuf<T, C> {
         let mut dest = ImageBuf::new(width, height);
@@ -242,6 +298,26 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
             }
         }
         hash
+    }
+
+    fn diff<I: Image<T, C>>(&self, other: &I) -> Diff {
+        let mut map = std::collections::HashMap::new();
+
+        for j in 0..self.height() {
+            for i in 0..self.width() {
+                let a = self.at(i, j);
+                let b = other.at(i, j);
+                for c in 0..C::channels() {
+                    let a = T::normalize(T::to_float(&a[c]));
+                    let b = T::normalize(T::to_float(&b[c]));
+                    if a != b {
+                        map.insert((i, j, c), a - b);
+                    }
+                }
+            }
+        }
+
+        Diff(map)
     }
 }
 

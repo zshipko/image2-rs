@@ -131,7 +131,7 @@ impl Ffmpeg {
     }
 
     /// Skip `n` frames
-    pub fn skip(&mut self, n: usize) {
+    pub fn skip_frames(&mut self, n: usize) {
         self.index += n;
     }
 
@@ -183,5 +183,13 @@ impl Ffmpeg {
         }
 
         v
+    }
+}
+
+impl Iterator for Ffmpeg {
+    type Item = ImageBuf<u8, Rgb>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Ffmpeg::next(self)
     }
 }

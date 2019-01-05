@@ -112,7 +112,22 @@ fn test_ffmpeg() {
         None => (),
     }
 
-    ffmpeg.skip(ffmpeg.frames - 1);
+    let frames = ffmpeg.frames - 1;
+
+    ffmpeg.skip_frames(frames);
 
     assert!(ffmpeg.next() == None);
+}
+
+#[test]
+fn test_diff() {
+    let image: ImageBuf<u8, Rgb> = read("test/test.jpg").unwrap();
+    let mut image2: ImageBuf<u8, Rgb> = image.new_like();
+    let diff = image.diff(&image2);
+    assert!(diff.len() > 0);
+    diff.apply(&mut image2);
+    let diff2 = image.diff(&image2);
+    assert!(diff2.len() == 0);
+    assert!(image == image2);
+    write("test/test-diff.png", &image2).unwrap()
 }

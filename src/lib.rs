@@ -52,7 +52,7 @@ mod ty;
 pub use self::color::{Color, Gray, Rgb, Rgba};
 pub use self::error::Error;
 pub use self::filter::Filter;
-pub use self::image::Image;
+pub use self::image::{Diff, Image};
 pub use self::image_buf::ImageBuf;
 pub use self::image_ptr::{Free, ImagePtr};
 pub use self::image_ref::ImageRef;
