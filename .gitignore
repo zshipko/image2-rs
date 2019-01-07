@@ -5,4 +5,4 @@ Cargo.lock
 *.png
 stb.o
 libstb.a
-test/test.mp4
+test/*.mp4

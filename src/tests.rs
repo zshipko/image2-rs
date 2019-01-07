@@ -59,10 +59,11 @@ fn test_hash() {
     let a: ImageBuf<f32, Rgb> = read("test/test.jpg").unwrap();
     let b: ImageBuf<f32, Rgb> = read("test/test.jpg").unwrap();
     timer("Hash", || assert!(a.hash() == b.hash()));
-    println!("{:08x}", a.hash());
+    assert!(a.hash().diff(&b.hash()) == 0);
     let mut c = a.new_like();
     Invert.eval(&mut c, &[&a]);
     assert!(c.hash() != a.hash());
+    assert!(c.hash().diff(&a.hash()) != 0);
 }
 
 #[test]
@@ -100,7 +101,7 @@ fn test_ffmpeg() {
         return;
     }
 
-    let mut ffmpeg = ffmpeg::Ffmpeg::open("test/test.mp4").unwrap();
+    let mut ffmpeg = ffmpeg::open_in(&path).unwrap();
 
     let image = ffmpeg.next();
 
@@ -117,6 +118,30 @@ fn test_ffmpeg() {
     ffmpeg.skip_frames(frames);
 
     assert!(ffmpeg.next() == None);
+}
+
+#[test]
+fn test_ffmpeg_output() {
+    let path = std::path::PathBuf::from("test/test.mp4");
+    let output_path = std::path::PathBuf::from("test/test-out.mp4");
+
+    if !path.exists() {
+        return;
+    }
+
+    let mut input = ffmpeg::open_in(&path).unwrap();
+    input.limit_frames(120);
+
+    let (width, height) = input.shape();
+    let output = ffmpeg::open_out(&output_path, width, height, 30, None).unwrap();
+    input
+        .process_to(output, |_, mut image| {
+            image.set_f(width / 2, height / 2, 0, 1.0);
+            image
+        })
+        .unwrap();
+
+    assert!(output_path.exists());
 }
 
 #[test]

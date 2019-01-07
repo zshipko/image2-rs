@@ -29,6 +29,39 @@ impl Diff {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+pub struct Hash(u64);
+
+fn check_bit(number: u64, n: usize) -> bool {
+    (number >> n) & 1 == 0
+}
+
+impl Hash {
+    pub fn diff(&self, other: &Hash) -> u64 {
+        let mut diff = 0;
+
+        for i in 0..64 {
+            if check_bit(self.0, i) != check_bit(other.0, i) {
+                diff += 1;
+            }
+        }
+
+        diff
+    }
+}
+
+impl From<Hash> for String {
+    fn from(hash: Hash) -> String {
+        format!("{:08x}", hash.0)
+    }
+}
+
+impl From<Hash> for u64 {
+    fn from(hash: Hash) -> u64 {
+        hash.0
+    }
+}
+
 /// The Image trait defines many methods for interaction with images in a generic manner
 pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     /// Returns the width, height and channels of an image
@@ -278,7 +311,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         dest
     }
 
-    fn hash(&self) -> u64 {
+    fn hash(&self) -> Hash {
         let mut small = ImageBuf::new(8, 8);
         crate::transform::resize(&mut small, self, 8, 8);
         let mut hash = 0u64;
@@ -297,7 +330,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
                 index += 1
             }
         }
-        hash
+        Hash(hash)
     }
 
     fn diff<I: Image<T, C>>(&self, other: &I) -> Diff {
