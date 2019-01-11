@@ -10,6 +10,9 @@ description = "A simple image processing library"
 readme = "README.md"
 edition = "2018"
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 num = "0.2"
 rayon = {version = "1", optional = true}
@@ -25,7 +28,6 @@ cc = "1"
 
 [features]
 default = ["parallel"]
-all = ["v4l", "raw", "ser", "rayon"]
 v4l = ["rscam"]
 raw = ["rawloader"]
 ser = ["serde", "serde_derive"]
