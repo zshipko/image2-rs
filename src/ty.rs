@@ -1,9 +1,9 @@
-use num::{FromPrimitive, NumCast, ToPrimitive, Zero};
+use num::{FromPrimitive, ToPrimitive, Zero};
 use std::ops::*;
 
 /// Implementing `Type` allows for a type to be used as values contained in an Image
 pub trait Type:
-    NumCast
+    ToPrimitive
     + FromPrimitive
     + Zero
     + Clone

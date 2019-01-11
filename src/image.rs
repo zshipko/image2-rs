@@ -1,6 +1,7 @@
 use crate::color::{Bgr, Color, Gray, Rgb, Rgba};
 use crate::filter::{AlphaBlend, Filter, SwapChannel, ToColor, ToGrayscale};
 use crate::image_buf::ImageBuf;
+use crate::image_ptr::{Free, ImagePtr};
 use crate::image_ref::ImageRef;
 use crate::pixel::{Pixel, PixelMut};
 use crate::ty::Type;
@@ -62,6 +63,11 @@ impl From<Hash> for u64 {
     }
 }
 
+fn free_slice<T: Type>(ptr: *mut T, size: usize) {
+    let slice = unsafe { std::slice::from_raw_parts_mut(ptr, size) };
+    std::mem::drop(slice)
+}
+
 /// The Image trait defines many methods for interaction with images in a generic manner
 pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     /// Returns the width, height and channels of an image
@@ -86,6 +92,17 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     fn channels(&self) -> usize {
         let (_, _, channels) = self.shape();
         channels
+    }
+
+    /// Get the number of total elements in an image
+    fn len(&self) -> usize {
+        let (w, h, c) = self.shape();
+        w * h * c
+    }
+
+    /// Get the total number of bytes needed to store the image data
+    fn total_bytes(&self) -> usize {
+        self.len() * std::mem::size_of::<T>()
     }
 
     /// Get the offset of the component at (x, y, c)
@@ -175,9 +192,8 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         }
 
         let index = self.index(x, y, c);
-        if let Some(f) = T::from(T::denormalize(f)) {
-            self.data_mut()[index] = f
-        }
+        let f = T::from_float(T::denormalize(f));
+        self.data_mut()[index] = f
     }
 
     /// Get a single component at (x, y, c)
@@ -213,6 +229,13 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     /// Convert Image to ImageRef
     fn as_image_ref(&mut self) -> ImageRef<T, C> {
         ImageRef::new(self.width(), self.height(), self.data_mut())
+    }
+
+    /// Consume and convert Image to ImagePtr
+    fn to_image_ptr<'a>(mut self) -> ImagePtr<'a, T, C> {
+        let ptr = self.data_mut().as_mut_ptr();
+        std::mem::forget(ptr);
+        ImagePtr::new(self.width(), self.height(), ptr, Free::Function(free_slice))
     }
 
     /// Iterate over each pixel

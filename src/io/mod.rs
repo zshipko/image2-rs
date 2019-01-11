@@ -122,7 +122,10 @@ pub fn read_f32<'a, P: AsRef<Path>, C: Color>(path: P) -> Result<ImagePtr<'a, f3
 
 /// Read any type of image using stb_image
 pub fn read<'a, P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<ImageBuf<T, C>, Error> {
-    let x = read_u8(path)?;
+    let x = match read_u8(&path) {
+        Ok(x) => x,
+        Err(_) => magick::read(path)?.to_image_ptr(),
+    };
     let mut y = ImageBuf::new(x.width(), x.height());
     x.convert_type(&mut y);
     Ok(y)
@@ -386,7 +389,7 @@ pub fn write<P: AsRef<Path>, T: Type, C: Color, I: Image<T, C>>(
                 image.convert_type(&mut tmp);
                 write_png_u8(path, &tmp)
             }
-            Some(x) => Err(Error::Message(format!("Invalid output format: {}", x))),
+            Some(_) => Ok(magick::write(path, image)?),
         },
         None => Err(Error::Message(format!(
             "Unable to determine output format: {:?}",

@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::io::{Read, Write};
 use std::num::ParseIntError;
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -143,6 +143,53 @@ impl Magick {
 
         match proc.wait() {
             Ok(_) => Ok(()),
+            Err(_) => Err(Error::UnableToExecuteCommand),
+        }
+    }
+
+    /// Encode image to an im-memory buffer using ImageMagick/GraphicsMagick
+    pub fn encode<T: Type, C: Color, I: Image<T, C>>(
+        &self,
+        format: &str,
+        image: &I,
+    ) -> Result<Vec<u8>, Error> {
+        let kind = kind::<C>();
+        let (width, height, _) = image.shape();
+        let size = format!("{}x{}", width, height);
+        let cmd = Command::new(self.convert[0])
+            .args(self.convert[1..].iter())
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .args(&["-depth", "8"])
+            .args(&["-size", size.as_str()])
+            .arg(&kind)
+            .arg(format!("{}:-", format))
+            .spawn();
+
+        let mut proc = match cmd {
+            Ok(c) => c,
+            Err(_) => return Err(Error::UnableToExecuteCommand),
+        };
+
+        {
+            let mut stdin = proc.stdin.take().unwrap();
+            let wdata: Vec<u8> = image.data().iter().map(|x| x.convert()).collect();
+            match stdin.write_all(&wdata) {
+                Ok(()) => (),
+                Err(_) => return Err(Error::ErrorWritingImage),
+            }
+            let _ = stdin.flush();
+        }
+
+        match proc.wait() {
+            Ok(_) => {
+                let mut buffer: Vec<u8> = Vec::new();
+                match proc.stdout.unwrap().read_to_end(&mut buffer) {
+                    Ok(_) => (),
+                    Err(_) => return Err(Error::InvalidImageData),
+                }
+                Ok(buffer)
+            }
             Err(_) => Err(Error::UnableToExecuteCommand),
         }
     }

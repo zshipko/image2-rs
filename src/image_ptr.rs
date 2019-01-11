@@ -10,7 +10,7 @@ pub struct ImagePtr<'a, T: 'a + Type, C: Color> {
     height: usize,
     data: &'a mut [T],
     _color: PhantomData<C>,
-    free: fn(*mut T),
+    free: fn(*mut T, usize),
 }
 
 impl<'a, T: Type, C: Color> Image<T, C> for ImagePtr<'a, T, C> {
@@ -31,13 +31,13 @@ extern "C" {
     pub(crate) fn free(ptr: *mut std::ffi::c_void);
 }
 
-fn default_free<T>(ptr: *mut T) {
+fn default_free<T>(ptr: *mut T, _: usize) {
     unsafe {
         free(ptr as *mut std::ffi::c_void);
     }
 }
 
-fn ignore_free<T>(_: *mut T) {}
+fn ignore_free<T>(_: *mut T, _: usize) {}
 
 /// Determines how to free a pointer stored in an ImagePtr
 pub enum Free<T> {
@@ -46,7 +46,7 @@ pub enum Free<T> {
     /// Ignore does nothing
     Ignore,
     /// Function allows for a custom function to be specified
-    Function(fn(*mut T)),
+    Function(fn(*mut T, usize)),
 }
 
 impl<'a, T: 'a + Type, C: Color> ImagePtr<'a, T, C> {
@@ -69,9 +69,11 @@ impl<'a, T: 'a + Type, C: Color> ImagePtr<'a, T, C> {
             _color: PhantomData,
         }
     }
+}
 
-    /// Get data slice
-    pub fn inner(self) -> &'a mut [T] {
-        self.data
+impl<'a, T: Type, C: Color> Drop for ImagePtr<'a, T, C> {
+    fn drop(&mut self) {
+        let f = self.free;
+        f(self.data.as_mut_ptr(), self.total_bytes())
     }
 }
