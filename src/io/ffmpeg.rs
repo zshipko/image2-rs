@@ -22,6 +22,7 @@ pub struct FfmpegIn {
     pub(crate) index: usize,
 }
 
+#[derive(Debug)]
 pub struct FfmpegOut {
     path: PathBuf,
     proc: std::process::Child,
@@ -42,6 +43,9 @@ impl FfmpegOut {
         let proc = Command::new("ffmpeg")
             .args(&[
                 "-y",
+                "-v",
+                "error",
+                "-hide_banner",
                 "-f",
                 "rawvideo",
                 "-pixel_format",
