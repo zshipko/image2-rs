@@ -2,8 +2,8 @@
 
 use rawloader;
 
-use crate::color::{Color, Gray, Rgb};
-use crate::image::{Convert, Image};
+use crate::color::{Gray, Rgb};
+use crate::image::Image;
 use crate::image_buf::ImageBuf;
 use crate::ty::Type;
 
@@ -71,19 +71,5 @@ impl Raw {
                 Some(dest)
             }
         }
-    }
-
-    pub fn to_image<T: Type, C: Color + Convert<T, Rgb, T, C> + Convert<T, Gray, T, C>>(
-        self,
-    ) -> ImageBuf<T, C> {
-        let mut dest = ImageBuf::new(self.image.width, self.image.height);
-        match self.to_gray_image() {
-            Some(im) => im.convert(&mut dest),
-            None => {
-                let im = self.to_rgb_image().unwrap();
-                im.convert(&mut dest);
-            }
-        }
-        dest
     }
 }
