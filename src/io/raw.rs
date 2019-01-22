@@ -2,7 +2,7 @@
 
 use rawloader;
 
-use crate::color::{Gray, Rgb};
+use crate::color::Rgb;
 use crate::image::Image;
 use crate::image_buf::ImageBuf;
 use crate::ty::Type;
@@ -31,8 +31,8 @@ impl Raw {
         Some(Raw { image: raw_image })
     }
 
-    pub fn to_rgb_image<T: Type>(self) -> Option<ImageBuf<T, Rgb>> {
-        if self.image.cpp == 1 {
+    pub fn to_image<T: Type>(self) -> Option<ImageBuf<T, Rgb>> {
+        if self.image.is_monochrome() || self.image.cpp != 3 {
             return None;
         }
 
@@ -41,27 +41,7 @@ impl Raw {
                 let im = ImageBuf::new_from(self.image.width, self.image.height, data);
                 let mut dest = ImageBuf::new(self.image.width, self.image.height);
                 im.convert_type(&mut dest);
-                Some(dest)
-            }
-            rawloader::RawImageData::Float(data) => {
-                let im = ImageBuf::new_from(self.image.width, self.image.height, data);
-                let mut dest = ImageBuf::new(self.image.width, self.image.height);
-                im.convert_type(&mut dest);
-                Some(dest)
-            }
-        }
-    }
 
-    pub fn to_gray_image<T: Type>(self) -> Option<ImageBuf<T, Gray>> {
-        if self.image.cpp != 1 {
-            return None;
-        }
-
-        match self.image.data {
-            rawloader::RawImageData::Integer(data) => {
-                let im = ImageBuf::new_from(self.image.width, self.image.height, data);
-                let mut dest = ImageBuf::new(self.image.width, self.image.height);
-                im.convert_type(&mut dest);
                 Some(dest)
             }
             rawloader::RawImageData::Float(data) => {
