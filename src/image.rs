@@ -257,7 +257,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     fn for_each<F: Sync + Send + Fn((usize, usize), &mut [T])>(&mut self, f: F) {
         let (width, _height, channels) = self.shape();
         self.data_mut()
-            .chunks_mut(channels)
+            .chunks_exact_mut(channels)
             .enumerate()
             .for_each(|(n, pixel)| {
                 let y = n / width;
