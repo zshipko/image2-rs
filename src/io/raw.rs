@@ -41,7 +41,6 @@ impl Raw {
                 let im = ImageBuf::new_from(self.image.width, self.image.height, data);
                 let mut dest = ImageBuf::new(self.image.width, self.image.height);
                 im.convert_type(&mut dest);
-
                 Some(dest)
             }
             rawloader::RawImageData::Float(data) => {

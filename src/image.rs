@@ -288,7 +288,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
 
     /// Iterate over each pixel
     #[cfg(not(feature = "parallel"))]
-    fn for_each<F: Sync + Send + Fn((usize, usize), &mut [T], &[T]), I: Image<T, C>>(
+    fn for_each2<F: Sync + Send + Fn((usize, usize), &mut [T], &[T]), I: Image<T, C>>(
         &mut self,
         other: &I,
         f: F,
@@ -299,7 +299,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
             .chunks_mut(channels)
             .zip(b)
             .enumerate()
-            .for_each(|(n, pixel, pixel1)| {
+            .for_each(|(n, (pixel, pixel1))| {
                 let y = n / width;
                 let x = n - (y * width);
                 f((x, y), pixel, pixel1)

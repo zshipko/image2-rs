@@ -31,6 +31,7 @@
 //!    io::write("example.png", &output).unwrap();
 //!}
 //!```
+
 #[cfg(test)]
 mod tests;
 
