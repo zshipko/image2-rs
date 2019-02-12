@@ -143,7 +143,7 @@ impl FfmpegIn {
             Err(_) => return Err(error::Error::FFmpeg(Error::InvalidFrameCount)),
         };
 
-        let frames: Vec<&str> = frames.split("\r").map(|x| x.trim()).collect();
+        let frames: Vec<&str> = frames.split("\n").map(|x| x.trim()).collect();
 
         let mut nframes = 0;
 
@@ -153,11 +153,11 @@ impl FfmpegIn {
             }
 
             let line: Vec<&str> = f.split("frame=").collect();
-            let count: String = line[1].split(" ").take(1).collect();
+            let count: String = line[1].trim().split(" ").take(1).collect();
 
             let frames = match count.parse::<usize>() {
                 Ok(n) => n,
-                Err(_) => return Err(error::Error::FFmpeg(Error::InvalidFrameCount)),
+                Err(_) => continue,
             };
 
             if frames > nframes {
