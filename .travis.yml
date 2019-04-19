@@ -7,5 +7,5 @@ matrix:
   allow_failures:
     - rust: nightly
 script:
-  - cargo build --verbose --all-features
-  - cargo test --verbose --all-features
+  - cargo build --verbose --features="parallel,io,ser"
+  - cargo test --verbose --features="parallel,io,ser"
