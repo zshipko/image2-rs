@@ -44,6 +44,7 @@ mod error;
 mod image_buf;
 mod image_ptr;
 mod image_ref;
+#[cfg(feature = "io")]
 pub mod io;
 pub mod kernel;
 mod pixel;
@@ -58,5 +59,5 @@ pub use self::image_buf::ImageBuf;
 pub use self::image_ptr::{Free, ImagePtr};
 pub use self::image_ref::ImageRef;
 pub use self::kernel::Kernel;
-pub use self::pixel::{Pixel, PixelMut, PixelVec};
+pub use self::pixel::{colorspace, Pixel, PixelMut, PixelVec};
 pub use self::ty::Type;

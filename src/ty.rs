@@ -61,11 +61,21 @@ pub trait Type:
     }
 
     #[inline]
+    fn to_f(&self) -> f64 {
+        Self::normalize(Self::to_float(self))
+    }
+
+    #[inline]
     fn from_float(x: f64) -> Self {
         match FromPrimitive::from_f64(x) {
             Some(p) => p,
             None => Self::zero(),
         }
+    }
+
+    #[inline]
+    fn from_f(x: f64) -> Self {
+        Self::from_float(Self::clamp(Self::denormalize(x)))
     }
 
     #[inline]

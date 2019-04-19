@@ -116,6 +116,11 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         vec![T::zero(); C::channels()]
     }
 
+    /// Create a new, empty pixel with each component set to 0
+    fn empty_pixel_f(&self) -> Vec<f64> {
+        vec![0.0; C::channels()]
+    }
+
     /// Get a vector of mutable references to each component at (x, y)
     fn at_mut(&mut self, x: usize, y: usize) -> &mut [T] {
         let (width, _height, channels) = self.shape();
@@ -146,7 +151,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         let index = self.index(x, y, 0);
         let px = px.as_mut();
         for i in 0..C::channels() {
-            px[i] = T::normalize(T::to_float(&data[index + i]))
+            px[i] = T::to_f(&data[index + i]);
         }
     }
 
@@ -166,7 +171,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         let data = self.data_mut();
         let px = px.as_ref();
         for i in 0..C::channels() {
-            data[index + i] = T::from_float(T::denormalize(px[i]))
+            data[index + i] = T::from_f(px[i]);
         }
     }
 
@@ -192,8 +197,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         }
 
         let index = self.index(x, y, c);
-        let f = T::from_float(T::denormalize(f));
-        self.data_mut()[index] = f
+        self.data_mut()[index] = T::from_f(f);
     }
 
     /// Get a single component at (x, y, c)
@@ -344,7 +348,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
             for i in 0..8 {
                 small.get_pixel(i, j, &mut px);
                 let avg: T = Pixel::<T, C>::iter(&px).map(|x| *x).sum();
-                let f = T::normalize(T::to_float(&avg) / C::channels() as f64);
+                let f = T::to_f(&avg) / C::channels() as f64;
                 if f > 0.5 {
                     hash = hash | (1 << index)
                 } else {

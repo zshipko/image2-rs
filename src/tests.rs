@@ -1,8 +1,9 @@
 #![cfg(test)]
+#![cfg(feature = "io")]
 
 use crate::color::{Gray, Rgb};
 use crate::filter::{Filter, Invert, ToGrayscale};
-use crate::io::{ffmpeg, read, write};
+use crate::io::{read, write};
 use crate::kernel::{gaussian_5x5, sobel, Kernel};
 use crate::{Image, ImageBuf};
 
@@ -93,7 +94,7 @@ fn test_sobel() {
     write("test/test-sobel.jpg", &dest).unwrap();
 }
 
-#[test]
+/*#[test]
 fn test_ffmpeg() {
     let path = std::path::PathBuf::from("test/test.mp4");
 
@@ -142,7 +143,7 @@ fn test_ffmpeg_output() {
         .unwrap();
 
     assert!(output_path.exists());
-}
+}*/
 
 #[test]
 fn test_diff() {
@@ -155,4 +156,14 @@ fn test_diff() {
     assert!(diff2.len() == 0);
     assert!(image == image2);
     write("test/test-diff.png", &image2).unwrap()
+}
+
+#[test]
+fn test_colorspace() {
+    use crate::{colorspace, Pixel};
+    let image: ImageBuf<u8, Rgb> = read("test/test.jpg").unwrap();
+    let mut px = image.empty_pixel();
+    image.get_pixel(10, 10, &mut px);
+    let rgb = Pixel::<u8, Rgb>::to_rgb(&px);
+    println!("{:?}", rgb);
 }

@@ -77,6 +77,7 @@ pub fn rotate270<T: Type, C: Color, I: Image<T, C>, J: Image<T, C>>(dest: &mut I
 }
 
 #[cfg(test)]
+#[cfg(feature = "io")]
 mod test {
     use crate::{
         io::magick,

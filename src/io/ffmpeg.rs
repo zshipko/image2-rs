@@ -1,315 +1,143 @@
-use std::io::Write;
-use std::num::ParseIntError;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::io::{Read, Write};
+use std::process::{Child, Command, Stdio};
 
-use crate::{error, Image, ImageBuf, Rgb};
+use crate::Image;
 
 #[derive(Debug)]
 pub enum Error {
+    CannotSpawnChild,
     FileDoesNotExist,
     InvalidImageShape,
     InvalidFrameCount,
 }
 
-/// Stores information about a video file
-pub struct FfmpegIn {
-    path: PathBuf,
-    width: usize,
-    height: usize,
-    args: Vec<String>,
-    pub(crate) frames: usize,
-    pub(crate) index: usize,
+pub struct FFmpeg {
+    command: Command,
+    child: Option<Child>,
 }
 
-#[derive(Debug)]
-pub struct FfmpegOut {
-    path: PathBuf,
-    proc: std::process::Child,
-}
+impl FFmpeg {
+    pub fn new() -> FFmpeg {
+        let mut command = Command::new("ffmpeg");
+        command.args(&["-v", "error", "-y"]);
+        FFmpeg {
+            command,
+            child: None,
+        }
+    }
 
-impl FfmpegOut {
-    pub fn open<P: AsRef<Path>>(
-        path: P,
-        width: usize,
-        height: usize,
-        framerate: usize,
-        args: Option<Vec<&str>>,
-    ) -> Result<FfmpegOut, std::io::Error> {
-        let path = path.as_ref().to_path_buf();
+    pub fn is_running(&self) -> bool {
+        match self.child {
+            Some(_) => true,
+            None => false,
+        }
+    }
 
-        let size = format!("{}x{}", width, height);
-        let framerate_s = format!("{}", framerate);
-        let proc = Command::new("ffmpeg")
-            .args(&[
-                "-y",
-                "-v",
-                "error",
-                "-hide_banner",
-                "-f",
-                "rawvideo",
-                "-pixel_format",
-                "rgb24",
-                "-video_size",
-                &size,
-                "-framerate",
-                &framerate_s,
-                "-i",
-                "-",
-                path.to_str().expect("Invalid output file"),
-            ])
-            .args(args.unwrap_or(Vec::new()))
+    pub fn arg<S: AsRef<std::ffi::OsStr>>(&mut self, arg: S) -> &mut FFmpeg {
+        self.command.arg(arg);
+        self
+    }
+
+    pub fn input_file<S: AsRef<std::ffi::OsStr>>(&mut self, filename: S) -> &mut FFmpeg {
+        self.arg("-i").arg(filename)
+    }
+
+    pub fn input_pipe(&mut self) -> &mut FFmpeg {
+        self.arg("-rawvideo").input_file("-")
+    }
+
+    pub fn fps(&mut self, i: usize) -> &mut FFmpeg {
+        self.arg("-r").arg(format!("{}", i))
+    }
+
+    pub fn output_file<S: AsRef<std::ffi::OsStr>>(&mut self, filename: S) -> &mut FFmpeg {
+        self.arg(filename)
+    }
+
+    pub fn output_pipe(&mut self) -> &mut FFmpeg {
+        self.arg("-rawvideo").output_file("-")
+    }
+
+    pub fn pix_fmt(&mut self, fmt: &str) -> &mut FFmpeg {
+        self.arg("-pix_fmt").arg(fmt)
+    }
+
+    pub fn video_size(&mut self, width: usize, height: usize) -> &mut FFmpeg {
+        self.arg("-video_size").arg(format!("{}x{}", width, height))
+    }
+
+    pub fn start_read(&mut self) -> Result<(), Error> {
+        let child = match self
+            .command
+            .stderr(Stdio::null())
+            .stdout(Stdio::piped())
+            .spawn()
+        {
+            Ok(c) => c,
+            Err(_) => return Err(Error::CannotSpawnChild),
+        };
+
+        self.child = Some(child);
+
+        Ok(())
+    }
+
+    pub fn start_write(&mut self) -> Result<(), Error> {
+        let child = match self
+            .command
+            .stderr(Stdio::null())
             .stdin(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()?;
+            .spawn()
+        {
+            Ok(c) => c,
+            Err(_) => return Err(Error::CannotSpawnChild),
+        };
 
-        Ok(FfmpegOut { path, proc })
-    }
+        self.child = Some(child);
 
-    pub fn output_file(&self) -> &PathBuf {
-        &self.path
-    }
-
-    pub fn write<I: Image<u8, Rgb>>(&mut self, image: &I) -> Result<(), std::io::Error> {
-        let mut stdin = self.proc.stdin.take().unwrap();
-        stdin.write_all(image.data())?;
-        self.proc.stdin.replace(stdin);
         Ok(())
     }
 
-    pub fn finish(mut self) -> Result<(), std::io::Error> {
-        let mut stdin = self.proc.stdin.take().unwrap();
-        stdin.flush()?;
-        Ok(())
-    }
-}
+    pub fn stop(&mut self, wait: bool) {
+        let child = self.child.take();
 
-impl FfmpegIn {
-    fn get_shape(path: &PathBuf) -> Result<(usize, usize), error::Error> {
-        let ffprobe_size = Command::new("ffprobe")
-            .args(&[
-                "-v",
-                "error",
-                "-select_streams",
-                "v:0",
-                "-show_entries",
-                "stream=width,height",
-                "-of",
-                "csv=s=x:p=0",
-            ])
-            .arg(path)
-            .output()?;
-
-        let shape = match String::from_utf8(ffprobe_size.stdout) {
-            Ok(shape) => shape,
-            Err(_) => return Err(error::Error::FFmpeg(Error::InvalidImageShape)),
-        };
-
-        let t = shape
-            .split('x')
-            .map(|a| a.trim().parse::<usize>())
-            .collect::<Vec<Result<usize, ParseIntError>>>();
-
-        if t.len() < 2 {
-            return Err(error::Error::FFmpeg(Error::InvalidImageShape));
-        }
-
-        let x = match (&t[0], &t[1]) {
-            (Ok(w), Ok(h)) => (w.clone(), h.clone()),
-            (_, _) => return Err(error::Error::FFmpeg(Error::InvalidImageShape)),
-        };
-
-        Ok(x)
-    }
-
-    fn get_frames(path: &PathBuf) -> Result<usize, error::Error> {
-        let ffprobe_num_frames = Command::new("ffmpeg")
-            .args(&[
-                "-i",
-                path.to_str().expect("Invalid Filename"),
-                "-map",
-                "0:v:0",
-                "-c",
-                "copy",
-                "-f",
-                "null",
-                "-y",
-                "/dev/null",
-            ])
-            .output()?;
-
-        let frames = match String::from_utf8(ffprobe_num_frames.stderr) {
-            Ok(f) => f,
-            Err(_) => return Err(error::Error::FFmpeg(Error::InvalidFrameCount)),
-        };
-
-        let frames: Vec<&str> = frames.split("\n").map(|x| x.trim()).collect();
-
-        let mut nframes = 0;
-
-        for f in frames.iter() {
-            if !f.contains("frame=") {
-                continue;
+        match child {
+            Some(mut c) => {
+                if wait {
+                    c.wait().unwrap();
+                } else {
+                    c.kill().unwrap();
+                }
             }
-
-            let line: Vec<&str> = f.split("frame=").collect();
-            let count: String = line[1].trim().split(" ").take(1).collect();
-
-            let frames = match count.parse::<usize>() {
-                Ok(n) => n,
-                Err(_) => continue,
-            };
-
-            if frames > nframes {
-                nframes = frames
-            }
-        }
-
-        if nframes == 0 {
-            return Err(error::Error::FFmpeg(Error::InvalidFrameCount));
-        }
-
-        Ok(nframes)
-    }
-
-    /// Returns the number of frames in a video file
-    pub fn num_frames(&self) -> usize {
-        self.frames
-    }
-
-    /// Returns the size of each frame of the video
-    pub fn shape(&self) -> (usize, usize) {
-        (self.width, self.height)
-    }
-
-    pub fn limit_frames(&mut self, n: usize) {
-        if self.frames > n {
-            self.frames = n
+            None => (),
         }
     }
 
-    /// Open a video file using FFmpeg
-    pub fn open<P: AsRef<Path>>(path: P) -> Result<FfmpegIn, error::Error> {
-        let path = path.as_ref().to_path_buf();
-        if !path.exists() {
-            return Err(error::Error::FFmpeg(Error::FileDoesNotExist));
-        }
-
-        let (width, height) = Self::get_shape(&path)?;
-        let frames = Self::get_frames(&path)?;
-        let args = Vec::new();
-
-        Ok(FfmpegIn {
-            path,
-            width,
-            height,
-            frames,
-            index: 0,
-            args,
-        })
-    }
-
-    pub fn input_file(&self) -> &PathBuf {
-        &self.path
-    }
-
-    /// Add FFmpeg argument
-    pub fn arg<S: AsRef<str>>(&mut self, arg: S) {
-        self.args.push(String::from(arg.as_ref()))
-    }
-
-    /// Set frame index to 0
-    pub fn reset(&mut self) {
-        self.index = 0;
-    }
-
-    /// Skip `n` frames
-    pub fn skip_frames(&mut self, n: usize) {
-        self.index += n;
-    }
-
-    /// Rewind `n`n frames
-    pub fn rewind(&mut self, n: usize) {
-        if n < self.index {
-            self.index = 0;
-        } else {
-            self.index -= 1;
-        }
-    }
-
-    /// Get next frame
-    pub fn next(&mut self) -> Option<ImageBuf<u8, Rgb>> {
-        if self.index >= self.frames {
-            return None;
-        }
-
-        self.index += 1;
-
-        let cmd = Command::new("ffmpeg")
-            .args(&["-v", "error", "-hide_banner", "-i"])
-            .arg(&self.path)
-            .arg("-vf")
-            .arg(format!("select=gte(n\\,{})", self.index))
-            .args(&[
-                "-vframes", "1", "-pix_fmt", "rgb24", "-f", "rawvideo", "-an", "-",
-            ])
-            .args(&self.args)
-            .output();
-
-        let cmd = match cmd {
-            Ok(x) => x,
-            _ => return None,
-        };
-
-        Some(ImageBuf::new_from(self.width, self.height, cmd.stdout))
-    }
-
-    /// Get next `n` frames
-    pub fn next_n(&mut self, n: usize) -> Vec<ImageBuf<u8, Rgb>> {
-        let mut v = Vec::new();
-
-        for _ in 0..n {
-            match self.next() {
-                Some(x) => v.push(x),
-                None => break,
-            }
-        }
-
-        v
-    }
-
-    pub fn process_to<F: Fn(usize, ImageBuf<u8, Rgb>) -> ImageBuf<u8, Rgb>>(
+    pub fn read<T: crate::Type, C: crate::Color, I: Image<T, C>>(
         &mut self,
-        mut dest: FfmpegOut,
-        f: F,
-    ) -> Result<(), crate::Error> {
-        for (i, frame) in self.enumerate() {
-            let frame = f(i, frame);
-            dest.write(&frame)?;
+        image: &mut I,
+    ) -> std::io::Result<()> {
+        let buf = unsafe { std::mem::transmute(image.data_mut()) };
+        match &mut self.child {
+            Some(c) => match &mut c.stdout {
+                Some(x) => x.read_exact(buf),
+                None => Ok(()),
+            },
+            None => Ok(()),
         }
-        dest.finish()?;
-        Ok(())
     }
-}
 
-impl Iterator for FfmpegIn {
-    type Item = ImageBuf<u8, Rgb>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        FfmpegIn::next(self)
+    pub fn write<T: crate::Type, C: crate::Color, I: Image<T, C>>(
+        &mut self,
+        image: &I,
+    ) -> std::io::Result<()> {
+        let buf = unsafe { std::mem::transmute(image.data()) };
+        match &mut self.child {
+            Some(c) => match &mut c.stdin {
+                Some(x) => x.write_all(buf),
+                None => Ok(()),
+            },
+            None => Ok(()),
+        }
     }
-}
-
-pub fn open_in<P: AsRef<Path>>(path: P) -> Result<FfmpegIn, crate::Error> {
-    FfmpegIn::open(path)
-}
-
-pub fn open_out<P: AsRef<Path>>(
-    path: P,
-    width: usize,
-    height: usize,
-    framerate: usize,
-    args: Option<Vec<&str>>,
-) -> Result<FfmpegOut, std::io::Error> {
-    FfmpegOut::open(path, width, height, framerate, args)
 }

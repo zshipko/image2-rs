@@ -131,16 +131,13 @@ macro_rules! filter {
     };
 }
 
-/// Invert subtracts the current component value from the maxiumum
 filter!(.Invert, input, |_, x, y, c| T::max_f()
     - input[0].get_f(x, y, c));
 
-/// Blend takes the average of two images
 filter!(.Blend, input, |_, x, y, c| (input[0].get_f(x, y, c)
     + input[1].get_f(x, y, c))
     / 2.0);
 
-/// ToGrayscale converts an Rgb or Rgba image to Gray
 filter!(.ToGrayscale, input, |_, x, y, _c| {
     let a: &I = input[0];
     let v = a.get_f(x, y, 0) * 0.21 + a.get_f(x, y, 1) * 0.72 + a.get_f(x, y, 2) * 0.07;
@@ -150,7 +147,6 @@ filter!(.ToGrayscale, input, |_, x, y, _c| {
     v
 });
 
-/// ToColor converts a Gray image to Rgb or Rgba
 filter!(.ToColor, input, |_, x, y, c| {
     if c == 4 {
         return T::max_f();
@@ -159,7 +155,6 @@ filter!(.ToColor, input, |_, x, y, c| {
     input[0].get_f(x, y, c % C::channels())
 });
 
-/// Returns a new pixel with premultiplied alpha values
 filter!(.AlphaBlend, input, |_, x, y, c| {
     let a = input[0];
 
@@ -171,7 +166,6 @@ filter!(.AlphaBlend, input, |_, x, y, c| {
 });
 
 pub struct SwapChannel(pub usize, pub usize);
-/// Swaps a value from one channel to another
 filter!(
     SwapChannel,
     input,

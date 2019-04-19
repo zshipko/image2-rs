@@ -2,6 +2,10 @@ use std::ops;
 
 use crate::{Color, Type};
 
+pub mod colorspace {
+    pub use palette::*;
+}
+
 /// Pixel is used to access chunks of image data
 pub trait Pixel<'a, T: Type, C: Color>: AsRef<[T]> {
     /// Create a new Vec<T> from existing pixel data
@@ -10,8 +14,8 @@ pub trait Pixel<'a, T: Type, C: Color>: AsRef<[T]> {
     }
 
     /// Create a new Vec<f64> of normalized values from existing pixel data
-    fn to_vec_f(&self) -> Vec<f64> {
-        self.as_ref().iter().map(|x| T::to_float(x)).collect()
+    fn to_f(&self) -> Vec<f64> {
+        self.as_ref().iter().map(|x| T::to_f(x)).collect()
     }
 
     /// Create a new PixelVec<T> from existing pixel data
@@ -47,6 +51,47 @@ pub trait Pixel<'a, T: Type, C: Color>: AsRef<[T]> {
     fn iter(&self) -> std::slice::Iter<T> {
         self.as_ref().iter()
     }
+
+    fn to_rgb(&self) -> colorspace::LinSrgb {
+        let data = self.as_ref();
+        palette::LinSrgb::new(
+            data[0].to_f() as f32,
+            data[1].to_f() as f32,
+            data[2].to_f() as f32,
+        )
+    }
+
+    fn from_rgb(px: colorspace::rgb::Rgb) -> PixelVec<f64> {
+        PixelVec::new(px.red as f64, px.green as f64, px.blue as f64, 1.0)
+    }
+
+    fn to_rgba(&self) -> colorspace::LinSrgba {
+        let data = self.as_ref();
+        palette::LinSrgba::new(
+            data[0].to_f() as f32,
+            data[1].to_f() as f32,
+            data[2].to_f() as f32,
+            data[3].to_f() as f32,
+        )
+    }
+
+    fn from_rgba(px: colorspace::rgb::Rgba) -> PixelVec<f64> {
+        PixelVec::new(
+            px.red as f64,
+            px.green as f64,
+            px.blue as f64,
+            px.alpha as f64,
+        )
+    }
+
+    fn to_luma(&self) -> colorspace::LinLuma {
+        let data = self.as_ref();
+        palette::luma::Luma::new(data[0].to_f() as f32)
+    }
+
+    fn from_luma(px: colorspace::luma::Luma) -> PixelVec<f64> {
+        PixelVec::new_gray(px.luma as f64)
+    }
 }
 
 /// PixelMut is used to access mutable chunks of image data
@@ -55,8 +100,7 @@ pub trait PixelMut<'a, T: Type, C: Color>: Pixel<'a, T, C> + AsMut<[T]> {
     fn set_f<P: Pixel<'a, f64, C>>(&mut self, other: &P) {
         let a = self.as_mut().iter_mut();
         let b = other.as_ref().iter();
-        a.zip(b)
-            .for_each(|(x, y)| *x = T::from_float(T::normalize(*y)))
+        a.zip(b).for_each(|(x, y)| *x = T::from_f(*y))
     }
 
     /// Copy values from another pixel
@@ -151,19 +195,19 @@ impl<T: Type> PixelVec<T> {
 
     /// Convert from `PixelVec<T>` to `Vec<f64>` and normalize values
     pub fn to_vec_f<C: Color>(&self) -> Vec<f64> {
-        let mut vec: Vec<f64> = self
-            .0
-            .to_vec()
-            .into_iter()
-            .map(|x| T::normalize(T::to_float(&x)))
-            .collect();
+        let mut vec: Vec<f64> = self.0.to_vec().into_iter().map(|x| T::to_f(&x)).collect();
         vec.truncate(C::channels());
         vec
     }
 
+    /// Convert from `PixelVec<T>` to `PixelVec<f64>`
+    pub fn to_float(&self) -> PixelVec<f64> {
+        self.map(|x| T::to_float(x))
+    }
+
     /// Convert from `PixelVec<T>` to `PixelVec<f64>` and normalize values
     pub fn to_f(&self) -> PixelVec<f64> {
-        self.map(|x| T::normalize(T::to_float(x)))
+        self.map(|x| T::to_f(x))
     }
 }
 
