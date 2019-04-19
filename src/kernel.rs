@@ -9,10 +9,7 @@ use crate::image::Image;
 use crate::ty::Type;
 
 /// Kernels defines a 2-dimensional convolution filter
-#[cfg_attr(
-    feature = "ser",
-    derive(serde_derive::Serialize, serde_derive::Deserialize)
-)]
+#[cfg_attr(feature = "ser", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Kernel {
     rows: usize,

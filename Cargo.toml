@@ -29,5 +29,5 @@ cc = "1"
 default = ["parallel", "io"]
 io = []
 v4l = ["rscam"]
-ser = ["serde"]
+ser = ["serde", "palette/serde"]
 parallel = ["rayon"]

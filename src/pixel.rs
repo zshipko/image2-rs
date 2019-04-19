@@ -125,10 +125,7 @@ impl<'a, T: Type, C: Color> Pixel<'a, T, C> for &'a mut Vec<T> {}
 impl<'a, T: Type, C: Color> PixelMut<'a, T, C> for &'a mut Vec<T> {}
 
 /// PixelVec is a 4-channel pixel backed by a static array
-#[cfg_attr(
-    feature = "ser",
-    derive(serde_derive::Serialize, serde_derive::Deserialize)
-)]
+#[cfg_attr(feature = "ser", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, Copy)]
 pub struct PixelVec<T: Type>([T; 4]);
 
