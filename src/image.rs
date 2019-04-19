@@ -344,7 +344,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         let px = px.to_vec();
         data.par_chunks_mut(C::channels()).for_each(|x| {
             for (n, i) in x.into_iter().enumerate() {
-                *i = T::from_float(T::clamp(px[n] * T::to_float(i)));
+                *i = T::from_f(px[n] * T::to_f(i));
             }
         });
     }
@@ -355,7 +355,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         let px = px.to_vec();
         data.par_chunks_mut(C::channels()).for_each(|x| {
             for (n, i) in x.into_iter().enumerate() {
-                *i = T::from_float(T::clamp(px[n] + T::to_float(i)));
+                *i = T::from_f(px[n] + T::to_f(i));
             }
         });
     }
