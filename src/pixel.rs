@@ -113,6 +113,23 @@ pub trait PixelMut<'a, T: Type, C: Color>: Pixel<'a, T, C> + AsMut<[T]> {
     fn iter_mut(&mut self) -> std::slice::IterMut<T> {
         self.as_mut().iter_mut()
     }
+
+    fn blend_alpha(&mut self) {
+        if !C::has_alpha() {
+            return;
+        }
+
+        let len = C::channels();
+
+        let alpha = T::to_float(&self.as_ref()[len - 1]) / T::max_f();
+        let data = self.as_mut();
+
+        for i in 0..len - 1 {
+            data[i] = T::from_float(T::to_float(&data[i]) * alpha);
+        }
+
+        data[len - 1] = T::max();
+    }
 }
 
 impl<'a, T: Type, C: Color> Pixel<'a, T, C> for &'a [T] {}
