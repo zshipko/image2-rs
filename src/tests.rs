@@ -104,57 +104,6 @@ fn test_sobel() {
     write("test/test-sobel.jpg", &dest).unwrap();
 }
 
-/*#[test]
-fn test_ffmpeg() {
-    let path = std::path::PathBuf::from("test/test.mp4");
-
-    if !path.exists() {
-        return;
-    }
-
-    let mut ffmpeg = ffmpeg::open_in(&path).unwrap();
-
-    let image = ffmpeg.next();
-
-    assert!(image != None);
-    assert!(ffmpeg.index == 1);
-
-    match image {
-        Some(image) => write("test/test-ffmpeg.png", &image).unwrap(),
-        None => (),
-    }
-
-    let frames = ffmpeg.frames - 1;
-
-    ffmpeg.skip_frames(frames);
-
-    assert!(ffmpeg.next() == None);
-}
-
-#[test]
-fn test_ffmpeg_output() {
-    let path = std::path::PathBuf::from("test/test.mp4");
-    let output_path = std::path::PathBuf::from("test/test-out.mp4");
-
-    if !path.exists() {
-        return;
-    }
-
-    let mut input = ffmpeg::open_in(&path).unwrap();
-    input.limit_frames(120);
-
-    let (width, height) = input.shape();
-    let output = ffmpeg::open_out(&output_path, width, height, 30, None).unwrap();
-    input
-        .process_to(output, |_, mut image| {
-            image.set_f(width / 2, height / 2, 0, 1.0);
-            image
-        })
-        .unwrap();
-
-    assert!(output_path.exists());
-}*/
-
 #[test]
 fn test_diff() {
     let image: ImageBuf<u8, Rgb> = read("test/test.jpg").unwrap();
