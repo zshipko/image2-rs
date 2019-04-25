@@ -49,7 +49,7 @@ impl FFmpeg {
     }
 
     pub fn input_pipe(&mut self) -> &mut FFmpeg {
-        self.arg("-frawvideo").input_file("-")
+        self.arg("-f").arg("rawvideo").input_file("-")
     }
 
     pub fn fps(&mut self, i: usize) -> &mut FFmpeg {
@@ -61,7 +61,7 @@ impl FFmpeg {
     }
 
     pub fn output_pipe(&mut self) -> &mut FFmpeg {
-        self.arg("-frawvideo").output_file("-")
+        self.arg("-f").arg("rawvideo").output_file("-")
     }
 
     pub fn pix_fmt(&mut self, fmt: &str) -> &mut FFmpeg {
