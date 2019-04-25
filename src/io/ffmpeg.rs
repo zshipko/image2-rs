@@ -16,6 +16,12 @@ pub struct FFmpeg {
     child: Option<Child>,
 }
 
+impl std::fmt::Debug for FFmpeg {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self.command, fmt)
+    }
+}
+
 impl FFmpeg {
     pub fn new() -> FFmpeg {
         let mut command = Command::new("ffmpeg");
