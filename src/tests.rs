@@ -3,9 +3,9 @@
 
 use crate::color::{Gray, Rgb};
 use crate::filter::{Filter, Invert, ToGrayscale};
-use crate::io::{read, write};
+use crate::io::{magick, read, write};
 use crate::kernel::{gaussian_5x5, sobel, Kernel};
-use crate::{Image, ImageBuf};
+use crate::{Image, ImageBuf, Pixel};
 
 use std::time::Instant;
 
@@ -37,6 +37,16 @@ fn test_read_write() {
 
     let b: ImageBuf<u8, Rgb> = read("test/test-read-write1.png").unwrap();
     write("test/test-read-write2.png", &b).unwrap();
+}
+
+#[test]
+fn test_read_write_magick() {
+    let a: ImageBuf<u16, Rgb> = magick::read("test/test.jpg").unwrap();
+    magick::write("test/test-read-write-magick0.jpg", &a).unwrap();
+    magick::write("test/test-read-write-magick1.png", &a).unwrap();
+
+    let b: ImageBuf<u16, Rgb> = magick::read("test/test-read-write-magick1.png").unwrap();
+    magick::write("test/test-read-write-magick2.png", &b).unwrap();
 }
 
 #[test]
@@ -160,7 +170,6 @@ fn test_diff() {
 
 #[test]
 fn test_colorspace() {
-    use crate::{colorspace, Pixel};
     let image: ImageBuf<u8, Rgb> = read("test/test.jpg").unwrap();
     let mut px = image.empty_pixel();
     image.get_pixel(10, 10, &mut px);

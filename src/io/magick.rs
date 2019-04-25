@@ -28,6 +28,16 @@ pub fn kind<C: Color>() -> String {
     format!("{}:-", C::name())
 }
 
+fn depth<T: Type, C: Color>(cmd: &mut Command) {
+    let depth = std::mem::size_of::<T>() * 8;
+    cmd.arg("-depth");
+    cmd.arg(format!("{}", depth));
+
+    if T::is_float() {
+        cmd.args(&["-define", "quantum:format=floating-point"]);
+    }
+}
+
 pub const IM: Magick = Magick {
     identify: &["identify"],
     convert: &["convert"],
@@ -90,15 +100,14 @@ impl Magick {
             Ok((width, height)) => (width, height),
             Err(e) => return Err(e),
         };
-        let kind = kind::<C>();
-        let cmd = Command::new(self.convert[0])
-            .args(self.convert[1..].iter())
-            .arg(path.as_ref())
-            .args(&["-depth", "8"])
-            .arg(kind)
-            .output();
 
-        let cmd = match cmd {
+        let kind = kind::<C>();
+        let mut cmd = Command::new(self.convert[0]);
+        cmd.args(self.convert[1..].iter()).arg(path.as_ref());
+        depth::<T, C>(&mut cmd);
+        cmd.arg(kind);
+
+        let cmd = match cmd.output() {
             Ok(cmd) => cmd,
             Err(_) => return Err(Error::InvalidImageData),
         };
@@ -117,16 +126,14 @@ impl Magick {
         let kind = kind::<C>();
         let (width, height, _) = image.shape();
         let size = format!("{}x{}", width, height);
-        let cmd = Command::new(self.convert[0])
-            .args(self.convert[1..].iter())
-            .stdin(Stdio::piped())
-            .args(&["-depth", "8"])
-            .args(&["-size", size.as_str()])
+        let mut cmd = Command::new(self.convert[0]);
+        cmd.args(self.convert[1..].iter()).stdin(Stdio::piped());
+        depth::<T, C>(&mut cmd);
+        cmd.args(&["-size", size.as_str()])
             .arg(kind)
-            .arg(path.as_ref())
-            .spawn();
+            .arg(path.as_ref());
 
-        let mut proc = match cmd {
+        let mut proc = match cmd.spawn() {
             Ok(c) => c,
             Err(_) => return Err(Error::UnableToExecuteCommand),
         };
@@ -156,17 +163,16 @@ impl Magick {
         let kind = kind::<C>();
         let (width, height, _) = image.shape();
         let size = format!("{}x{}", width, height);
-        let cmd = Command::new(self.convert[0])
-            .args(self.convert[1..].iter())
+        let mut cmd = Command::new(self.convert[0]);
+        cmd.args(self.convert[1..].iter())
             .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .args(&["-depth", "8"])
-            .args(&["-size", size.as_str()])
+            .stdout(Stdio::piped());
+        depth::<T, C>(&mut cmd);
+        cmd.args(&["-size", size.as_str()])
             .arg(&kind)
-            .arg(format!("{}:-", format))
-            .spawn();
+            .arg(format!("{}:-", format));
 
-        let mut proc = match cmd {
+        let mut proc = match cmd.spawn() {
             Ok(c) => c,
             Err(_) => return Err(Error::UnableToExecuteCommand),
         };

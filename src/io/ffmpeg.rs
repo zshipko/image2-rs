@@ -123,7 +123,9 @@ impl FFmpeg {
         &mut self,
         image: &mut I,
     ) -> std::io::Result<()> {
-        let buf = unsafe { std::mem::transmute(image.data_mut()) };
+        let len = image.data().len() * std::mem::size_of::<T>();
+        let buf =
+            unsafe { std::slice::from_raw_parts_mut(image.data_mut().as_ptr() as *mut u8, len) };
         match &mut self.child {
             Some(c) => match &mut c.stdout {
                 Some(x) => x.read_exact(buf),
@@ -137,7 +139,8 @@ impl FFmpeg {
         &mut self,
         image: &I,
     ) -> std::io::Result<()> {
-        let buf = unsafe { std::mem::transmute(image.data()) };
+        let len = image.data().len() * std::mem::size_of::<T>();
+        let buf = unsafe { std::slice::from_raw_parts(image.data().as_ptr() as *const u8, len) };
         match &mut self.child {
             Some(c) => match &mut c.stdin {
                 Some(x) => x.write_all(buf),
