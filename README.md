@@ -13,7 +13,6 @@ A Rust library focused on generic image processing for a wide range of datatypes
 Additional formats are provided by:
 
 - [ImageMagick](https://imagemagick.org/script/formats.php)/[GraphicsMagick](http://www.graphicsmagick.org/formats.html)
-- [FFmpeg](https://ffmpeg.org)
 - [rscam](https://github.com/loyd/rscam)
 
 ### Optional crate features
