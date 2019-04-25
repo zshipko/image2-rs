@@ -1,4 +1,3 @@
-pub mod ffmpeg;
 pub mod magick;
 mod stb;
 
