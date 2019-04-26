@@ -466,7 +466,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         let pixel = pixel.to_vec();
         self.for_each(|(_, _), px| {
             for i in 0..channels {
-                px[i] = T::from_float(T::clamp(T::to_float(&px[i]).powf(1.0 / gamma) * pixel[i]));
+                px[i] = T::from_f(T::to_f(&px[i]).powf(1.0 / gamma) * pixel[i]);
             }
         });
     }
