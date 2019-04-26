@@ -165,6 +165,27 @@ filter!(.AlphaBlend, input, |_, x, y, c| {
     a.get_f(x, y, c) * a.get_f(x, y, a.channels() - 1)
 });
 
+pub struct Gamma(pub f64);
+filter!(Gamma, input, |this: &Gamma, x, y, c| {
+    let a = input[0];
+
+    a.get_f(x, y, c).powf(1.0 / this.0)
+});
+
+pub struct Multiply(pub crate::PixelVec<f64>);
+filter!(Multiply, input, |this: &Multiply, x, y, c| {
+    let a = input[0];
+
+    a.get_f(x, y, c) * this.0.as_ref()[c]
+});
+
+pub struct Add(pub crate::PixelVec<f64>);
+filter!(Add, input, |this: &Add, x, y, c| {
+    let a = input[0];
+
+    a.get_f(x, y, c) + this.0.as_ref()[c]
+});
+
 pub struct SwapChannel(pub usize, pub usize);
 filter!(
     SwapChannel,
