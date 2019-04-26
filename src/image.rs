@@ -449,24 +449,26 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     }
 
     fn gamma(&mut self, gamma: f64) {
-        let mut channels = C::channels();
-        if C::has_alpha() {
-            channels -= 1;
-        }
-
-        self.for_each(|(_, _), px| {
-            for i in 0..channels {
-                px[i] = T::from_float(T::clamp(T::to_float(&px[i]).powf(1.0 / gamma)));
+        self.data_mut().chunks_mut(C::channels()).for_each(|x| {
+            for i in x.into_iter() {
+                *i = T::from_f(T::to_f(i).powf(1.0 / gamma));
             }
         });
     }
 
-    fn gamma_multiply<'a, P: Pixel<'a, f64, C>>(&mut self, gamma: f64, pixel: &P) {
-        let channels = C::channels();
-        let pixel = pixel.to_vec();
-        self.for_each(|(_, _), px| {
-            for i in 0..channels {
-                px[i] = T::from_f(T::to_f(&px[i]).powf(1.0 / gamma) * pixel[i]);
+    fn gamma_multiply<'a, P: Pixel<'a, f64, C>>(&mut self, gamma: f64, pixel: P) {
+        if gamma == 1.0 {
+            self.multiply(pixel);
+            return;
+        }
+
+        let mut pixel = pixel.to_vec();
+
+        PixelMut::<'a, f64, C>::blend_alpha(&mut pixel);
+
+        self.data_mut().chunks_mut(C::channels()).for_each(|x| {
+            for (n, i) in x.into_iter().enumerate() {
+                *i = T::from_f(T::to_f(i).powf(1.0 / gamma) * pixel[n]);
             }
         });
     }
