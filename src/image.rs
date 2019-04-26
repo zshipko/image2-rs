@@ -79,6 +79,26 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     /// A mutable reference to the underlying image data
     fn data_mut(&mut self) -> &mut [T];
 
+    fn buffer(&self) -> &[u8] {
+        let data = self.data();
+        unsafe {
+            std::slice::from_raw_parts(
+                data.as_ptr() as *const u8,
+                data.len() * std::mem::size_of::<T>(),
+            )
+        }
+    }
+
+    fn buffer_mut(&self) -> &[u8] {
+        let data = self.data();
+        unsafe {
+            std::slice::from_raw_parts_mut(
+                data.as_ptr() as *mut u8,
+                data.len() * std::mem::size_of::<T>(),
+            )
+        }
+    }
+
     fn width(&self) -> usize {
         let (width, _, _) = self.shape();
         width

@@ -107,12 +107,20 @@ impl Magick {
         depth::<T, C>(&mut cmd);
         cmd.arg(kind);
 
-        let cmd = match cmd.output() {
+        let mut cmd = match cmd.output() {
             Ok(cmd) => cmd,
             Err(_) => return Err(Error::InvalidImageData),
         };
 
-        let data = cmd.stdout.iter().map(|x| x.convert()).collect::<Vec<T>>();
+        let data = unsafe {
+            Vec::from_raw_parts(
+                cmd.stdout.as_mut_ptr() as *mut T,
+                cmd.stdout.len() / std::mem::size_of::<T>(),
+                cmd.stdout.capacity() / std::mem::size_of::<T>(),
+            )
+        };
+
+        std::mem::forget(cmd);
 
         Ok(ImageBuf::new_from(width, height, data))
     }
@@ -140,8 +148,7 @@ impl Magick {
 
         {
             let mut stdin = proc.stdin.take().unwrap();
-            let wdata: Vec<u8> = image.data().iter().map(|x| x.convert()).collect();
-            match stdin.write_all(&wdata) {
+            match stdin.write_all(image.buffer()) {
                 Ok(()) => (),
                 Err(_) => return Err(Error::ErrorWritingImage),
             }
@@ -179,8 +186,7 @@ impl Magick {
 
         {
             let mut stdin = proc.stdin.take().unwrap();
-            let wdata: Vec<u8> = image.data().iter().map(|x| x.convert()).collect();
-            match stdin.write_all(&wdata) {
+            match stdin.write_all(image.buffer()) {
                 Ok(()) => (),
                 Err(_) => return Err(Error::ErrorWritingImage),
             }
