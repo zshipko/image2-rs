@@ -447,6 +447,19 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
 
         Diff(map)
     }
+
+    fn gamma(&mut self, gamma: f64) {
+        let mut channels = C::channels();
+        if C::has_alpha() {
+            channels -= 1;
+        }
+
+        self.for_each(|(_, _), px| {
+            for i in 0..channels {
+                px[i] = T::from_float(T::clamp(T::to_float(&px[i]).powf(1.0 / gamma)));
+            }
+        });
+    }
 }
 
 /// Provides a way to convert between image types
