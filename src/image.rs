@@ -359,7 +359,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     }
 
     #[cfg(feature = "parallel")]
-    fn multiply<'a, P: Pixel<'a, f64, C>>(&mut self, px: P) {
+    fn multiply<'a, P: Pixel<'a, f64, C>>(&mut self, px: &P) {
         let data = self.data_mut();
         let mut px = px.to_vec();
         PixelMut::<'a, f64, C>::blend_alpha(&mut px);
@@ -371,7 +371,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     }
 
     #[cfg(feature = "parallel")]
-    fn add<'a, P: Pixel<'a, f64, C>>(&mut self, px: P) {
+    fn add<'a, P: Pixel<'a, f64, C>>(&mut self, px: &P) {
         let data = self.data_mut();
         let mut px = px.to_vec();
         PixelMut::<'a, f64, C>::blend_alpha(&mut px);
@@ -383,7 +383,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     }
 
     #[cfg(not(feature = "parallel"))]
-    fn multiply<'a, P: Pixel<'a, f64, C>>(&mut self, px: P) {
+    fn multiply<'a, P: Pixel<'a, f64, C>>(&mut self, px: &P) {
         let data = self.data_mut();
         let mut px = px.to_vec();
         PixelMut::<'a, f64, C>::blend_alpha(&mut px);
@@ -395,7 +395,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     }
 
     #[cfg(not(feature = "parallel"))]
-    fn add<'a, P: Pixel<'a, f64, C>>(&mut self, px: P) {
+    fn add<'a, P: Pixel<'a, f64, C>>(&mut self, px: &P) {
         let data = self.data_mut();
         let mut px = px.to_vec();
         PixelMut::<'a, f64, C>::blend_alpha(&mut px);
@@ -456,7 +456,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         });
     }
 
-    fn gamma_multiply<'a, P: Pixel<'a, f64, C>>(&mut self, gamma: f64, pixel: P) {
+    fn gamma_multiply<'a, P: Pixel<'a, f64, C>>(&mut self, gamma: f64, pixel: &P) {
         if gamma == 1.0 {
             self.multiply(pixel);
             return;
