@@ -460,6 +460,17 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
             }
         });
     }
+
+    fn gamma_multiply(&mut self, gamma: f64, pixel: &crate::PixelVec<f64>) {
+        let channels = C::channels();
+        self.for_each(|(_, _), px| {
+            for i in 0..channels {
+                px[i] = T::from_float(T::clamp(
+                    T::to_float(&px[i]).powf(1.0 / gamma) * pixel.as_ref()[i],
+                ));
+            }
+        });
+    }
 }
 
 /// Provides a way to convert between image types
