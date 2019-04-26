@@ -80,10 +80,12 @@ pub trait Type:
 
     #[inline]
     fn clamp(f: f64) -> f64 {
-        if f > Self::max_f() {
-            Self::max_f()
-        } else if f < Self::min_f() {
-            Self::min_f()
+        let min = Self::min_f();
+        let max = Self::max_f();
+        if f > max {
+            max
+        } else if f < min {
+            min
         } else {
             f
         }
