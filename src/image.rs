@@ -362,7 +362,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     fn multiply<'a, P: Pixel<'a, f64, C>>(&mut self, px: &P) {
         let data = self.data_mut();
         let mut px = px.to_vec();
-        PixelMut::<'a, f64, C>::blend_alpha(&mut px);
+        PixelMut::<'a, f64, Rgba>::blend_alpha(&mut px);
         data.par_chunks_mut(C::channels()).for_each(|x| {
             for (n, i) in x.into_iter().enumerate() {
                 *i = T::from_float(T::clamp(px[n] * T::to_float(i)));
@@ -374,7 +374,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     fn add<'a, P: Pixel<'a, f64, C>>(&mut self, px: &P) {
         let data = self.data_mut();
         let mut px = px.to_vec();
-        PixelMut::<'a, f64, C>::blend_alpha(&mut px);
+        PixelMut::<'a, f64, Rgba>::blend_alpha(&mut px);
         data.par_chunks_mut(C::channels()).for_each(|x| {
             for (n, i) in x.into_iter().enumerate() {
                 *i = T::from_float(T::clamp(px[n] + T::to_float(i)));
@@ -386,7 +386,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     fn multiply<'a, P: Pixel<'a, f64, C>>(&mut self, px: &P) {
         let data = self.data_mut();
         let mut px = px.to_vec();
-        PixelMut::<'a, f64, C>::blend_alpha(&mut px);
+        PixelMut::<'a, f64, Rgba>::blend_alpha(&mut px);
         data.chunks_mut(C::channels()).for_each(|x| {
             for (n, i) in x.into_iter().enumerate() {
                 *i = T::from_float(T::clamp(px[n] * T::to_float(i)));
@@ -398,7 +398,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     fn add<'a, P: Pixel<'a, f64, C>>(&mut self, px: &P) {
         let data = self.data_mut();
         let mut px = px.to_vec();
-        PixelMut::<'a, f64, C>::blend_alpha(&mut px);
+        PixelMut::<'a, f64, Rgba>::blend_alpha(&mut px);
         data.chunks_mut(C::channels()).for_each(|x| {
             for (n, i) in x.into_iter().enumerate() {
                 *i = T::from_float(T::clamp(px[n] + T::to_float(i)));
@@ -488,7 +488,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
 
         let mut pixel = pixel.to_vec();
 
-        PixelMut::<'a, f64, C>::blend_alpha(&mut pixel);
+        PixelMut::<'a, f64, Rgba>::blend_alpha(&mut pixel);
 
         let mut channels = C::channels();
         if C::has_alpha() {
