@@ -448,7 +448,11 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         Diff(map)
     }
 
+    /// Adjust gamma
+    /// NOTE: this function does not work with f32 or f64 images
     fn gamma(&mut self, gamma: f64) {
+        assert!(!T::is_float());
+
         let mut channels = C::channels();
         if C::has_alpha() {
             channels -= 1;
@@ -472,7 +476,11 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         });
     }
 
+    /// Adjust gamma and scale
+    /// NOTE: this function does not work with f32 or f64 images
     fn gamma_multiply<'a, P: Pixel<'a, f64, C>>(&mut self, gamma: f64, pixel: &P) {
+        assert!(!T::is_float());
+
         if gamma == 1.0 {
             self.multiply(pixel);
             return;
