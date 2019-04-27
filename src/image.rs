@@ -361,8 +361,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     #[cfg(feature = "parallel")]
     fn multiply<'a, P: Pixel<'a, f64, C>>(&mut self, px: &P) {
         let data = self.data_mut();
-        let mut px = px.to_vec();
-        PixelMut::<'a, f64, Rgba>::blend_alpha(&mut px);
+        let px = px.as_ref();
         data.par_chunks_mut(C::channels()).for_each(|x| {
             for (n, i) in x.into_iter().enumerate() {
                 *i = T::from_float(T::clamp(px[n] * T::to_float(i)));
@@ -373,8 +372,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     #[cfg(feature = "parallel")]
     fn add<'a, P: Pixel<'a, f64, C>>(&mut self, px: &P) {
         let data = self.data_mut();
-        let mut px = px.to_vec();
-        PixelMut::<'a, f64, Rgba>::blend_alpha(&mut px);
+        let px = px.as_ref();
         data.par_chunks_mut(C::channels()).for_each(|x| {
             for (n, i) in x.into_iter().enumerate() {
                 *i = T::from_float(T::clamp(px[n] + T::to_float(i)));
@@ -385,8 +383,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     #[cfg(not(feature = "parallel"))]
     fn multiply<'a, P: Pixel<'a, f64, C>>(&mut self, px: &P) {
         let data = self.data_mut();
-        let mut px = px.to_vec();
-        PixelMut::<'a, f64, Rgba>::blend_alpha(&mut px);
+        let mut px = px.as_ref();
         data.chunks_mut(C::channels()).for_each(|x| {
             for (n, i) in x.into_iter().enumerate() {
                 *i = T::from_float(T::clamp(px[n] * T::to_float(i)));
@@ -397,8 +394,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
     #[cfg(not(feature = "parallel"))]
     fn add<'a, P: Pixel<'a, f64, C>>(&mut self, px: &P) {
         let data = self.data_mut();
-        let mut px = px.to_vec();
-        PixelMut::<'a, f64, Rgba>::blend_alpha(&mut px);
+        let mut px = px.as_ref();
         data.chunks_mut(C::channels()).for_each(|x| {
             for (n, i) in x.into_iter().enumerate() {
                 *i = T::from_float(T::clamp(px[n] + T::to_float(i)));
@@ -486,9 +482,7 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
             return;
         }
 
-        let mut pixel = pixel.to_vec();
-
-        PixelMut::<'a, f64, Rgba>::blend_alpha(&mut pixel);
+        let pixel = pixel.as_ref();
 
         let mut channels = C::channels();
         if C::has_alpha() {
