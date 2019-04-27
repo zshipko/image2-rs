@@ -96,7 +96,14 @@ pub trait Filter: Sized + Sync {
 
     /// Evaluate filter in parallel in place
     fn eval_in_place<T: Send + Type, C: Color, I: Sync + Send + Image<T, C>>(&self, image: &mut I) {
-        let input = &[&image.clone()];
+        let input_image: crate::ImagePtr<T, C> = crate::ImagePtr::new(
+            image.width(),
+            image.height(),
+            image.data_mut().as_mut_ptr(),
+            crate::image_ptr::Free::Ignore,
+        );
+
+        let input = &[&input_image];
         image.for_each(|(x, y), pixel| {
             for c in 0..C::channels() {
                 pixel[c] = T::from_f(self.compute_at(x, y, c, input));
