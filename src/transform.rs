@@ -47,9 +47,18 @@ pub fn scale<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I, x: f64, y
 pub fn resize<T: Type, C: Color, I: Image<T, C>, J: Image<T, C>>(
     dest: &mut I,
     src: &J,
-    x: usize,
-    y: usize,
+    mut x: usize,
+    mut y: usize,
 ) {
+    if x == 0 && y == 0 {
+        x = dest.width();
+        y = dest.height();
+    } else if x == 0 {
+        y = x * src.height() / src.width()
+    } else if y == 0 {
+        x = y * src.width() / src.height()
+    }
+
     let filter = Transform(euclid::Transform2D::create_scale(
         src.width() as f64 / x as f64,
         src.height() as f64 / y as f64,
