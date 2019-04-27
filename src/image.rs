@@ -454,9 +454,20 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
             channels -= 1;
         }
 
+        let mut map = Vec::with_capacity(T::max_f() as usize);
+
+        let min = T::min_f();
+        let max = T::max_f();
+
+        for i in min as i128..max as i128 {
+            let s = i as f64 / max - min;
+            map.push(s.powf(1.0 / gamma));
+        }
+
         self.for_each(|_, x| {
             for n in 0..channels {
-                x[n] = T::from_f(T::to_f(&x[n]).powf(1.0 / gamma));
+                let a = T::to_float(&x[n]) + min;
+                x[n] = T::from_f(map[a as usize] as f64);
             }
         });
     }
@@ -470,16 +481,25 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
         let mut pixel = pixel.to_vec();
 
         PixelMut::<'a, f64, C>::blend_alpha(&mut pixel);
-        let inv = 1.0 / gamma;
 
         let mut channels = C::channels();
         if C::has_alpha() {
             channels -= 1;
         }
 
+        let mut map = Vec::with_capacity(T::max_f() as usize);
+        let min = T::min_f();
+        let max = T::max_f();
+
+        for i in min as i128..max as i128 {
+            let s = i as f64 / max - min;
+            map.push(s.powf(1.0 / gamma));
+        }
+
         self.for_each(|_, x| {
             for n in 0..channels {
-                x[n] = T::from_f(T::to_f(&x[n]).powf(inv) * pixel[n]);
+                let a = T::to_float(&x[n]) + min;
+                x[n] = T::from_f(map[a as usize] as f64 * pixel[n]);
             }
         });
     }
