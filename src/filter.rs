@@ -68,8 +68,7 @@ pub trait Filter: Sized + Sync {
             for x in start_x..start_x + width {
                 let px = output.at_mut(x, y);
                 for c in 0..C::channels() {
-                    px[c] =
-                        T::from_float(T::denormalize(T::clamp(self.compute_at(x, y, c, input))));
+                    px[c] = T::from_f(self.compute_at(x, y, c, input));
                 }
             }
         }
@@ -90,7 +89,17 @@ pub trait Filter: Sized + Sync {
     ) {
         output.for_each(|(x, y), pixel| {
             for c in 0..C::channels() {
-                pixel[c] = T::from_float(T::denormalize(T::clamp(self.compute_at(x, y, c, input))));
+                pixel[c] = T::from_f(self.compute_at(x, y, c, input));
+            }
+        });
+    }
+
+    /// Evaluate filter in parallel in place
+    fn eval_in_place<T: Send + Type, C: Color, I: Sync + Send + Image<T, C>>(&self, image: &mut I) {
+        let input = &[&image.clone()];
+        image.for_each(|(x, y), pixel| {
+            for c in 0..C::channels() {
+                pixel[c] = T::from_f(self.compute_at(x, y, c, input));
             }
         });
     }
