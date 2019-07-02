@@ -92,6 +92,24 @@ pub trait Pixel<'a, T: Type, C: Color>: AsRef<[T]> {
     fn from_luma(px: colorspace::luma::Luma) -> PixelVec<f64> {
         PixelVec::new_gray(px.luma as f64)
     }
+
+    fn to_hsv(&self) -> colorspace::Hsv {
+        colorspace::Hsv::from(self.to_rgb())
+    }
+
+    fn from_hsv(px: colorspace::Hsv) -> PixelVec<f64> {
+        let px = colorspace::rgb::Rgb::from(px);
+        Self::from_rgb(px)
+    }
+
+    fn to_lab(&self) -> colorspace::Lab {
+        colorspace::Lab::from(self.to_rgb())
+    }
+
+    fn from_lab(px: colorspace::Lab) -> PixelVec<f64> {
+        let px = colorspace::rgb::Rgb::from(px);
+        Self::from_rgb(px)
+    }
 }
 
 /// PixelMut is used to access mutable chunks of image data
