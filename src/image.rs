@@ -443,68 +443,6 @@ pub trait Image<T: Type, C: Color>: Sized + Sync + Send {
 
         Diff(map)
     }
-
-    /// Adjust gamma
-    /// NOTE: this function does not work with f32 or f64 images
-    fn gamma(&mut self, gamma: f64) {
-        assert!(!T::is_float());
-
-        let mut channels = C::channels();
-        if C::has_alpha() {
-            channels -= 1;
-        }
-
-        let mut map = Vec::with_capacity(T::max_f() as usize);
-
-        let min = T::min_f();
-        let max = T::max_f();
-
-        for i in min as i128..max as i128 {
-            let s = i as f64 / max - min;
-            map.push(s.powf(1.0 / gamma));
-        }
-
-        self.for_each(|_, x| {
-            for n in 0..channels {
-                let a = T::to_float(&x[n]) + min;
-                x[n] = T::from_f(map[a as usize] as f64);
-            }
-        });
-    }
-
-    /// Adjust gamma and scale
-    /// NOTE: this function does not work with f32 or f64 images
-    fn gamma_multiply<'a, P: Pixel<'a, f64, C>>(&mut self, gamma: f64, pixel: &P) {
-        assert!(!T::is_float());
-
-        if gamma == 1.0 {
-            self.multiply(pixel);
-            return;
-        }
-
-        let pixel = pixel.as_ref();
-
-        let mut channels = C::channels();
-        if C::has_alpha() {
-            channels -= 1;
-        }
-
-        let mut map = Vec::with_capacity(T::max_f() as usize);
-        let min = T::min_f();
-        let max = T::max_f();
-
-        for i in min as i128..max as i128 {
-            let s = i as f64 / max - min;
-            map.push(s.powf(1.0 / gamma));
-        }
-
-        self.for_each(|_, x| {
-            for n in 0..channels {
-                let a = T::to_float(&x[n]) + min;
-                x[n] = T::from_f(map[a as usize] as f64 * pixel[n]);
-            }
-        });
-    }
 }
 
 /// Provides a way to convert between image types
