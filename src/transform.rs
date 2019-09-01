@@ -1,8 +1,8 @@
 use crate::{Color, Filter, Image, Type};
 use euclid;
 
-pub type Point<T> = euclid::Point2D<T>;
-pub struct Transform(pub euclid::Transform2D<f64>);
+pub type Point<T> = euclid::Point2D<T, T>;
+pub struct Transform(pub euclid::Transform2D<f64, f64, f64>);
 
 impl Filter for Transform {
     fn compute_at<T: Type, C: Color, I: Image<T, C>>(
@@ -13,7 +13,7 @@ impl Filter for Transform {
         input: &[&I],
     ) -> f64 {
         let pt = Point::new(x as f64, y as f64);
-        let dest = self.0.transform_point(&pt);
+        let dest = self.0.transform_point(pt);
         (input[0].get_f(dest.x.floor() as usize, dest.y.floor() as usize, c)
             + input[0].get_f(dest.x.ceil() as usize, dest.y.ceil() as usize, c))
             / 2.
@@ -29,8 +29,8 @@ pub fn rotate<T: Type, C: Color, I: Image<T, C>, J: Image<T, C>>(
 ) {
     let filter = Transform(
         euclid::Transform2D::create_rotation(euclid::Angle::degrees(deg))
-            .pre_translate(euclid::TypedVector2D::new(-center.x, -center.y))
-            .post_translate(euclid::TypedVector2D::new(center.x, center.y)),
+            .pre_translate(euclid::Vector2D::new(-center.x, -center.y))
+            .post_translate(euclid::Vector2D::new(center.x, center.y)),
     );
 
     filter.eval(dest, &[src])
