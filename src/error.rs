@@ -16,7 +16,7 @@ impl std::error::Error for Error {
         use Error::*;
         match *self {
             #[cfg(feature = "io")]
-            Magick(ref e) => "Magick error",
+            Magick(ref _e) => "Magick error",
             IO(ref e) => e.description(),
             Message(ref s) => s.as_str(),
             InvalidColor => "Invalid color",
@@ -28,9 +28,9 @@ impl std::error::Error for Error {
         use Error::*;
         match *self {
             #[cfg(feature = "io")]
-            Magick(ref e) => None,
+            Magick(ref _e) => None,
             IO(ref e) => Some(e),
-            Message(ref e) => None,
+            Message(ref _e) => None,
             InvalidColor => None,
             InvalidType => None,
         }
