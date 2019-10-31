@@ -11,6 +11,36 @@ pub enum Error {
     InvalidColor,
     InvalidType,
 }
+impl std::error::Error for Error {
+    fn description(&self) -> &str {
+        use Error::*;
+        match *self {
+            #[cfg(feature = "io")]
+            Magick(ref e) => "Magick error",
+            IO(ref e) => e.description(),
+            Message(ref s) => s.as_str(),
+            InvalidColor => "Invalid color",
+            InvalidType => "Invalid type",
+        }
+    }
+
+    fn cause(&self) -> Option<&dyn std::error::Error> {
+        use Error::*;
+        match *self {
+            #[cfg(feature = "io")]
+            Magick(ref e) => None,
+            IO(ref e) => Some(e),
+            Message(ref e) => None,
+            InvalidColor => None,
+            InvalidType => None,
+        }
+    }
+}
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", <Self as std::error::Error>::description(self))
+    }
+}
 
 #[cfg(feature = "io")]
 impl From<io::magick::Error> for Error {
