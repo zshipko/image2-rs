@@ -112,7 +112,7 @@ extern "C" {
 }
 extern "C" {
     pub fn stbi_write_png_to_mem(
-        pixels: *mut ::std::os::raw::c_uchar,
+        pixels: *const ::std::os::raw::c_uchar,
         stride_bytes: ::std::os::raw::c_int,
         x: ::std::os::raw::c_int,
         y: ::std::os::raw::c_int,
