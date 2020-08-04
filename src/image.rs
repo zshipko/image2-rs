@@ -13,6 +13,16 @@ pub struct Meta<T: Type, C: Color> {
     _color: PhantomData<C>,
 }
 
+impl<T: Type, C: Color> Meta<T, C> {
+    pub fn has_alpha(&self) -> bool {
+        C::ALPHA
+    }
+
+    pub fn color_name(&self) -> &str {
+        C::NAME
+    }
+}
+
 /// Image type
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Image<T: Type, C: Color> {
@@ -132,6 +142,18 @@ impl<T: Type, C: Color> Image<T, C> {
         let mut px = Pixel::new();
         self.pixel_at(x, y, &mut px);
         px
+    }
+
+    /// Get a normalized float value
+    pub fn get_f(&self, x: usize, y: usize, c: usize) -> f64 {
+        let data = self.get(x, y);
+        data[c].to_norm()
+    }
+
+    /// Set normalized float value
+    pub fn set_f(&mut self, x: usize, y: usize, c: usize, f: f64) {
+        let data = self.get_mut(x, y);
+        data[c] = T::from_norm(f);
     }
 
     /// Set a normalized pixel to the specified location
