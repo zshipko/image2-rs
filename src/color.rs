@@ -1,4 +1,4 @@
-pub trait Color {
+pub trait Color: PartialEq + Eq + Clone + Sync + Send {
     const NAME: &'static str;
     const CHANNELS: usize;
     const ALPHA: bool = false;
@@ -7,7 +7,7 @@ pub trait Color {
 #[macro_export]
 macro_rules! color {
     ($t:ident, $name:expr, $channels:expr $(, $alpha:expr)?) => {
-        #[derive(Debug, Clone, Copy)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         pub struct $t;
 
         impl Color for $t {
@@ -18,6 +18,9 @@ macro_rules! color {
             const ALPHA: bool = $alpha;
             )?
         }
+
+        unsafe impl Sync for $t {}
+        unsafe impl Send for $t {}
     };
 }
 

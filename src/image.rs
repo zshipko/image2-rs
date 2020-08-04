@@ -5,6 +5,7 @@ use crate::*;
 use rayon::prelude::*;
 
 /// Image metadata
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq)]
 pub struct Meta<T: Type, C: Color> {
     pub width: usize,
     pub height: usize,
@@ -13,6 +14,7 @@ pub struct Meta<T: Type, C: Color> {
 }
 
 /// Image type
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Image<T: Type, C: Color> {
     /// Metadata
     pub meta: Meta<T, C>,
@@ -36,10 +38,28 @@ impl<T: Type, C: Color> Image<T, C> {
         }
     }
 
+    pub fn type_max(&self) -> f64 {
+        T::MAX
+    }
+
+    pub fn type_min(&self) -> f64 {
+        T::MIN
+    }
+
     /// Returns the number of channels
     #[inline]
     pub fn channels(&self) -> usize {
         C::CHANNELS
+    }
+
+    #[inline]
+    pub fn width(&self) -> usize {
+        self.meta.width
+    }
+
+    #[inline]
+    pub fn height(&self) -> usize {
+        self.meta.height
     }
 
     /// Returns (width, height, channels)
@@ -82,6 +102,44 @@ impl<T: Type, C: Color> Image<T, C> {
         image.clone_from_slice(data.as_ref())
     }
 
+    #[inline]
+    pub fn in_bounds(&self, x: usize, y: usize) -> bool {
+        x < self.meta.width && y < self.meta.height
+    }
+
+    /// Get a normalized pixel from an image, reusing an existing `Pixel`
+    pub fn at(&self, x: usize, y: usize, px: &mut [T]) -> bool {
+        if !self.in_bounds(x, y) || px.len() < C::CHANNELS {
+            return false;
+        }
+
+        px.copy_from_slice(self.get(x, y));
+        true
+    }
+
+    /// Load data from and `Image` into an existing `Pixel` structure
+    pub fn pixel_at(&self, x: usize, y: usize, px: &mut Pixel<C>) -> bool {
+        if !self.in_bounds(x, y) {
+            return false;
+        }
+        let data = self.get(x, y);
+        px.copy_from_slice(data);
+        true
+    }
+
+    /// Get a normalized pixel from an image
+    pub fn get_pixel(&self, x: usize, y: usize) -> Pixel<C> {
+        let mut px = Pixel::new();
+        self.pixel_at(x, y, &mut px);
+        px
+    }
+
+    /// Set a normalized pixel to the specified location
+    pub fn set_pixel(&mut self, x: usize, y: usize, px: &Pixel<C>) {
+        let data = self.get_mut(x, y);
+        px.copy_to_slice(data);
+    }
+
     /// Conver to `ImageBuf`
     pub fn to_image_buf(&mut self) -> ImageBuf {
         ImageBuf::new_with_data(
@@ -109,6 +167,29 @@ impl<T: Type, C: Color> Image<T, C> {
     /// Save an image to disk
     pub fn save(&self, path: impl AsRef<std::path::Path>) -> bool {
         ImageBuf::write_image(self, path)
+    }
+
+    /// Iterate over part of an image in parallel
+    pub fn for_each_rect<F: Sync + Send + Fn((usize, usize), &mut [T])>(
+        &mut self,
+        x_: usize,
+        width_: usize,
+        y_: usize,
+        height_: usize,
+        f: F,
+    ) {
+        let (width, _height, channels) = self.shape();
+        self.data
+            .as_mut_slice()
+            .par_chunks_mut(channels)
+            .enumerate()
+            .for_each(|(n, pixel)| {
+                let y = n / width;
+                let x = n - (y * width);
+                if x >= x_ && x < x_ + width_ && y >= y_ && y < y_ + height_ {
+                    f((x, y), pixel)
+                }
+            });
     }
 
     /// Iterate over each pixel in parallel

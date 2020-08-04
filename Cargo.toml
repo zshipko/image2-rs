@@ -10,6 +10,8 @@ edition = "2018"
 cpp = "0.5"
 half = "1"
 rayon = "1"
+euclid = "0.22"
+lazy_static = "1"
 
 [build-dependencies]
 cpp_build = "0.5"

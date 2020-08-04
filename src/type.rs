@@ -1,6 +1,6 @@
 use crate::*;
 
-pub trait Type: Default + Clone + Sync + Send {
+pub trait Type: Default + Clone + Copy + Sync + Send + PartialEq + PartialOrd {
     const MIN: f64;
     const MAX: f64;
     const BASE: oiio::BaseType;
@@ -8,6 +8,14 @@ pub trait Type: Default + Clone + Sync + Send {
     fn to_f64(&self) -> f64;
 
     fn from_f64(f: f64) -> Self;
+
+    fn to_norm(&self) -> f64 {
+        Self::normalize(self.to_f64())
+    }
+
+    fn from_norm(f: f64) -> Self {
+        Self::from_f64(Self::denormalize(f))
+    }
 
     #[inline]
     fn normalize(f: f64) -> f64 {
