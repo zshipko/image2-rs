@@ -3,6 +3,12 @@ use crate::*;
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Pixel<C: Color>(Vec<f64>, std::marker::PhantomData<C>);
 
+impl<C: Color> AsRef<[f64]> for Pixel<C> {
+    fn as_ref(&self) -> &[f64] {
+        self.0.as_ref()
+    }
+}
+
 impl<C: Color> Pixel<C> {
     pub fn into_vec(self) -> Vec<f64> {
         vec![self[0], self[1], self[2], self[3]]

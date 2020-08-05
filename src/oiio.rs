@@ -1,10 +1,11 @@
 use crate::*;
 
-use cpp::cpp;
+use cpp::{cpp, cpp_class};
 
 cpp! {{
     #include <OpenImageIO/imageio.h>
     #include <OpenImageIO/imagebuf.h>
+    #include <OpenImageIO/imagebufalgo.h>
     using namespace OIIO;
 }}
 
@@ -27,6 +28,59 @@ pub enum BaseType {
     String,
     Ptr,
     Last,
+}
+
+cpp_class!(pub unsafe struct ImageBuf as "ImageBuf");
+impl ImageBuf {
+    pub fn new_with_data<T: Type>(
+        width: usize,
+        height: usize,
+        channels: usize,
+        data: &mut [T],
+    ) -> Self {
+        let base_type = T::BASE;
+        let data = data.as_mut_ptr();
+        unsafe {
+            cpp!([width as "size_t", height as "size_t", channels as "size_t", base_type as "TypeDesc::BASETYPE", data as "void *"] -> ImageBuf as "ImageBuf" {
+                return ImageBuf(ImageSpec(width, height, channels, base_type), data);
+            })
+        }
+    }
+
+    pub fn const_new_with_data<T: Type>(
+        width: usize,
+        height: usize,
+        channels: usize,
+        data: &[T],
+    ) -> Self {
+        let base_type = T::BASE;
+        let data = data.as_ptr();
+        unsafe {
+            cpp!([width as "size_t", height as "size_t", channels as "size_t", base_type as "TypeDesc::BASETYPE", data as "void *"] -> ImageBuf as "ImageBuf" {
+                return ImageBuf(ImageSpec(width, height, channels, base_type), data);
+            })
+        }
+    }
+
+    pub fn convert_color(
+        &self,
+        dest: &mut ImageBuf,
+        from_space: impl AsRef<str>,
+        to_space: impl AsRef<str>,
+    ) -> bool {
+        let from_space_str =
+            std::ffi::CString::new(from_space.as_ref().as_bytes().to_vec()).unwrap();
+        let from_space = from_space_str.as_ptr();
+
+        let to_space_str = std::ffi::CString::new(to_space.as_ref().as_bytes().to_vec()).unwrap();
+        let to_space = to_space_str.as_ptr();
+
+        unsafe {
+            cpp!([dest as "ImageBuf*", self as "const ImageBuf*", from_space as "const char *", to_space as "const char *"] -> bool as "bool" {
+                return ImageBufAlgo::colorconvert(*dest, *self, from_space, to_space);
+            })
+        }
+    }
 }
 
 pub(crate) fn write_image<T: Type, C: Color>(
@@ -88,7 +142,7 @@ pub(crate) fn read_to_image<T: Type, C: Color>(
     };
 
     if input.is_null() {
-        return Err(Error::UnableToOpenImage);
+        return Err(Error::UnableToOpenImage(path.to_string_lossy().to_string()));
     }
 
     let base_type = T::BASE;
@@ -102,7 +156,7 @@ pub(crate) fn read_to_image<T: Type, C: Color>(
                 input->close();
             })
         }
-        return Err(Error::InvalidDimensions);
+        return Err(Error::InvalidDimensions(width, height, channels));
     }
 
     let channels = C::CHANNELS;
@@ -116,7 +170,7 @@ pub(crate) fn read_to_image<T: Type, C: Color>(
     };
 
     if !res {
-        return Err(Error::CannotReadImage);
+        return Err(Error::CannotReadImage(path.to_string_lossy().to_string()));
     }
 
     Ok(image)

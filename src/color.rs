@@ -1,3 +1,5 @@
+use crate::*;
+
 pub trait Color: PartialEq + Eq + Clone + Sync + Send {
     const NAME: &'static str;
     const CHANNELS: usize;
@@ -14,6 +16,7 @@ macro_rules! color {
             const NAME: &'static str = $name;
             const CHANNELS: usize = $channels;
 
+
             $(
             const ALPHA: bool = $alpha;
             )?
@@ -27,3 +30,4 @@ macro_rules! color {
 color!(Gray, "gray", 1);
 color!(Rgb, "rgb", 3);
 color!(Rgba, "rgba", 4, true);
+color!(Xyz, "xyz", 3);

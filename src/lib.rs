@@ -27,17 +27,19 @@
 pub use half::f16;
 
 mod color;
+mod convert;
 mod error;
 mod image;
+mod oiio;
 mod pixel;
 mod r#type;
 
 pub mod filter;
 pub mod kernel;
-pub mod oiio;
 pub mod transform;
 
-pub use color::{Color, Gray, Rgb, Rgba};
+pub use color::{Color, Gray, Rgb, Rgba, Xyz};
+pub use convert::{Convert, ConvertColor};
 pub use error::Error;
 pub use filter::Filter;
 pub use image::{Image, Meta};

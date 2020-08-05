@@ -255,10 +255,12 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Save an image to disk
     pub fn save(&self, path: impl AsRef<std::path::Path>) -> Result<(), Error> {
-        if oiio::write_image(self, path) {
+        if oiio::write_image(self, path.as_ref()) {
             Ok(())
         } else {
-            Err(Error::UnableToWriteImage)
+            Err(Error::UnableToWriteImage(
+                path.as_ref().to_string_lossy().to_string(),
+            ))
         }
     }
 
@@ -347,5 +349,53 @@ impl<T: Type, C: Color> Image<T, C> {
     ) -> Image<impl Type, B> {
         filter.eval(&mut dest, &[self]);
         dest
+    }
+
+    /// Convert to `ImageBuf`
+    pub(crate) fn to_image_buf(&mut self) -> oiio::ImageBuf {
+        oiio::ImageBuf::new_with_data(
+            self.meta.width,
+            self.meta.height,
+            self.channels(),
+            self.data.as_mut_slice(),
+        )
+    }
+
+    /// Convert to `ImageBuf`
+    pub(crate) fn to_const_image_buf(&self) -> oiio::ImageBuf {
+        oiio::ImageBuf::const_new_with_data(
+            self.meta.width,
+            self.meta.height,
+            self.channels(),
+            self.data.as_slice(),
+        )
+    }
+
+    pub fn convert_colorspace_to(
+        &self,
+        dest: &mut Image<T, C>,
+        a: impl AsRef<str>,
+        b: impl AsRef<str>,
+    ) -> Result<(), Error> {
+        let buf = self.to_const_image_buf();
+        let ok = buf.convert_color(&mut dest.to_image_buf(), a.as_ref(), b.as_ref());
+        if ok {
+            Ok(())
+        } else {
+            Err(Error::FailedColorConversion(
+                a.as_ref().into(),
+                b.as_ref().into(),
+            ))
+        }
+    }
+
+    pub fn convert_color(
+        &self,
+        a: impl AsRef<str>,
+        b: impl AsRef<str>,
+    ) -> Result<Image<T, C>, Error> {
+        let mut dest = self.new_like_with_color();
+        self.convert_colorspace_to(&mut dest, a, b)?;
+        Ok(dest)
     }
 }
