@@ -1,9 +1,7 @@
 use crate::*;
 
-use packed_simd::f64x4;
-
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
-pub struct Pixel<C: Color>(f64x4, std::marker::PhantomData<C>);
+pub struct Pixel<C: Color>(Vec<f64>, std::marker::PhantomData<C>);
 
 impl<C: Color> Pixel<C> {
     pub fn into_vec(self) -> Vec<f64> {
@@ -11,11 +9,11 @@ impl<C: Color> Pixel<C> {
     }
 
     pub fn new() -> Pixel<C> {
-        Pixel(f64x4::splat(0.0), std::marker::PhantomData)
+        Pixel(vec![0.0; C::CHANNELS], std::marker::PhantomData)
     }
 
-    pub fn fill<T: Type>(&mut self, x: T) -> &mut Self {
-        self.0 = f64x4::splat(x.to_norm());
+    pub fn fill<T: Type>(mut self, x: T) -> Self {
+        self.0.iter_mut().for_each(|a| *a = x.to_norm());
         self
     }
 
@@ -32,7 +30,7 @@ impl<C: Color> Pixel<C> {
         false
     }
 
-    pub fn with_alpha(&mut self, value: f64) -> &mut Self {
+    pub fn with_alpha(mut self, value: f64) -> Self {
         if C::ALPHA {
             let index = self.len() - 1;
             self[index] = value
@@ -66,7 +64,7 @@ impl<C: Color> Pixel<C> {
         px
     }
 
-    pub fn blend_alpha(&mut self) -> &mut Self {
+    pub fn blend_alpha(mut self) -> Self {
         let index = self.len() - 1;
         let alpha = self[index];
 
@@ -75,20 +73,18 @@ impl<C: Color> Pixel<C> {
         self
     }
 
-    pub fn map(&self, f: impl Fn(f64) -> f64) -> Pixel<C> {
-        let mut dest = Pixel::new();
+    pub fn map(mut self, f: impl Fn(f64) -> f64) -> Pixel<C> {
         for i in 0..self.len() {
-            dest[i] = f(self[i]);
+            self[i] = f(self[i]);
         }
-        dest
+        self
     }
 
-    pub fn map2(&self, &other: Pixel<C>, f: impl Fn(f64, f64) -> f64) -> Pixel<C> {
-        let mut dest = Pixel::new();
+    pub fn map2(mut self, other: &Pixel<C>, f: impl Fn(f64, f64) -> f64) -> Pixel<C> {
         for i in 0..self.len() {
-            dest[i] = f(self[i], other[i])
+            self[i] = f(self[i], other[i])
         }
-        dest
+        self
     }
 
     pub fn map_in_place(&mut self, f: impl Fn(f64) -> f64) -> &mut Self {
@@ -114,7 +110,10 @@ impl<C: Color> Pixel<C> {
 
 impl<T: Type, C: Color> std::iter::FromIterator<T> for Pixel<C> {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        Pixel::from_vec(iter.into_iter().map(|x| x.to_norm()).collect())
+        Pixel(
+            iter.into_iter().map(|x| x.to_norm()).collect(),
+            std::marker::PhantomData,
+        )
     }
 }
 
@@ -152,7 +151,7 @@ impl<C: Color> std::ops::Add<Pixel<C>> for Pixel<C> {
     type Output = Pixel<C>;
 
     fn add(self, other: Pixel<C>) -> Pixel<C> {
-        self.map2(other, |x, y| x + y)
+        self.map2(&other, |x, y| x + y)
     }
 }
 
@@ -168,7 +167,7 @@ impl<C: Color> std::ops::Sub<Pixel<C>> for Pixel<C> {
     type Output = Pixel<C>;
 
     fn sub(self, other: Pixel<C>) -> Pixel<C> {
-        self.map2(other, |x, y| x - y)
+        self.map2(&other, |x, y| x - y)
     }
 }
 
@@ -184,7 +183,7 @@ impl<C: Color> std::ops::Mul<Pixel<C>> for Pixel<C> {
     type Output = Pixel<C>;
 
     fn mul(self, other: Pixel<C>) -> Pixel<C> {
-        self.map2(other, |x, y| x * y)
+        self.map2(&other, |x, y| x * y)
     }
 }
 
@@ -200,7 +199,7 @@ impl<C: Color> std::ops::Div<Pixel<C>> for Pixel<C> {
     type Output = Pixel<C>;
 
     fn div(self, other: Pixel<C>) -> Pixel<C> {
-        self.map2(other, |x, y| x / y)
+        self.map2(&other, |x, y| x / y)
     }
 }
 
@@ -216,7 +215,7 @@ impl<C: Color> std::ops::Rem<Pixel<C>> for Pixel<C> {
     type Output = Pixel<C>;
 
     fn rem(self, other: Pixel<C>) -> Pixel<C> {
-        self.map2(other, |x, y| x % y)
+        self.map2(&other, |x, y| x % y)
     }
 }
 

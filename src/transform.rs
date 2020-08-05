@@ -63,7 +63,7 @@ pub fn resize<T: Type, C: Color>(
 
 pub fn rotate90<T: Type, C: Color>(dest: &mut Image<T, C>, src: &Image<T, C>) {
     let dwidth = src.width() as f64;
-    let height = src.height() as f64;
+    let height = dest.height() as f64;
     rotate(dest, src, 90., Point::new(dwidth / 2., height / 2.));
 }
 
