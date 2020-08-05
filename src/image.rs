@@ -33,6 +33,39 @@ pub struct Image<T: Type, C: Color> {
     pub data: Vec<T>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+pub struct Hash(u128);
+
+fn check_bit(number: u128, n: usize) -> bool {
+    (number >> n) & 1 == 0
+}
+
+impl Hash {
+    pub fn diff(&self, other: &Hash) -> u128 {
+        let mut diff = 0;
+
+        for i in 0..128 {
+            if check_bit(self.0, i) != check_bit(other.0, i) {
+                diff += 1;
+            }
+        }
+
+        diff
+    }
+}
+
+impl From<Hash> for String {
+    fn from(hash: Hash) -> String {
+        format!("{:016x}", hash.0)
+    }
+}
+
+impl From<Hash> for u128 {
+    fn from(hash: Hash) -> u128 {
+        hash.0
+    }
+}
+
 impl<T: Type, C: Color> Image<T, C> {
     /// Create a new image
     pub fn new(width: usize, height: usize) -> Image<T, C> {
@@ -46,6 +79,28 @@ impl<T: Type, C: Color> Image<T, C> {
             },
             data,
         }
+    }
+
+    pub fn hash(&self) -> Hash {
+        let mut small = Image::new(16, 8);
+        crate::transform::resize(&mut small, self, 16, 8);
+        let mut hash = 0u128;
+        let mut index = 0;
+        let mut px = Pixel::new();
+        for j in 0..8 {
+            for i in 0..16 {
+                small.pixel_at(i, j, &mut px);
+                let avg: f64 = px.iter().sum();
+                let f = avg / C::CHANNELS as f64;
+                if f > 0.5 {
+                    hash = hash | (1 << index)
+                } else {
+                    hash = hash & !(1 << index)
+                }
+                index += 1
+            }
+        }
+        Hash(hash)
     }
 
     pub fn new_like(&self) -> Image<T, C> {
@@ -184,19 +239,9 @@ impl<T: Type, C: Color> Image<T, C> {
         px.copy_to_slice(data);
     }
 
-    /// Convert to `ImageBuf`
-    pub fn to_image_buf(&mut self) -> ImageBuf {
-        ImageBuf::new_with_data(
-            self.meta.width,
-            self.meta.height,
-            self.channels(),
-            self.data.as_mut_slice(),
-        )
-    }
-
     /// Open an image from disk
-    pub fn open(path: impl AsRef<std::path::Path>) -> Option<Image<T, C>> {
-        ImageBuf::read_to_image(path, 0, 0)
+    pub fn open(path: impl AsRef<std::path::Path>) -> Result<Image<T, C>, Error> {
+        oiio::read_to_image(path, 0, 0)
     }
 
     /// Open image, specifying a subimage, from disk
@@ -204,13 +249,17 @@ impl<T: Type, C: Color> Image<T, C> {
         path: impl AsRef<std::path::Path>,
         subimage: usize,
         miplevel: usize,
-    ) -> Option<Image<T, C>> {
-        ImageBuf::read_to_image(path, subimage, miplevel)
+    ) -> Result<Image<T, C>, Error> {
+        oiio::read_to_image(path, subimage, miplevel)
     }
 
     /// Save an image to disk
-    pub fn save(&self, path: impl AsRef<std::path::Path>) -> bool {
-        ImageBuf::write_image(self, path)
+    pub fn save(&self, path: impl AsRef<std::path::Path>) -> Result<(), Error> {
+        if oiio::write_image(self, path) {
+            Ok(())
+        } else {
+            Err(Error::UnableToWriteImage)
+        }
     }
 
     /// Iterate over part of an image in parallel

@@ -90,7 +90,7 @@ mod test {
         let a = Image::<f32, Rgb>::open("images/A.exr").unwrap();
         let mut dest = Image::new(a.height(), a.width());
         rotate90(&mut dest, &a);
-        assert!(dest.save("images/test-rotate90.jpg"))
+        assert!(dest.save("images/test-rotate90.jpg").is_ok())
     }
 
     #[test]
@@ -98,7 +98,7 @@ mod test {
         let a = Image::<u8, Rgb>::open("images/A.exr").unwrap();
         let mut dest = Image::new(a.width(), a.height());
         rotate180(&mut dest, &a);
-        assert!(dest.save("images/test-rotate180.jpg"))
+        assert!(dest.save("images/test-rotate180.jpg").is_ok())
     }
 
     #[test]
@@ -106,7 +106,7 @@ mod test {
         let a = Image::<u8, Rgb>::open("images/A.exr").unwrap();
         let mut dest = Image::new(a.width() * 2, a.height() * 2);
         scale(&mut dest, &a, 2., 2.);
-        assert!(dest.save("images/test-scale.jpg"))
+        assert!(dest.save("images/test-scale.jpg").is_ok())
     }
 
     #[test]

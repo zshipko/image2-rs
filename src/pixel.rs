@@ -106,6 +106,14 @@ impl<C: Color> Pixel<C> {
             f(self[i])
         }
     }
+
+    pub fn iter(&self) -> std::slice::Iter<f64> {
+        self.0.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<f64> {
+        self.0.iter_mut()
+    }
 }
 
 impl<T: Type, C: Color> std::iter::FromIterator<T> for Pixel<C> {

@@ -28,11 +28,11 @@ fn test_image_buffer_new() {
 #[test]
 fn test_read_write() {
     let a: Image<u8, Rgb> = Image::open("images/A.exr").unwrap();
-    assert!(a.save("images/test-read-write0.jpg"));
-    assert!(a.save("images/test-read-write1.png"));
+    assert!(a.save("images/test-read-write0.jpg").is_ok());
+    assert!(a.save("images/test-read-write1.png").is_ok());
 
     let b: Image<u8, Rgb> = Image::open("images/test-read-write1.png").unwrap();
-    assert!(b.save("images/test-read-write2.png"));
+    assert!(b.save("images/test-read-write2.png").is_ok());
 }
 
 #[test]
@@ -40,7 +40,7 @@ fn test_to_grayscale() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest = image.new_like_with_type_and_color::<u8, Gray>();
     timer("ToGrayscale", || Convert.eval(&mut dest, &[&image]));
-    assert!(dest.save("images/test-grayscale.jpg"));
+    assert!(dest.save("images/test-grayscale.jpg").is_ok());
 }
 
 #[test]
@@ -48,20 +48,20 @@ fn test_invert() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest = image.new_like();
     timer("Invert", || Invert.eval(&mut dest, &[&image]));
-    assert!(dest.save("images/test-invert.jpg"));
+    assert!(dest.save("images/test-invert.jpg").is_ok());
 }
 
-/*#[test]
+#[test]
 fn test_hash() {
-    let a: ImageBuf<f32, Rgb> = read("images/A.exr").unwrap();
-    let b: ImageBuf<f32, Rgb> = read("images/A.exr").unwrap();
+    let a: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
+    let b: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     timer("Hash", || assert!(a.hash() == b.hash()));
     assert!(a.hash().diff(&b.hash()) == 0);
     let mut c = a.new_like();
     Invert.eval(&mut c, &[&a]);
     assert!(c.hash() != a.hash());
     assert!(c.hash().diff(&a.hash()) != 0);
-}*/
+}
 
 #[test]
 fn test_kernel() {
@@ -69,7 +69,7 @@ fn test_kernel() {
     let mut dest = image.new_like();
     let k = Kernel::from([[-1.0, -1.0, -1.0], [-1.0, 8.0, -1.0], [-1.0, -1.0, -1.0]]);
     timer("Kernel", || k.eval(&mut dest, &[&image]));
-    assert!(dest.save("images/test-simple-kernel.jpg"));
+    assert!(dest.save("images/test-simple-kernel.jpg").is_ok());
 }
 
 #[test]
@@ -78,7 +78,7 @@ fn test_gaussian_blur() {
     let mut dest = image.new_like();
     let k = kernel::gaussian_5x5();
     timer("Gaussian blur", || k.eval(&mut dest, &[&image]));
-    assert!(dest.save("images/test-gaussian-blur.jpg"));
+    assert!(dest.save("images/test-gaussian-blur.jpg").is_ok());
 }
 
 #[test]
@@ -87,7 +87,7 @@ fn test_sobel() {
     let mut dest = image.new_like();
     let k = kernel::sobel();
     timer("Sobel", || k.eval(&mut dest, &[&image]));
-    assert!(dest.save("images/test-sobel.jpg"));
+    assert!(dest.save("images/test-sobel.jpg").is_ok());
 }
 
 /*#[test]
