@@ -8,7 +8,7 @@ on:
 
 jobs:
   linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
 
@@ -28,7 +28,7 @@ jobs:
     - name: Run tests
       run: cargo test --verbose --all
   all_linux_nightly:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
 
@@ -54,7 +54,7 @@ jobs:
     - name: Run tests
       run: cargo +nightly test --verbose --all
   clippy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
 
