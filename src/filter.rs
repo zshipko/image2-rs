@@ -167,3 +167,16 @@ impl<C: Color> Filter<C> for Gamma {
         input[0].get_pixel(x, y).map(|x| x.powf(1.0 / self.0))
     }
 }
+
+pub struct Convert<C: Color, D: Color, F: Fn(Pixel<C>) -> Pixel<D>> {
+    f: F,
+    _from: std::marker::PhantomData<C>,
+    _to: std::marker::PhantomData<D>,
+}
+
+impl<C: Color, D: Color, F: Sync + Fn(Pixel<C>) -> Pixel<D>> Filter<C, D> for Convert<C, D, F> {
+    fn compute_at(&self, x: usize, y: usize, input: &[&Image<impl Type, C>]) -> Pixel<D> {
+        let px = input[0].get_pixel(x, y);
+        (self.f)(px)
+    }
+}

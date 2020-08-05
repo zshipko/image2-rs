@@ -32,12 +32,18 @@ impl<C: Color> Pixel<C> {
     #[inline]
     pub fn copy_from_slice<T: Type>(&mut self, data: &[T]) {
         for i in 0..data.len() {
+            if i >= C::CHANNELS {
+                break;
+            }
             self[i] = data[i].to_norm();
         }
     }
 
     pub fn copy_to_slice<T: Type>(&self, data: &mut [T]) {
         for i in 0..data.len() {
+            if i >= C::CHANNELS {
+                break;
+            }
             data[i] = T::from_norm(self[i]);
         }
     }

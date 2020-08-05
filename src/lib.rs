@@ -19,12 +19,4 @@ pub use pixel::Pixel;
 pub use r#type::Type;
 
 #[cfg(test)]
-mod tests {
-    use crate::*;
-
-    #[test]
-    fn it_works() {
-        let im = Image::<f32, Rgb>::open("images/A.exr").unwrap();
-        assert!(im.save("images/out.png"));
-    }
-}
+mod tests;

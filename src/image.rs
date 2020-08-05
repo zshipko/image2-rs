@@ -48,6 +48,18 @@ impl<T: Type, C: Color> Image<T, C> {
         }
     }
 
+    pub fn new_like(&self) -> Image<T, C> {
+        Image::new(self.meta.width, self.meta.height)
+    }
+
+    pub fn new_like_with_type<U: Type>(&self) -> Image<U, C> {
+        Image::new(self.meta.width, self.meta.height)
+    }
+
+    pub fn new_like_with_color<D: Color>(&self) -> Image<T, D> {
+        Image::new(self.meta.width, self.meta.height)
+    }
+
     pub fn type_max(&self) -> f64 {
         T::MAX
     }
@@ -146,12 +158,18 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Get a normalized float value
     pub fn get_f(&self, x: usize, y: usize, c: usize) -> f64 {
+        if !self.in_bounds(x, y) || c >= C::CHANNELS {
+            return 0.0;
+        }
         let data = self.get(x, y);
         data[c].to_norm()
     }
 
     /// Set normalized float value
     pub fn set_f(&mut self, x: usize, y: usize, c: usize, f: f64) {
+        if !self.in_bounds(x, y) || c >= C::CHANNELS {
+            return;
+        }
         let data = self.get_mut(x, y);
         data[c] = T::from_norm(f);
     }
@@ -162,7 +180,7 @@ impl<T: Type, C: Color> Image<T, C> {
         px.copy_to_slice(data);
     }
 
-    /// Conver to `ImageBuf`
+    /// Convert to `ImageBuf`
     pub fn to_image_buf(&mut self) -> ImageBuf {
         ImageBuf::new_with_data(
             self.meta.width,
