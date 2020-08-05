@@ -60,6 +60,10 @@ impl<T: Type, C: Color> Image<T, C> {
         Image::new(self.meta.width, self.meta.height)
     }
 
+    pub fn new_like_with_type_and_color<U: Type, D: Color>(&self) -> Image<U, D> {
+        Image::new(self.meta.width, self.meta.height)
+    }
+
     pub fn type_max(&self) -> f64 {
         T::MAX
     }
@@ -213,8 +217,8 @@ impl<T: Type, C: Color> Image<T, C> {
     pub fn for_each_rect<F: Sync + Send + Fn((usize, usize), &mut [T])>(
         &mut self,
         x_: usize,
-        width_: usize,
         y_: usize,
+        width_: usize,
         height_: usize,
         f: F,
     ) {
@@ -232,18 +236,24 @@ impl<T: Type, C: Color> Image<T, C> {
             });
     }
 
-    /// Iterate over each pixel in parallel
-    pub fn for_each<F: Sync + Send + Fn((usize, usize), &mut [T])>(&mut self, f: F) {
+    /// Get pixel iterator
+    pub fn pixels<'a>(
+        &'a mut self,
+    ) -> impl 'a + rayon::iter::ParallelIterator<Item = ((usize, usize), &mut [T])> {
         let (width, _height, channels) = self.shape();
         self.data
-            .as_mut_slice()
             .par_chunks_mut(channels)
             .enumerate()
-            .for_each(|(n, pixel)| {
+            .map(move |(n, pixel)| {
                 let y = n / width;
                 let x = n - (y * width);
-                f((x, y), pixel)
-            });
+                ((x, y), pixel)
+            })
+    }
+
+    /// Iterate over each pixel in parallel
+    pub fn for_each<F: Sync + Send + Fn((usize, usize), &mut [T])>(&mut self, f: F) {
+        self.pixels().for_each(|((x, y), px)| f((x, y), px));
     }
 
     /// Iterate over each pixel of two images at once in parallel

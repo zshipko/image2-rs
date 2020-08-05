@@ -60,14 +60,14 @@ macro_rules! kernel_from {
 kernel_from!(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,);
 
 impl<C: Color> Filter<C> for Kernel {
-    fn compute_at(&self, x: usize, y: usize, input: &[&Image<impl Type, C>]) -> Pixel<C> {
+    fn compute_at(&self, x: usize, y: usize, c: usize, input: &[&Image<impl Type, C>]) -> f64 {
         let r2 = (self.rows / 2) as isize;
         let c2 = (self.cols / 2) as isize;
-        let mut f = Pixel::new();
+        let mut f = 0.0;
         for ky in -r2..=r2 {
             let kr = &self.data[(ky + r2) as usize];
             for kx in -c2..=c2 {
-                let x = input[0].get_pixel((x as isize + kx) as usize, (y as isize + ky) as usize);
+                let x = input[0].get_f((x as isize + kx) as usize, (y as isize + ky) as usize, c);
                 f += x * kr[(kx + c2) as usize];
             }
         }
@@ -174,20 +174,26 @@ macro_rules! op {
         }
 
         impl<C: Color> Filter<C> for $name {
-            fn compute_at(&self, x: usize, y: usize, input: &[&Image<impl Type, C>]) -> Pixel<C> {
+            fn compute_at(
+                &self,
+                x: usize,
+                y: usize,
+                c: usize,
+                input: &[&Image<impl Type, C>],
+            ) -> f64 {
                 let r2 = (self.a.rows / 2) as isize;
                 let c2 = (self.a.cols / 2) as isize;
-                let mut f = Pixel::new();
+                let mut f = 0.0;
                 for ky in -r2..=r2 {
                     let kr = &self.a.data[(ky + r2) as usize];
                     let kr1 = &self.b.data[(ky + r2) as usize];
                     for kx in -c2..=c2 {
-                        let x = input[0]
-                            .get_pixel((x as isize + kx) as usize, (y as isize + ky) as usize);
-                        f += $f(
-                            x.clone() * kr[(kx + c2) as usize],
-                            x * kr1[(kx + c2) as usize],
+                        let x = input[0].get_f(
+                            (x as isize + kx) as usize,
+                            (y as isize + ky) as usize,
+                            c,
                         );
+                        f += $f(x * kr[(kx + c2) as usize], x * kr1[(kx + c2) as usize]);
                     }
                 }
                 f

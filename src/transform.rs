@@ -5,11 +5,11 @@ pub type Point<T> = euclid::Point2D<T, T>;
 pub struct Transform(pub euclid::Transform2D<f64, f64, f64>);
 
 impl<C: Color> Filter<C> for Transform {
-    fn compute_at(&self, x: usize, y: usize, input: &[&Image<impl Type, C>]) -> Pixel<C> {
+    fn compute_at(&self, x: usize, y: usize, c: usize, input: &[&Image<impl Type, C>]) -> f64 {
         let pt = Point::new(x as f64, y as f64);
         let dest = self.0.transform_point(pt);
-        (input[0].get_pixel(dest.x.floor() as usize, dest.y.floor() as usize)
-            + input[0].get_pixel(dest.x.ceil() as usize, dest.y.ceil() as usize))
+        (input[0].get_f(dest.x.floor() as usize, dest.y.floor() as usize, c)
+            + input[0].get_f(dest.x.ceil() as usize, dest.y.ceil() as usize, c))
             / 2.
     }
 }
@@ -62,7 +62,7 @@ pub fn resize<T: Type, C: Color>(
 }
 
 pub fn rotate90<T: Type, C: Color>(dest: &mut Image<T, C>, src: &Image<T, C>) {
-    let dwidth = dest.width() as f64;
+    let dwidth = src.width() as f64;
     let height = src.height() as f64;
     rotate(dest, src, 90., Point::new(dwidth / 2., height / 2.));
 }
@@ -88,7 +88,7 @@ mod test {
 
     #[test]
     fn test_rotate90() {
-        let a = Image::<u8, Rgb>::open("images/A.exr").unwrap();
+        let a = Image::<f32, Rgb>::open("images/A.exr").unwrap();
         let mut dest = Image::new(a.height(), a.width());
         rotate90(&mut dest, &a);
         assert!(dest.save("images/test-rotate90.jpg"))
