@@ -1,8 +1,8 @@
 name: Rust
 
 on:
-#  push:
-#    branches: [ master ]
+  push:
+    branches: [ master, rewrite ]
   pull_request:
     branches: [ master ]
 
