@@ -129,8 +129,6 @@ impl<C: Color> Filter<C> for Blend {
     }
 }
 
-pub struct ToGrayscale;
-
 pub struct Gamma(pub f64);
 
 impl<C: Color> Filter<C> for Gamma {
@@ -172,6 +170,7 @@ impl ConvertColor<Rgba, Gray> for Convert {
         pixel[0] * 0.21 + pixel[1] * 0.72 + pixel[2] * 0.7 * pixel[3]
     }
 }
+
 impl<A: Color, B: Color> Filter<A, B> for Convert
 where
     Self: ConvertColor<A, B>,

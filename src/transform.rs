@@ -33,7 +33,6 @@ pub fn rotate<C: Color>(
 #[inline]
 pub fn scale<T: Type, C: Color>(dest: &mut Image<T, C>, src: &Image<T, C>, x: f64, y: f64) {
     let filter = Transform(euclid::Transform2D::scale(1.0 / x, 1.0 / y));
-
     filter.eval(dest, &[src])
 }
 

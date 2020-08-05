@@ -289,4 +289,14 @@ impl<T: Type, C: Color> Image<T, C> {
                 f((x, y), pixel)
             });
     }
+
+    /// Apply a filter
+    pub fn apply<B: Color>(
+        &self,
+        filter: impl Filter<C, B>,
+        mut dest: Image<impl Type, B>,
+    ) -> Image<impl Type, B> {
+        filter.eval(&mut dest, &[self]);
+        dest
+    }
 }
