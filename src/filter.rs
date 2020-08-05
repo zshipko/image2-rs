@@ -1,5 +1,7 @@
 use crate::*;
 
+pub use convert::{Convert, ConvertColor};
+
 /// Filters are used to manipulate images in a generic, composable manner
 pub trait Filter<C: Color, D: Color = C>: Sized + Sync {
     fn compute_at(&self, x: usize, y: usize, c: usize, input: &[&Image<impl Type, C>]) -> f64;

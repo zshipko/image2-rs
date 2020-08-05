@@ -1,0 +1,70 @@
+name: Rust
+
+on:
+#  push:
+#    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install deps
+      run: sudo apt update && sudo apt install libopenimageio-dev
+
+    - name: Run tests
+      run: cargo test --verbose --all
+  macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install deps
+      run: brew update && brew install openimageio
+
+    - name: Run tests
+      run: cargo test --verbose --all
+  all_linux_nightly:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install deps
+      run: sudo apt update && sudo apt install libopenimageio-dev
+
+    - name: Nightly
+      run: rustup toolchain install nightly
+
+    - name: Run tests
+      run: cargo +nightly test --verbose --all
+  all_macos_nightly:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install deps
+      run: brew update && brew install openimageio
+
+    - name: Nightly
+      run: rustup toolchain install nightly
+
+    - name: Run tests
+      run: cargo +nightly test --verbose --all
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install deps
+      run: sudo apt update && sudo apt install libopenimageio-dev
+
+    - name: Nightly
+      run: rustup toolchain install nightly --profile=default
+
+    - name: Run tests
+      run: cargo +nightly clippy --all
+
+

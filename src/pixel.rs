@@ -1,7 +1,7 @@
 use crate::*;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
-pub struct Pixel<C: Color>(Vec<f64>, std::marker::PhantomData<C>);
+pub struct Pixel<C: Color>(Box<[f64]>, std::marker::PhantomData<C>);
 
 impl<C: Color> AsRef<[f64]> for Pixel<C> {
     fn as_ref(&self) -> &[f64] {
@@ -11,11 +11,14 @@ impl<C: Color> AsRef<[f64]> for Pixel<C> {
 
 impl<C: Color> Pixel<C> {
     pub fn into_vec(self) -> Vec<f64> {
-        vec![self[0], self[1], self[2], self[3]]
+        self.0.to_vec()
     }
 
     pub fn new() -> Pixel<C> {
-        Pixel(vec![0.0; C::CHANNELS], std::marker::PhantomData)
+        Pixel(
+            vec![0.0; C::CHANNELS].into_boxed_slice(),
+            std::marker::PhantomData,
+        )
     }
 
     pub fn fill<T: Type>(mut self, x: T) -> Self {
@@ -136,7 +139,7 @@ impl<C: Color> IntoIterator for Pixel<C> {
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+        self.0.to_vec().into_iter()
     }
 }
 
