@@ -1,8 +1,8 @@
 //! image2 - a high-performance image processing library with wide support for a variety of file
-//! formats and data type
+//! formats and data types
 //!
-//! OpenImageIO is used for encoding and decoding images. It should be installed before
-//! building `image2`
+//! OpenImageIO is used for encoding and decoding images, it should be installed before
+//! building `image2`.
 //!
 //! ```rust,no_run
 //! use image2::*;
@@ -29,6 +29,7 @@ pub use half::f16;
 mod color;
 mod convert;
 mod error;
+mod histogram;
 mod image;
 mod oiio;
 mod pixel;
@@ -42,7 +43,8 @@ pub use color::{Color, Gray, Rgb, Rgba, Xyz};
 pub use convert::{Convert, ConvertColor};
 pub use error::Error;
 pub use filter::Filter;
-pub use image::{Image, Meta};
+pub use histogram::Histogram;
+pub use image::{Hash, Image, Meta};
 pub use kernel::Kernel;
 pub use pixel::Pixel;
 pub use r#type::Type;

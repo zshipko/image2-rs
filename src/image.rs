@@ -289,6 +289,21 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Get pixel iterator
     pub fn pixels<'a>(
+        &'a self,
+    ) -> impl 'a + rayon::iter::ParallelIterator<Item = ((usize, usize), &[T])> {
+        let (width, _height, channels) = self.shape();
+        self.data
+            .par_chunks(channels)
+            .enumerate()
+            .map(move |(n, pixel)| {
+                let y = n / width;
+                let x = n - (y * width);
+                ((x, y), pixel)
+            })
+    }
+
+    /// Get mutable pixel iterator
+    pub fn pixels_mut<'a>(
         &'a mut self,
     ) -> impl 'a + rayon::iter::ParallelIterator<Item = ((usize, usize), &mut [T])> {
         let (width, _height, channels) = self.shape();
@@ -304,7 +319,7 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Iterate over each pixel in parallel
     pub fn for_each<F: Sync + Send + Fn((usize, usize), &mut [T])>(&mut self, f: F) {
-        self.pixels().for_each(|((x, y), px)| f((x, y), px));
+        self.pixels_mut().for_each(|((x, y), px)| f((x, y), px));
     }
 
     /// Iterate over each pixel of two images at once in parallel
@@ -328,7 +343,21 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Iterate over each pixel without threads
-    pub fn each_pixel<F: Sync + Send + FnMut((usize, usize), &mut [T])>(&mut self, mut f: F) {
+    pub fn each_pixel<F: Sync + Send + FnMut((usize, usize), &[T])>(&self, mut f: F) {
+        let (width, _height, channels) = self.shape();
+        self.data
+            .as_slice()
+            .chunks_exact(channels)
+            .enumerate()
+            .for_each(|(n, pixel)| {
+                let y = n / width;
+                let x = n - (y * width);
+                f((x, y), pixel)
+            });
+    }
+
+    /// Iterate over each pixel without threads
+    pub fn each_pixel_mut<F: Sync + Send + FnMut((usize, usize), &mut [T])>(&mut self, mut f: F) {
         let (width, _height, channels) = self.shape();
         self.data
             .as_mut_slice()
@@ -397,5 +426,17 @@ impl<T: Type, C: Color> Image<T, C> {
         let mut dest = self.new_like_with_color();
         self.convert_colorspace_to(&mut dest, a, b)?;
         Ok(dest)
+    }
+
+    pub fn histogram(&self, bins: usize) -> Vec<Histogram> {
+        let mut hist = vec![Histogram::new(bins); C::CHANNELS];
+
+        self.each_pixel(|_, px| {
+            for i in 0..C::CHANNELS {
+                hist[i].add(px[i]);
+            }
+        });
+
+        hist
     }
 }
