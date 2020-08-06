@@ -3,23 +3,18 @@ use crate::*;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Histogram {
     pub bins: Box<[usize]>,
-    step: f64,
 }
 
 impl Histogram {
     pub fn new(nbins: usize) -> Histogram {
         Histogram {
             bins: vec![0; nbins].into_boxed_slice(),
-            step: 1.0 / nbins as f64,
         }
     }
 
     pub fn add<T: Type>(&mut self, value: T) {
-        let mut x = (value.to_norm() / self.step).floor() as usize;
-        if x == self.bins.len() {
-            x -= 1
-        }
-        self.bins[x] += 1
+        let x = value.to_norm() * (self.bins.len() - 1) as f64;
+        self.bins[x as usize] += 1
     }
 
     pub fn bins<'a>(&'a self) -> impl 'a + Iterator<Item = (usize, usize)> {

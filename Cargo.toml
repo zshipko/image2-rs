@@ -15,3 +15,6 @@ lazy_static = "1"
 
 [build-dependencies]
 cpp_build = "0.5"
+
+[dev-dependencies]
+plotters = "0.2"
