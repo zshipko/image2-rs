@@ -36,6 +36,16 @@ fn test_read_write() {
 }
 
 #[test]
+fn test_read_write_rgba() {
+    let a: Image<u16, Rgba> = Image::open("images/A.exr").unwrap();
+    assert!(a.save("images/test-read-write-rgba0.jpg").is_ok());
+    assert!(a.save("images/test-read-write-rgba1.png").is_ok());
+
+    let b: Image<u16, Rgb> = Image::open("images/test-read-write-rgba1.png").unwrap();
+    assert!(b.save("images/test-read-write-rgba2.png").is_ok());
+}
+
+#[test]
 fn test_to_grayscale() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest: Image<u8, Gray> = image.new_like_with_type_and_color::<u8, Gray>();

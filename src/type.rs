@@ -1,6 +1,6 @@
 use crate::*;
 
-pub trait Type: Default + Clone + Copy + Sync + Send + PartialEq + PartialOrd {
+pub trait Type: Unpin + Default + Clone + Copy + Sync + Send + PartialEq + PartialOrd {
     const MIN: f64;
     const MAX: f64;
     const BASE: oiio::BaseType;

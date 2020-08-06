@@ -264,27 +264,52 @@ impl<T: Type, C: Color> Image<T, C> {
         }
     }
 
-    /// Iterate over part of an image in parallel
-    pub fn for_each_rect<F: Sync + Send + Fn((usize, usize), &mut [T])>(
-        &mut self,
+    /// Iterate over part of an image in parallel with mutable data access
+    pub fn pixels_rect_mut<'a>(
+        &'a mut self,
         x_: usize,
         y_: usize,
         width_: usize,
         height_: usize,
-        f: F,
-    ) {
+    ) -> impl 'a + rayon::iter::ParallelIterator<Item = ((usize, usize), &mut [T])> {
         let (width, _height, channels) = self.shape();
         self.data
             .as_mut_slice()
             .par_chunks_mut(channels)
             .enumerate()
-            .for_each(|(n, pixel)| {
+            .filter_map(move |(n, pixel)| {
                 let y = n / width;
                 let x = n - (y * width);
                 if x >= x_ && x < x_ + width_ && y >= y_ && y < y_ + height_ {
-                    f((x, y), pixel)
+                    return Some(((x, y), pixel));
                 }
-            });
+
+                None
+            })
+    }
+
+    /// Iterate over part of an image in parallel
+    pub fn pixels_rect<'a>(
+        &'a self,
+        x_: usize,
+        y_: usize,
+        width_: usize,
+        height_: usize,
+    ) -> impl 'a + rayon::iter::ParallelIterator<Item = ((usize, usize), &[T])> {
+        let (width, _height, channels) = self.shape();
+        self.data
+            .as_slice()
+            .par_chunks(channels)
+            .enumerate()
+            .filter_map(move |(n, pixel)| {
+                let y = n / width;
+                let x = n - (y * width);
+                if x >= x_ && x < x_ + width_ && y >= y_ && y < y_ + height_ {
+                    return Some(((x, y), pixel));
+                }
+
+                None
+            })
     }
 
     /// Get pixel iterator
@@ -345,6 +370,7 @@ impl<T: Type, C: Color> Image<T, C> {
     /// Iterate over each pixel without threads
     pub fn each_pixel<F: Sync + Send + FnMut((usize, usize), &[T])>(&self, mut f: F) {
         let (width, _height, channels) = self.shape();
+
         self.data
             .as_slice()
             .chunks_exact(channels)
@@ -353,11 +379,11 @@ impl<T: Type, C: Color> Image<T, C> {
                 let y = n / width;
                 let x = n - (y * width);
                 f((x, y), pixel)
-            });
+            })
     }
 
     /// Iterate over each pixel without threads
-    pub fn each_pixel_mut<F: Sync + Send + FnMut((usize, usize), &mut [T])>(&mut self, mut f: F) {
+    pub async fn each_pixel_mut<F: Sync + Send + FnMut((usize, usize), &mut [T])>(&mut self, mut f: F) {
         let (width, _height, channels) = self.shape();
         self.data
             .as_mut_slice()

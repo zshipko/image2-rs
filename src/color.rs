@@ -1,6 +1,6 @@
 use crate::*;
 
-pub trait Color: PartialEq + Eq + Clone + Sync + Send {
+pub trait Color: Unpin + PartialEq + Eq + Clone + Sync + Send {
     const NAME: &'static str;
     const CHANNELS: usize;
     const ALPHA: bool = false;
