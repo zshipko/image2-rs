@@ -84,14 +84,14 @@ mod test {
     #[test]
     fn test_rotate90() {
         let a = Image::<f32, Rgb>::open("images/A.exr").unwrap();
-        let mut dest: Image<u16, Rgb> = Image::new(a.height(), a.width());
+        let mut dest: Image<f32, Rgb> = Image::new(a.height(), a.width());
         rotate90(&dest, &a).eval(&mut dest, &[&a]);
         assert!(dest.save("images/test-rotate90.jpg").is_ok())
     }
 
     #[test]
     fn test_rotate180() {
-        let a = Image::<u8, Rgb>::open("images/A.exr").unwrap();
+        let a = Image::<f32, Rgb>::open("images/A.exr").unwrap();
         let mut dest = a.new_like();
         rotate180(&a).eval(&mut dest, &[&a]);
         assert!(dest.save("images/test-rotate180.jpg").is_ok())
