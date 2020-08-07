@@ -444,7 +444,7 @@ impl<T: Type, C: Color> Image<T, C> {
         }
     }
 
-    pub fn convert_color(
+    pub fn convert_colorspace(
         &self,
         a: impl AsRef<str>,
         b: impl AsRef<str>,

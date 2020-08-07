@@ -4,87 +4,6 @@ use rayon::prelude::*;
 
 pub use convert::{Convert, ConvertColor};
 
-pub enum AsyncMode {
-    Pixel,
-    Row,
-}
-
-impl Default for AsyncMode {
-    fn default() -> AsyncMode {
-        AsyncMode::Row
-    }
-}
-
-pub struct AsyncFilter<'a, F: Filter<C, D>, T: 'a + Type, U: 'a + Type, C: Color, D: Color = C> {
-    pub filter: &'a F,
-    pub output: &'a mut Image<T, D>,
-    pub input: &'a [&'a Image<U, C>],
-    x: usize,
-    y: usize,
-    mode: AsyncMode
-}
-
-impl<'a, F: Unpin + Filter<C, D>, T: 'a + Type, U: 'a  + Unpin + Type, C: Unpin + Color, D: Unpin + Color>
-    AsyncFilter<'a, F, T, U, C, D>
-{
-    pub async fn eval(self) {
-        self.await
-    }
-}
-
-impl<'a, F: Unpin + Filter<C, D>, T: Type, U: Unpin + Type, C: Color, D: Unpin + Color>
-    std::future::Future for AsyncFilter<'a, F, T, U, C, D>
-{
-    type Output = ();
-
-    fn poll(
-        self: std::pin::Pin<&mut Self>,
-        ctx: &mut std::task::Context,
-    ) -> std::task::Poll<Self::Output> {
-        let input = &self.input[0];
-        let filter = std::pin::Pin::get_mut(self);
-
-
-        match filter.mode {
-            AsyncMode::Row => {
-                for i in 0 .. input.width() {
-                    for c in 0..C::CHANNELS {
-                        let f = filter
-                            .filter
-                            .compute_at(i, filter.y, c, &filter.input);
-                        filter.output.set_f(i, filter.y, c, f);
-                    }
-                }
-                filter.y += 1;
-            }
-            AsyncMode::Pixel => {
-                for c in 0..C::CHANNELS {
-                    let f = filter
-                        .filter
-                        .compute_at(filter.x, filter.y, c, &filter.input);
-                    filter.output.set_f(filter.x, filter.y, c, f);
-                    filter.x += 1;
-                    if filter.x >= input.width() {
-                        filter.x = 0;
-                        filter.y += 1;
-                    }
-                }
-            }
-        }
-
-
-        if filter.y < input.height() {
-            ctx.waker().wake_by_ref();
-            return std::task::Poll::Pending;
-        }
-
-        return std::task::Poll::Ready(());
-    }
-}
-
-pub async fn eval_async<'a, F: Unpin + Filter<C, D>, T: Type, U: Type, C: Color, D: Color>(filter: &'a F, mode: AsyncMode, output: &'a mut Image<T, D>, input: &'a [&Image<U, C>]) {
-    filter.to_async(mode, output, input).await
-}
 
 /// Filters are used to manipulate images in a generic, composable manner
 pub trait Filter<C: Color, D: Color = C>: Sized + Sync {
@@ -240,6 +159,89 @@ impl<C: Color> Filter<C> for Gamma {
         input[0].get_f(x, y, c).powf(1.0 / self.0)
     }
 }
+
+pub enum AsyncMode {
+    Pixel,
+    Row,
+}
+
+impl Default for AsyncMode {
+    fn default() -> AsyncMode {
+        AsyncMode::Row
+    }
+}
+
+pub struct AsyncFilter<'a, F: Filter<C, D>, T: 'a + Type, U: 'a + Type, C: Color, D: Color = C> {
+    pub filter: &'a F,
+    pub output: &'a mut Image<T, D>,
+    pub input: &'a [&'a Image<U, C>],
+    x: usize,
+    y: usize,
+    mode: AsyncMode
+}
+
+impl<'a, F: Unpin + Filter<C, D>, T: 'a + Type, U: 'a  + Unpin + Type, C: Unpin + Color, D: Unpin + Color>
+    AsyncFilter<'a, F, T, U, C, D>
+{
+    pub async fn eval(self) {
+        self.await
+    }
+}
+
+impl<'a, F: Unpin + Filter<C, D>, T: Type, U: Unpin + Type, C: Color, D: Unpin + Color>
+    std::future::Future for AsyncFilter<'a, F, T, U, C, D>
+{
+    type Output = ();
+
+    fn poll(
+        self: std::pin::Pin<&mut Self>,
+        ctx: &mut std::task::Context,
+    ) -> std::task::Poll<Self::Output> {
+        let input = &self.input[0];
+        let filter = std::pin::Pin::get_mut(self);
+
+
+        match filter.mode {
+            AsyncMode::Row => {
+                for i in 0 .. input.width() {
+                    for c in 0..C::CHANNELS {
+                        let f = filter
+                            .filter
+                            .compute_at(i, filter.y, c, &filter.input);
+                        filter.output.set_f(i, filter.y, c, f);
+                    }
+                }
+                filter.y += 1;
+            }
+            AsyncMode::Pixel => {
+                for c in 0..C::CHANNELS {
+                    let f = filter
+                        .filter
+                        .compute_at(filter.x, filter.y, c, &filter.input);
+                    filter.output.set_f(filter.x, filter.y, c, f);
+                    filter.x += 1;
+                    if filter.x >= input.width() {
+                        filter.x = 0;
+                        filter.y += 1;
+                    }
+                }
+            }
+        }
+
+
+        if filter.y < input.height() {
+            ctx.waker().wake_by_ref();
+            return std::task::Poll::Pending;
+        }
+
+        return std::task::Poll::Ready(());
+    }
+}
+
+pub async fn eval_async<'a, F: Unpin + Filter<C, D>, T: Type, U: Type, C: Color, D: Color>(filter: &'a F, mode: AsyncMode, output: &'a mut Image<T, D>, input: &'a [&Image<U, C>]) {
+    filter.to_async(mode, output, input).await
+}
+
 
 #[cfg(test)]
 mod tests {
