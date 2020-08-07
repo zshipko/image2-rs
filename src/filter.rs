@@ -242,17 +242,3 @@ pub async fn eval_async<'a, F: Unpin + Filter<C, D>, T: Type, U: Type, C: Color,
     filter.to_async(mode, output, input).await
 }
 
-
-#[cfg(test)]
-mod tests {
-    use crate::*;
-    use filter::*;
-
-    #[test]
-    fn test_async_filter() {
-        let input = Image::<u16, Rgba>::open("images/A.exr").unwrap();
-        let mut output = input.new_like();
-        smol::run(eval_async(&Invert, AsyncMode::Row, &mut output, &[&input]));
-        output.save("images/test-invert-async.jpg").unwrap();
-    }
-}

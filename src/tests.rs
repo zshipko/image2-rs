@@ -64,6 +64,21 @@ fn test_invert() {
 }
 
 #[test]
+fn test_invert_async() {
+    let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
+    let mut dest = image.new_like();
+    timer("Invert async", || {
+        smol::run(filter::eval_async(
+            &Invert,
+            filter::AsyncMode::Row,
+            &mut dest,
+            &[&image],
+        ))
+    });
+    assert!(dest.save("images/test-invert-async.jpg").is_ok());
+}
+
+#[test]
 fn test_hash() {
     let a: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let b: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
@@ -105,8 +120,8 @@ fn test_sobel() {
 #[test]
 fn test_convert_color() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
-    let image2 = image.convert_color("srgb", "lnf").unwrap();
-    let image3 = image.convert_color("lnf", "srgb").unwrap();
+    let image2 = image.convert_colorspace("srgb", "lnf").unwrap();
+    let image3 = image.convert_colorspace("lnf", "srgb").unwrap();
 
     assert!(image2.save("images/test-convert-color1.jpg").is_ok());
     assert!(image3.save("images/test-convert-color2.jpg").is_ok());
