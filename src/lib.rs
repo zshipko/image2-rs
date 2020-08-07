@@ -14,7 +14,7 @@
 //!     /// Apply a `Filter`, in this case using the `Convert` filter to
 //!     /// convert from `Rgb` to `Gray`
 //!     let dest = image.new_like_with_color::<Gray>();
-//!     let dest = image.apply(Convert, dest);
+//!     let dest = image.apply(Convert::<Gray>::new(), dest);
 //!
 //!     /// Save an image to disk
 //!     dest.save("test.jpg")?;
@@ -27,7 +27,6 @@
 pub use half::f16;
 
 mod color;
-mod convert;
 mod error;
 mod histogram;
 mod image;
@@ -39,8 +38,7 @@ pub mod filter;
 pub mod kernel;
 pub mod transform;
 
-pub use color::{Color, Gray, Rgb, Rgba, Xyz};
-pub use convert::{Convert, ConvertColor};
+pub use color::{Color, Convert, Gray, Rgb, Rgba, Xyz};
 pub use error::Error;
 pub use filter::Filter;
 pub use histogram::Histogram;

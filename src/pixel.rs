@@ -53,7 +53,7 @@ impl<C: Color> Pixel<C> {
             if i >= C::CHANNELS {
                 break;
             }
-            self[i] = data[i].to_norm();
+            (*self)[i] = data[i].to_norm();
         }
         self
     }
@@ -96,16 +96,16 @@ impl<C: Color> Pixel<C> {
         self
     }
 
-    pub fn map_in_place(&mut self, f: impl Fn(f64) -> f64) -> &mut Self {
+    pub fn map_in_place<'a>(&mut self, f: impl Fn(f64) -> f64) -> &mut Self {
         for i in 0..self.len() {
-            self[i] = f(self[i]);
+            (*self)[i] = f(self[i]);
         }
         self
     }
 
     pub fn map2_in_place(&mut self, other: &Pixel<C>, f: impl Fn(f64, f64) -> f64) -> &mut Self {
         for i in 0..self.len() {
-            self[i] = f(self[i], other[i]);
+            (*self)[i] = f(self[i], other[i]);
         }
         self
     }
@@ -150,7 +150,27 @@ impl<C: Color> std::ops::Index<usize> for Pixel<C> {
     }
 }
 
+impl<'a, C: Color> std::ops::Index<usize> for &'a Pixel<C> {
+    type Output = f64;
+    fn index(&self, index: usize) -> &f64 {
+        &self.0[index]
+    }
+}
+
+impl<'a, C: Color> std::ops::Index<usize> for &'a mut Pixel<C> {
+    type Output = f64;
+    fn index(&self, index: usize) -> &f64 {
+        &self.0[index]
+    }
+}
+
 impl<C: Color> std::ops::IndexMut<usize> for Pixel<C> {
+    fn index_mut(&mut self, index: usize) -> &mut f64 {
+        &mut self.0[index]
+    }
+}
+
+impl<'a, C: Color> std::ops::IndexMut<usize> for &'a mut Pixel<C> {
     fn index_mut(&mut self, index: usize) -> &mut f64 {
         &mut self.0[index]
     }

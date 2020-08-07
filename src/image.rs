@@ -82,8 +82,8 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     pub fn hash(&self) -> Hash {
-        let mut small = Image::new(16, 8);
-        crate::transform::resize(&mut small, self, 16, 8);
+        let mut small: Image<T, C> = Image::new(16, 8);
+        crate::transform::resize(self, 16, 8).eval(&mut small, &[self]);
         let mut hash = 0u128;
         let mut index = 0;
         let mut px = Pixel::new();
@@ -397,11 +397,11 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Apply a filter
-    pub fn apply<B: Color>(
+    pub fn apply(
         &self,
-        filter: impl Filter<C, B>,
-        mut dest: Image<impl Type, B>,
-    ) -> Image<impl Type, B> {
+        filter: impl Filter,
+        mut dest: Image<impl Type, impl Color>,
+    ) -> Image<impl Type, impl Color> {
         filter.eval(&mut dest, &[self]);
         dest
     }

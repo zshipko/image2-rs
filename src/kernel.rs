@@ -57,10 +57,19 @@ macro_rules! kernel_from {
    }
 }
 
-kernel_from!(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,);
+kernel_from!(
+    2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+    28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+);
 
-impl<C: Color> Filter<C> for Kernel {
-    fn compute_at(&self, x: usize, y: usize, c: usize, input: &[&Image<impl Type, C>]) -> f64 {
+impl Filter for Kernel {
+    fn compute_at(
+        &self,
+        x: usize,
+        y: usize,
+        c: usize,
+        input: &[&Image<impl Type, impl Color>],
+    ) -> f64 {
         let r2 = (self.rows / 2) as isize;
         let c2 = (self.cols / 2) as isize;
         let mut f = 0.0;
@@ -173,13 +182,13 @@ macro_rules! op {
             b: Kernel,
         }
 
-        impl<C: Color> Filter<C> for $name {
+        impl Filter for $name {
             fn compute_at(
                 &self,
                 x: usize,
                 y: usize,
                 c: usize,
-                input: &[&Image<impl Type, C>],
+                input: &[&Image<impl Type, impl Color>],
             ) -> f64 {
                 let r2 = (self.a.rows / 2) as isize;
                 let c2 = (self.a.cols / 2) as isize;

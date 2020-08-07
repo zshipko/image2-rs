@@ -48,9 +48,9 @@ fn test_read_write_rgba() {
 #[test]
 fn test_to_grayscale() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
-    let mut dest: Image<u8, Gray> = image.new_like_with_type_and_color::<u8, Gray>();
+    let mut dest: Image<f32, Gray> = image.new_like_with_type_and_color::<f32, Gray>();
     timer("ToGrayscale", || {
-        <Convert as Filter<Rgb, Gray>>::eval(&Convert, &mut dest, &[&image])
+        Convert::<Gray>::new().eval(&mut dest, &[&image])
     });
     assert!(dest.save("images/test-grayscale.jpg").is_ok());
 }
