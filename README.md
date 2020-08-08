@@ -1,28 +1,21 @@
-**NOTE:** This library is no longer being maintained, see [imaged](https://github.com/zshipko/imaged)
+# image2 - image processing library
 
-# image2
+<a href="https://crates.io/crates/image2">
+    <img src="https://img.shields.io/crates/v/image2.svg">
+</a>
 
-A Rust library focused on generic image processing for a wide range of datatypes. [stb_image](https://github.com/nothings/stb) is used as the default encoder/decoder and supports the following formats:
+A Rust crate focused on generic image processing for a wide range of image formats and data types. [OpenImageIO](https://github.com/OpenImageIO/oiio) is used to read/write images and supports "TIFF, JPEG/JFIF, OpenEXR, PNG, HDR/RGBE, ICO, BMP, Targa, JPEG-2000, RMan Zfile, FITS, DDS, Softimage PIC, PNM, DPX, Cineon, IFF, Field3D, Ptex, Photoshop PSD, Wavefront RLA, SGI, WebP, GIF, and a variety of RAW digital camera formats"
 
-- JPEG [RW]
-- PNG [RW]
-- TGA [RW]
-- BMP [RW]
-- PSD [R]
-- GIF [R]
-- HDR [RW]
+## Features
 
-Additional formats are provided by:
+- Supports a wide range of image formats
+- Composable image processing operations using `Filter`
+- Async `Filter`s
 
-- [ImageMagick](https://imagemagick.org/script/formats.php)/[GraphicsMagick](http://www.graphicsmagick.org/formats.html)
-- [rscam](https://github.com/loyd/rscam)
+## External dependencies
 
-### Optional crate features
+- `libOpenImageIO`
+    * Version >= 2.0
+    * Debian-based distros: `apt install libopenimageio-dev`
 
-- `v4l`
-    * Enables support for webcam capture on Linux
-- `ser`
-    * Automatically derive serde traits for images and many other datatyes
-- `parallel`
-    * Uses rayon to iterate over pixels in parallel (enabled by default)
 

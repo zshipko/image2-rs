@@ -1,16 +1,16 @@
-use crate::{Color, Filter, Image, Type};
+use crate::*;
 use euclid;
 
 pub type Point<T> = euclid::Point2D<T, T>;
 pub struct Transform(pub euclid::Transform2D<f64, f64, f64>);
 
 impl Filter for Transform {
-    fn compute_at<T: Type, C: Color, I: Image<T, C>>(
+    fn compute_at(
         &self,
         x: usize,
         y: usize,
         c: usize,
-        input: &[&I],
+        input: &[&Image<impl Type, impl Color>],
     ) -> f64 {
         let pt = Point::new(x as f64, y as f64);
         let dest = self.0.transform_point(pt);
@@ -21,110 +21,97 @@ impl Filter for Transform {
 }
 
 #[inline]
-pub fn rotate<T: Type, C: Color, I: Image<T, C>, J: Image<T, C>>(
-    dest: &mut I,
-    src: &J,
-    deg: f64,
-    center: Point<f64>,
-) {
-    let filter = Transform(
-        euclid::Transform2D::create_rotation(euclid::Angle::degrees(deg))
+pub fn rotate(deg: f64, center: Point<f64>) -> Transform {
+    Transform(
+        euclid::Transform2D::rotation(euclid::Angle::degrees(deg))
             .pre_translate(euclid::Vector2D::new(-center.x, -center.y))
-            .post_translate(euclid::Vector2D::new(center.x, center.y)),
-    );
-
-    filter.eval(dest, &[src])
+            .then_translate(euclid::Vector2D::new(center.x, center.y)),
+    )
 }
 
 #[inline]
-pub fn scale<T: Type, C: Color, I: Image<T, C>>(dest: &mut I, src: &I, x: f64, y: f64) {
-    let filter = Transform(euclid::Transform2D::create_scale(1.0 / x, 1.0 / y));
-
-    filter.eval(dest, &[src])
+pub fn scale(x: f64, y: f64) -> Transform {
+    Transform(euclid::Transform2D::scale(1.0 / x, 1.0 / y))
 }
 
 #[inline]
-pub fn resize<T: Type, C: Color, I: Image<T, C>, J: Image<T, C>>(
-    dest: &mut I,
-    src: &J,
-    mut x: usize,
-    mut y: usize,
-) {
-    if x == 0 && y == 0 {
-        x = dest.width();
-        y = dest.height();
-    } else if x == 0 {
+pub fn resize(src: &Image<impl Type, impl Color>, mut x: usize, mut y: usize) -> Transform {
+    if x == 0 {
         y = x * src.height() / src.width()
     } else if y == 0 {
         x = y * src.width() / src.height()
     }
 
-    let filter = Transform(euclid::Transform2D::create_scale(
+    let filter = Transform(euclid::Transform2D::scale(
         src.width() as f64 / x as f64,
         src.height() as f64 / y as f64,
     ));
 
-    filter.eval(dest, &[src])
+    filter
 }
 
-pub fn rotate90<T: Type, C: Color, I: Image<T, C>, J: Image<T, C>>(dest: &mut I, src: &J) {
-    let dwidth = dest.width() as f64;
-    let height = src.height() as f64;
-    rotate(dest, src, 90., Point::new(dwidth / 2., height / 2.));
+pub fn rotate90(
+    dest: &Image<impl Type, impl Color>,
+    src: &Image<impl Type, impl Color>,
+) -> Transform {
+    let dwidth = src.width() as f64;
+    let height = dest.height() as f64;
+    rotate(90., Point::new(dwidth / 2., height / 2.))
 }
 
-pub fn rotate180<T: Type, C: Color, I: Image<T, C>, J: Image<T, C>>(dest: &mut I, src: &J) {
+pub fn rotate180(src: &Image<impl Type, impl Color>) -> Transform {
     let dwidth = src.width() as f64;
     let height = src.height() as f64;
-    rotate(dest, src, 180., Point::new(dwidth / 2., height / 2.));
+    rotate(180., Point::new(dwidth / 2., height / 2.))
 }
 
-pub fn rotate270<T: Type, C: Color, I: Image<T, C>, J: Image<T, C>>(dest: &mut I, src: &J) {
+pub fn rotate270(
+    dest: &Image<impl Type, impl Color>,
+    src: &Image<impl Type, impl Color>,
+) -> Transform {
     let width = src.height() as f64;
     let dheight = dest.width() as f64;
-    rotate(dest, src, 270., Point::new(width / 2., dheight / 2.));
+    rotate(270., Point::new(width / 2., dheight / 2.))
 }
 
 #[cfg(test)]
-#[cfg(feature = "io")]
 mod test {
     use crate::{
-        io::magick,
         transform::{resize, rotate180, rotate90, scale},
-        Image, ImageBuf, Rgb,
+        Filter, Image, Rgb,
     };
 
     #[test]
     fn test_rotate90() {
-        let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
-        let mut dest = ImageBuf::new(a.height(), a.width());
-        rotate90(&mut dest, &a);
-        magick::write("test/test-rotate90.jpg", &dest).unwrap();
+        let a = Image::<f32, Rgb>::open("images/A.exr").unwrap();
+        let mut dest: Image<f32, Rgb> = Image::new(a.height(), a.width());
+        rotate90(&dest, &a).eval(&mut dest, &[&a]);
+        assert!(dest.save("images/test-rotate90.jpg").is_ok())
     }
 
     #[test]
     fn test_rotate180() {
-        let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
-        let mut dest = ImageBuf::new(a.width(), a.height());
-        rotate180(&mut dest, &a);
-        magick::write("test/test-rotate180.jpg", &dest).unwrap();
+        let a = Image::<f32, Rgb>::open("images/A.exr").unwrap();
+        let mut dest = a.new_like();
+        rotate180(&a).eval(&mut dest, &[&a]);
+        assert!(dest.save("images/test-rotate180.jpg").is_ok())
     }
 
     #[test]
     fn test_scale() {
-        let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
-        let mut dest = ImageBuf::new(a.width() * 2, a.height() * 2);
-        scale(&mut dest, &a, 2., 2.);
-        magick::write("test/test-scale.jpg", &dest).unwrap();
+        let a = Image::<u8, Rgb>::open("images/A.exr").unwrap();
+        let mut dest: Image<f32, Rgb> = Image::new(a.width() * 2, a.height() * 2);
+        scale(2., 2.).eval(&mut dest, &[&a]);
+        assert!(dest.save("images/test-scale.jpg").is_ok())
     }
 
     #[test]
     fn test_scale_resize() {
-        let a: ImageBuf<u8, Rgb> = magick::read("test/test.jpg").unwrap();
-        let mut dest0 = ImageBuf::new(a.width() * 2, a.height() * 2);
-        let mut dest1 = ImageBuf::new(a.width() * 2, a.height() * 2);
-        scale(&mut dest0, &a, 2., 2.);
-        resize(&mut dest1, &a, a.width() * 2, a.height() * 2);
+        let a = Image::<u8, Rgb>::open("images/A.exr").unwrap();
+        let mut dest0: Image<u16, Rgb> = Image::new(a.width() * 2, a.height() * 2);
+        let mut dest1: Image<u16, Rgb> = Image::new(a.width() * 2, a.height() * 2);
+        scale(2., 2.).eval(&mut dest0, &[&a]);
+        resize(&a, a.width() * 2, a.height() * 2).eval(&mut dest1, &[&a]);
         assert_eq!(dest0, dest1);
     }
 }

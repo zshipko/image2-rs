@@ -1,8 +1,4 @@
 /target
-**/*.rs.bk
 Cargo.lock
-*.jpg
-*.png
-stb.o
-libstb.a
-test/*.mp4
+images/*
+examples/*

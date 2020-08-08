@@ -1,62 +1,27 @@
-#[cfg(feature = "io")]
-use crate::io;
-use std::io::Error as IOError;
-
 #[derive(Debug)]
 pub enum Error {
-    #[cfg(feature = "io")]
-    Magick(io::magick::Error),
-    IO(IOError),
-    Message(String),
-    InvalidColor,
-    InvalidType,
+    OutOfBounds(usize, usize),
+    UnableToOpenImage(String),
+    UnableToWriteImage(String),
+    CannotReadImage(String),
+    InvalidDimensions(usize, usize, usize),
+    FailedColorConversion(String, String),
 }
-impl std::error::Error for Error {
-    fn description(&self) -> &str {
-        use Error::*;
-        match *self {
-            #[cfg(feature = "io")]
-            Magick(ref _e) => "Magick error",
-            IO(ref e) => e.description(),
-            Message(ref s) => s.as_str(),
-            InvalidColor => "Invalid color",
-            InvalidType => "Invalid type",
-        }
-    }
 
-    fn cause(&self) -> Option<&dyn std::error::Error> {
-        use Error::*;
-        match *self {
-            #[cfg(feature = "io")]
-            Magick(ref _e) => None,
-            IO(ref e) => Some(e),
-            Message(ref _e) => None,
-            InvalidColor => None,
-            InvalidType => None,
-        }
-    }
-}
 impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", <Self as std::error::Error>::description(self))
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use Error::*;
+        match self {
+            OutOfBounds(x, y) => write!(fmt, "out of bounds: {}, {}", x, y),
+            UnableToOpenImage(filename) => write!(fmt, "unable to open image: {}", filename),
+            UnableToWriteImage(filename) => write!(fmt, "unable to write image: {}", filename),
+            CannotReadImage(filename) => write!(fmt, "cannot read image: {}", filename),
+            InvalidDimensions(w, h, c) => {
+                write!(fmt, "invalid image dimensions: {}x{}x{}", w, h, c)
+            }
+            FailedColorConversion(a, b) => write!(fmt, "failed color conversion: {} to {}", a, b),
+        }
     }
 }
 
-#[cfg(feature = "io")]
-impl From<io::magick::Error> for Error {
-    fn from(err: io::magick::Error) -> Error {
-        Error::Magick(err)
-    }
-}
-
-impl From<String> for Error {
-    fn from(s: String) -> Error {
-        Error::Message(s)
-    }
-}
-
-impl From<IOError> for Error {
-    fn from(err: IOError) -> Error {
-        Error::IO(err)
-    }
-}
+impl std::error::Error for Error {}

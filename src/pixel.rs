@@ -1,317 +1,317 @@
-use std::ops;
+use crate::*;
 
-use crate::{Color, Type};
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub struct Pixel<C: Color>(Box<[f64]>, std::marker::PhantomData<C>);
 
-pub mod colorspace {
-    pub use palette::*;
+impl<C: Color> AsRef<[f64]> for Pixel<C> {
+    fn as_ref(&self) -> &[f64] {
+        self.0.as_ref()
+    }
 }
 
-/// Pixel is used to access chunks of image data
-pub trait Pixel<'a, T: Type, C: Color>: AsRef<[T]> {
-    /// Create a new Vec<T> from existing pixel data
-    fn to_vec(&self) -> Vec<T> {
-        self.as_ref().iter().map(|x| x.clone()).collect()
+impl<C: Color> Pixel<C> {
+    pub fn into_vec(self) -> Vec<f64> {
+        self.0.to_vec()
     }
 
-    /// Create a new Vec<f64> of normalized values from existing pixel data
-    fn to_f(&self) -> Vec<f64> {
-        self.as_ref().iter().map(|x| T::to_f(x)).collect()
-    }
-
-    /// Create a new PixelVec<T> from existing pixel data
-    fn to_pixel_vec(&self) -> PixelVec<T> {
-        PixelVec::from_pixel(self)
-    }
-
-    /// Create a new PixelVec<f64> of normalized values from existing pixel data
-    fn to_pixel_vec_f(&self) -> PixelVec<f64> {
-        PixelVec::from_pixel(self).to_f()
-    }
-
-    /// Returns true when every value is > 0
-    fn is_true(&self) -> bool {
-        self.as_ref().iter().all(|x| *x != T::zero())
-    }
-
-    /// Returns true when every value == 0
-    fn is_false(&self) -> bool {
-        self.as_ref().iter().all(|x| *x == T::zero())
-    }
-
-    /// Create a new PixelVec by executing `f` for each channel
-    fn map<F: FnMut(&T) -> T>(&self, mut f: F) -> PixelVec<T> {
-        let mut dest: PixelVec<T> = PixelVec::empty();
-        let data = self.as_ref();
-        for (i, item) in data.iter().enumerate() {
-            (dest.0)[i] = f(item)
-        }
-        dest
-    }
-
-    fn iter(&self) -> std::slice::Iter<T> {
-        self.as_ref().iter()
-    }
-
-    fn to_rgb(&self) -> colorspace::LinSrgb {
-        let data = self.as_ref();
-        palette::LinSrgb::new(
-            data[0].to_f() as f32,
-            data[1].to_f() as f32,
-            data[2].to_f() as f32,
+    pub fn new() -> Pixel<C> {
+        Pixel(
+            vec![0.0; C::CHANNELS].into_boxed_slice(),
+            std::marker::PhantomData,
         )
     }
 
-    fn from_rgb(px: colorspace::rgb::Rgb) -> PixelVec<f64> {
-        PixelVec::new(px.red as f64, px.green as f64, px.blue as f64, 1.0)
+    pub fn fill<T: Type>(mut self, x: T) -> Self {
+        self.0.iter_mut().for_each(|a| *a = x.to_norm());
+        self
     }
 
-    fn to_rgba(&self) -> colorspace::LinSrgba {
-        let data = self.as_ref();
-        palette::LinSrgba::new(
-            data[0].to_f() as f32,
-            data[1].to_f() as f32,
-            data[2].to_f() as f32,
-            data[3].to_f() as f32,
+    pub fn len(&self) -> usize {
+        C::CHANNELS
+    }
+
+    pub fn is_alpha(&self, index: usize) -> bool {
+        if C::ALPHA {
+            let len = self.len();
+            return index == len - 1;
+        }
+
+        false
+    }
+
+    pub fn with_alpha(mut self, value: f64) -> Self {
+        if C::ALPHA {
+            let index = self.len() - 1;
+            self[index] = value
+        }
+        self
+    }
+
+    #[inline]
+    pub fn copy_from_slice<T: Type>(&mut self, data: &[T]) -> &mut Self {
+        for i in 0..data.len() {
+            if i >= C::CHANNELS {
+                break;
+            }
+            (*self)[i] = data[i].to_norm();
+        }
+        self
+    }
+
+    pub fn copy_to_slice<T: Type>(&self, data: &mut [T]) {
+        for i in 0..data.len() {
+            if i >= C::CHANNELS {
+                break;
+            }
+            data[i] = T::from_norm(self[i]);
+        }
+    }
+
+    pub fn from_slice<T: Type>(data: &[T]) -> Pixel<C> {
+        let mut px = Pixel::new();
+        px.copy_from_slice(data);
+        px
+    }
+
+    pub fn blend_alpha(mut self) -> Self {
+        let index = self.len() - 1;
+        let alpha = self[index];
+
+        self.map_in_place(|x| x * alpha);
+        self[index] = 1.0;
+        self
+    }
+
+    pub fn map(mut self, f: impl Fn(f64) -> f64) -> Pixel<C> {
+        for i in 0..self.len() {
+            self[i] = f(self[i]);
+        }
+        self
+    }
+
+    pub fn map2(mut self, other: &Pixel<C>, f: impl Fn(f64, f64) -> f64) -> Pixel<C> {
+        for i in 0..self.len() {
+            self[i] = f(self[i], other[i])
+        }
+        self
+    }
+
+    pub fn map_in_place<'a>(&mut self, f: impl Fn(f64) -> f64) -> &mut Self {
+        for i in 0..self.len() {
+            (*self)[i] = f(self[i]);
+        }
+        self
+    }
+
+    pub fn map2_in_place(&mut self, other: &Pixel<C>, f: impl Fn(f64, f64) -> f64) -> &mut Self {
+        for i in 0..self.len() {
+            (*self)[i] = f(self[i], other[i]);
+        }
+        self
+    }
+
+    pub fn for_each(&self, mut f: impl FnMut(f64)) {
+        for i in 0..self.len() {
+            f(self[i])
+        }
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<f64> {
+        self.0.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<f64> {
+        self.0.iter_mut()
+    }
+}
+
+impl<T: Type, C: Color> std::iter::FromIterator<T> for Pixel<C> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        Pixel(
+            iter.into_iter().map(|x| x.to_norm()).collect(),
+            std::marker::PhantomData,
         )
     }
+}
 
-    fn from_rgba(px: colorspace::rgb::Rgba) -> PixelVec<f64> {
-        PixelVec::new(
-            px.red as f64,
-            px.green as f64,
-            px.blue as f64,
-            px.alpha as f64,
-        )
-    }
+impl<C: Color> IntoIterator for Pixel<C> {
+    type Item = f64;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
 
-    fn to_luma(&self) -> colorspace::LinLuma {
-        let data = self.as_ref();
-        palette::luma::Luma::new(data[0].to_f() as f32)
-    }
-
-    fn from_luma(px: colorspace::luma::Luma) -> PixelVec<f64> {
-        PixelVec::new_gray(px.luma as f64)
-    }
-
-    fn to_hsv(&self) -> colorspace::Hsv {
-        colorspace::Hsv::from(self.to_rgb())
-    }
-
-    fn from_hsv(px: colorspace::Hsv) -> PixelVec<f64> {
-        let px = colorspace::rgb::Rgb::from(px);
-        Self::from_rgb(px)
-    }
-
-    fn to_lab(&self) -> colorspace::Lab {
-        colorspace::Lab::from(self.to_rgb())
-    }
-
-    fn from_lab(px: colorspace::Lab) -> PixelVec<f64> {
-        let px = colorspace::rgb::Rgb::from(px);
-        Self::from_rgb(px)
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.to_vec().into_iter()
     }
 }
 
-/// PixelMut is used to access mutable chunks of image data
-pub trait PixelMut<'a, T: Type, C: Color>: Pixel<'a, T, C> + AsMut<[T]> {
-    /// Copy values from a normalized f64 pixel
-    fn set_f<P: Pixel<'a, f64, C>>(&mut self, other: &P) {
-        let a = self.as_mut().iter_mut();
-        let b = other.as_ref().iter();
-        a.zip(b).for_each(|(x, y)| *x = T::from_f(*y))
-    }
-
-    /// Copy values from another pixel
-    fn set<P: Pixel<'a, T, C>>(&mut self, other: &P) {
-        let a = self.as_mut().iter_mut();
-        let b = other.as_ref().iter();
-        a.zip(b).for_each(|(x, y)| *x = *y)
-    }
-
-    fn iter_mut(&mut self) -> std::slice::IterMut<T> {
-        self.as_mut().iter_mut()
-    }
-
-    fn blend_alpha(&mut self) {
-        if !C::has_alpha() {
-            return;
-        }
-
-        let len = C::channels();
-
-        let alpha = T::to_float(&self.as_ref()[len - 1]) / T::max_f();
-        let data = self.as_mut();
-
-        for i in 0..len - 1 {
-            data[i] = T::from_float(T::to_float(&data[i]) * alpha);
-        }
-
-        data[len - 1] = T::max();
+impl<C: Color> std::ops::Index<usize> for Pixel<C> {
+    type Output = f64;
+    fn index(&self, index: usize) -> &f64 {
+        &self.0[index]
     }
 }
 
-impl<'a, T: Type, C: Color> Pixel<'a, T, C> for &'a [T] {}
-impl<'a, T: Type, C: Color> Pixel<'a, T, C> for &'a mut [T] {}
-impl<'a, T: Type, C: Color> PixelMut<'a, T, C> for &'a mut [T] {}
-impl<'a, T: Type, C: Color> Pixel<'a, T, C> for Vec<T> {}
-impl<'a, T: Type, C: Color> PixelMut<'a, T, C> for Vec<T> {}
-impl<'a, T: Type, C: Color> Pixel<'a, T, C> for &'a Vec<T> {}
-impl<'a, T: Type, C: Color> Pixel<'a, T, C> for &'a mut Vec<T> {}
-impl<'a, T: Type, C: Color> PixelMut<'a, T, C> for &'a mut Vec<T> {}
-
-/// PixelVec is a 4-channel pixel backed by a static array
-#[cfg_attr(feature = "ser", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Debug, Clone, Copy)]
-pub struct PixelVec<T: Type>([T; 4]);
-
-impl<T: Type> PixelVec<T> {
-    /// Create a new PixelVec, each channel set to 0
-    pub fn empty() -> PixelVec<T> {
-        PixelVec([T::zero(); 4])
-    }
-
-    /// Create a new PixelVec with the given values
-    pub fn new(a: T, b: T, c: T, d: T) -> PixelVec<T> {
-        PixelVec([a, b, c, d])
-    }
-
-    /// Create a new PixelBec with every channel set to the given value. The alpha channel is set
-    /// to `T::max()`
-    pub fn new_gray(a: T) -> PixelVec<T> {
-        PixelVec([a, a, a, T::max()])
-    }
-
-    /// Create a new PixelVec from an existing Pixel
-    pub fn from_pixel<P: AsRef<[T]>>(pixel: P) -> PixelVec<T> {
-        let data: &[T] = pixel.as_ref();
-        let len = data.len();
-
-        if len == 0 {
-            PixelVec::empty()
-        } else if len == 1 {
-            let d0 = data[0];
-            PixelVec::new(d0, d0, d0, T::max())
-        } else if len == 2 {
-            let d0 = data[0];
-            let d1 = data[1];
-            PixelVec::new(d0, d1, T::min(), T::max())
-        } else if len == 3 {
-            let d0 = data[0];
-            let d1 = data[1];
-            let d2 = data[2];
-            PixelVec::new(d0, d1, d2, T::max())
-        } else {
-            let d0 = data[0];
-            let d1 = data[1];
-            let d2 = data[2];
-            let d3 = data[3];
-            PixelVec::new(d0, d1, d2, d3)
-        }
-    }
-
-    /// Create a new PixelVec by mapping `f` over an existing PixelVec
-    pub fn map<U: Type, F: Fn(&T) -> U>(&self, f: F) -> PixelVec<U> {
-        let mut vec = PixelVec::empty();
-        for i in 0..4 {
-            vec.0[i] = f(&self.0[i])
-        }
-        vec
-    }
-
-    /// Convert from `PixelVec<T>` to `Vec<T>`
-    pub fn to_vec<C: Color>(&self) -> Vec<T> {
-        let mut vec = self.0.to_vec();
-        vec.truncate(C::channels());
-        vec
-    }
-
-    /// Convert from `PixelVec<T>` to `Vec<f64>` and normalize values
-    pub fn to_vec_f<C: Color>(&self) -> Vec<f64> {
-        let mut vec: Vec<f64> = self.0.to_vec().into_iter().map(|x| T::to_f(&x)).collect();
-        vec.truncate(C::channels());
-        vec
-    }
-
-    /// Convert from `PixelVec<T>` to `PixelVec<f64>`
-    pub fn to_float(&self) -> PixelVec<f64> {
-        self.map(|x| T::to_float(x))
-    }
-
-    /// Convert from `PixelVec<T>` to `PixelVec<f64>` and normalize values
-    pub fn to_f(&self) -> PixelVec<f64> {
-        self.map(|x| T::to_f(x))
+impl<'a, C: Color> std::ops::Index<usize> for &'a Pixel<C> {
+    type Output = f64;
+    fn index(&self, index: usize) -> &f64 {
+        &self.0[index]
     }
 }
 
-impl<T: Type> AsRef<[T]> for PixelVec<T> {
-    fn as_ref(&self) -> &[T] {
-        &self.0
+impl<'a, C: Color> std::ops::Index<usize> for &'a mut Pixel<C> {
+    type Output = f64;
+    fn index(&self, index: usize) -> &f64 {
+        &self.0[index]
     }
 }
 
-impl<T: Type> AsMut<[T]> for PixelVec<T> {
-    fn as_mut(&mut self) -> &mut [T] {
-        &mut self.0
+impl<C: Color> std::ops::IndexMut<usize> for Pixel<C> {
+    fn index_mut(&mut self, index: usize) -> &mut f64 {
+        &mut self.0[index]
     }
 }
 
-impl<'a, T: Type, C: Color> Pixel<'a, T, C> for PixelVec<T> {}
-impl<'a, T: Type, C: Color> PixelMut<'a, T, C> for PixelVec<T> {}
-
-macro_rules! pixelvec_op {
-    ($name:ident, $fx:ident, $f:expr) => {
-        impl<T: Type> ops::$name for PixelVec<T> {
-            type Output = PixelVec<T>;
-
-            fn $fx(mut self, other: Self) -> Self::Output {
-                for i in 0..4 {
-                    self.0[i] = $f(self.0[i], other.0[i]);
-                }
-                self
-            }
-        }
-
-        impl<'a, T: Type> ops::$name for &'a PixelVec<T> {
-            type Output = PixelVec<T>;
-
-            fn $fx(self, other: Self) -> Self::Output {
-                let mut dest = PixelVec::empty();
-                for i in 0..4 {
-                    dest.0[i] = $f(self.0[i], other.0[i]);
-                }
-                self.clone()
-            }
-        }
-    };
+impl<'a, C: Color> std::ops::IndexMut<usize> for &'a mut Pixel<C> {
+    fn index_mut(&mut self, index: usize) -> &mut f64 {
+        &mut self.0[index]
+    }
 }
 
-macro_rules! pixelvec_op_assign {
-    ($name:ident, $fx:ident, $f:expr) => {
-        impl<T: Type> ops::$name for PixelVec<T> {
-            fn $fx(&mut self, other: Self) {
-                for i in 0..4 {
-                    self.0[i] = $f(self.0[i], other.0[i]);
-                }
-            }
-        }
+impl<T: Type, C: Color> std::ops::Add<T> for Pixel<C> {
+    type Output = Pixel<C>;
 
-        impl<'a, T: Type> ops::$name for &'a mut PixelVec<T> {
-            fn $fx(&mut self, other: Self) {
-                for i in 0..4 {
-                    self.0[i] = $f(self.0[i], other.0[i]);
-                }
-            }
-        }
-    };
+    fn add(self, other: T) -> Pixel<C> {
+        self.map(|x| x + other.to_norm())
+    }
 }
 
-pixelvec_op!(Add, add, |a, b| a + b);
-pixelvec_op_assign!(AddAssign, add_assign, |a: T, b: T| a + b);
-pixelvec_op!(Sub, sub, |a, b| a - b);
-pixelvec_op_assign!(SubAssign, sub_assign, |a, b| a - b);
-pixelvec_op!(Mul, mul, |a, b| a * b);
-pixelvec_op_assign!(MulAssign, mul_assign, |a, b| a * b);
-pixelvec_op!(Div, div, |a, b| a / b);
-pixelvec_op_assign!(DivAssign, div_assign, |a, b| a / b);
-pixelvec_op!(Rem, rem, |a, b| a % b);
-pixelvec_op_assign!(RemAssign, rem_assign, |a, b| a % b);
+impl<C: Color> std::ops::Add<Pixel<C>> for Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn add(self, other: Pixel<C>) -> Pixel<C> {
+        self.map2(&other, |x, y| x + y)
+    }
+}
+
+impl<T: Type, C: Color> std::ops::Sub<T> for Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn sub(self, other: T) -> Pixel<C> {
+        self.map(|x| x - other.to_norm())
+    }
+}
+
+impl<C: Color> std::ops::Sub<Pixel<C>> for Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn sub(self, other: Pixel<C>) -> Pixel<C> {
+        self.map2(&other, |x, y| x - y)
+    }
+}
+
+impl<T: Type, C: Color> std::ops::Mul<T> for Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn mul(self, other: T) -> Pixel<C> {
+        self.map(|x| x * other.to_norm())
+    }
+}
+
+impl<C: Color> std::ops::Mul<Pixel<C>> for Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn mul(self, other: Pixel<C>) -> Pixel<C> {
+        self.map2(&other, |x, y| x * y)
+    }
+}
+
+impl<T: Type, C: Color> std::ops::Div<T> for Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn div(self, other: T) -> Pixel<C> {
+        self.map(|x| x / other.to_norm())
+    }
+}
+
+impl<C: Color> std::ops::Div<Pixel<C>> for Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn div(self, other: Pixel<C>) -> Pixel<C> {
+        self.map2(&other, |x, y| x / y)
+    }
+}
+
+impl<T: Type, C: Color> std::ops::Rem<T> for Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn rem(self, other: T) -> Pixel<C> {
+        self.map(|x| x % other.to_norm())
+    }
+}
+
+impl<C: Color> std::ops::Rem<Pixel<C>> for Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn rem(self, other: Pixel<C>) -> Pixel<C> {
+        self.map2(&other, |x, y| x % y)
+    }
+}
+
+impl<T: Type, C: Color> std::ops::AddAssign<T> for Pixel<C> {
+    fn add_assign(&mut self, other: T) {
+        self.map_in_place(|x| x + other.to_norm());
+    }
+}
+
+impl<C: Color> std::ops::AddAssign<Pixel<C>> for Pixel<C> {
+    fn add_assign(&mut self, other: Pixel<C>) {
+        self.map2_in_place(&other, |x, y| x + y);
+    }
+}
+
+impl<T: Type, C: Color> std::ops::SubAssign<T> for Pixel<C> {
+    fn sub_assign(&mut self, other: T) {
+        self.map_in_place(|x| x - other.to_norm());
+    }
+}
+
+impl<C: Color> std::ops::SubAssign<Pixel<C>> for Pixel<C> {
+    fn sub_assign(&mut self, other: Pixel<C>) {
+        self.map2_in_place(&other, |x, y| x - y);
+    }
+}
+
+impl<T: Type, C: Color> std::ops::MulAssign<T> for Pixel<C> {
+    fn mul_assign(&mut self, other: T) {
+        self.map_in_place(|x| x * other.to_norm());
+    }
+}
+
+impl<C: Color> std::ops::MulAssign<Pixel<C>> for Pixel<C> {
+    fn mul_assign(&mut self, other: Pixel<C>) {
+        self.map2_in_place(&other, |x, y| x * y);
+    }
+}
+
+impl<T: Type, C: Color> std::ops::DivAssign<T> for Pixel<C> {
+    fn div_assign(&mut self, other: T) {
+        self.map_in_place(|x| x / other.to_norm());
+    }
+}
+
+impl<C: Color> std::ops::DivAssign<Pixel<C>> for Pixel<C> {
+    fn div_assign(&mut self, other: Pixel<C>) {
+        self.map2_in_place(&other, |x, y| x / y);
+    }
+}
+
+impl<T: Type, C: Color> std::ops::RemAssign<T> for Pixel<C> {
+    fn rem_assign(&mut self, other: T) {
+        self.map_in_place(|x| x % other.to_norm());
+    }
+}
+
+impl<C: Color> std::ops::RemAssign<Pixel<C>> for Pixel<C> {
+    fn rem_assign(&mut self, other: Pixel<C>) {
+        self.map2_in_place(&other, |x, y| x % y);
+    }
+}

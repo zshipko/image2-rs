@@ -1,63 +1,51 @@
-//! `image2` is an image processing crate with a focus on ease-of-use, support for a wide range
-//! of datatypes and composable operations.
+//! image2 - a high-performance image processing library with wide support for a variety of file
+//! formats and data types
 //!
-//! Getting started:
-//! ```rust
-//! use image2::{
-//!    ImageBuf,
-//!    Rgb, Gray,
-//!    Type,
-//!    io,
-//!    Filter,
-//!    filter::ToGrayscale
-//! };
+//! OpenImageIO is used for encoding and decoding images, it should be installed before
+//! building `image2`.
 //!
-//! fn main() {
-//!    // Read an image using the default JPEG decoder (stb_image)
-//!    let image: ImageBuf<f64, Rgb> = io::read("test/test.jpg").unwrap();
+//! ```rust,no_run
+//! use image2::*;
 //!
-//!    // Setup a filter
-//!    let filter = ToGrayscale.and_then(|f| {
-//!        f64::max_f() - f
-//!    });
+//! fn main() -> Result<(), Error> {
+//!     /// Load an image from disk
+//!     let image = Image::<f32, Rgb>::open("images/A.exr")?;
 //!
-//!    // Create an output image
-//!    let mut output: ImageBuf<f64, Gray> = ImageBuf::new_like_with_color::<Gray>(&image);
+//!     /// Apply a `Filter`, in this case using the `Convert` filter to
+//!     /// convert from `Rgb` to `Gray`
+//!     let dest = image.new_like_with_color::<Gray>();
+//!     let dest = image.apply(Convert::<Gray>::new(), dest);
 //!
-//!    // Execute the filter
-//!    filter.eval(&mut output, &[&image]);
+//!     /// Save an image to disk
+//!     dest.save("test.jpg")?;
 //!
-//!    // Save the image using the default PNG encoder (stb_image)
-//!    io::write("example.png", &output).unwrap();
-//!}
-//!```
+//!     Ok(())
+//! }
+//!
+//! ```
+
+pub use half::f16;
+
+mod color;
+mod error;
+mod histogram;
+mod image;
+mod oiio;
+mod pixel;
+mod r#type;
+
+pub mod filter;
+pub mod kernel;
+pub mod transform;
+
+pub use color::{Color, Convert, Gray, Rgb, Rgba, Xyz};
+pub use error::Error;
+pub use filter::Filter;
+pub use histogram::Histogram;
+pub use image::{Hash, Image, Meta};
+pub use kernel::Kernel;
+pub use pixel::Pixel;
+pub use r#type::Type;
 
 #[cfg(test)]
 mod tests;
-
-#[macro_use]
-pub mod image;
-#[macro_use]
-pub mod filter;
-pub mod color;
-mod error;
-mod image_buf;
-mod image_ptr;
-mod image_ref;
-#[cfg(feature = "io")]
-pub mod io;
-pub mod kernel;
-mod pixel;
-pub mod transform;
-mod ty;
-
-pub use self::color::{Color, Gray, Rgb, Rgba};
-pub use self::error::Error;
-pub use self::filter::Filter;
-pub use self::image::{Convert, Diff, Hash, Image};
-pub use self::image_buf::ImageBuf;
-pub use self::image_ptr::{Free, ImagePtr};
-pub use self::image_ref::ImageRef;
-pub use self::kernel::Kernel;
-pub use self::pixel::{colorspace, Pixel, PixelMut, PixelVec};
-pub use self::ty::Type;

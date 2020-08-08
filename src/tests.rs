@@ -1,11 +1,5 @@
-#![cfg(test)]
-#![cfg(feature = "io")]
-
-use crate::color::{Gray, Rgb};
-use crate::filter::{Filter, Invert, ToGrayscale};
-use crate::io::{magick, read, write};
-use crate::kernel::{gaussian_5x5, sobel, Kernel};
-use crate::{Image, ImageBuf, Pixel};
+use crate::*;
+use filter::*;
 
 use std::time::Instant;
 
@@ -22,53 +16,72 @@ fn timer<F: FnMut()>(name: &str, mut f: F) {
 
 #[test]
 fn test_image_buffer_new() {
-    let mut image: ImageBuf<u8, Rgb> = ImageBuf::new(1000, 1000);
+    let mut image: Image<u8, Rgb> = Image::new(1000, 1000);
     let mut dest = image.new_like();
     image.set_f(3, 15, 0, 1.);
-    assert_eq!(image.get(3, 15, 0), 255);
+
+    let index = image.index(3, 15);
+    assert_eq!(image.data[index], 255);
     Invert.eval(&mut dest, &[&image]);
 }
 
 #[test]
 fn test_read_write() {
-    let a: ImageBuf<u8, Rgb> = read("test/test.jpg").unwrap();
-    write("test/test-read-write0.jpg", &a).unwrap();
-    write("test/test-read-write1.png", &a).unwrap();
+    let a: Image<u8, Rgb> = Image::open("images/A.exr").unwrap();
+    assert!(a.save("images/test-read-write0.jpg").is_ok());
+    assert!(a.save("images/test-read-write1.png").is_ok());
 
-    let b: ImageBuf<u8, Rgb> = read("test/test-read-write1.png").unwrap();
-    write("test/test-read-write2.png", &b).unwrap();
+    let b: Image<u8, Rgb> = Image::open("images/test-read-write1.png").unwrap();
+    assert!(b.save("images/test-read-write2.png").is_ok());
 }
 
 #[test]
-fn test_read_write_magick() {
-    let a: ImageBuf<u16, Rgb> = magick::read("test/test.jpg").unwrap();
-    magick::write("test/test-read-write-magick0.jpg", &a).unwrap();
-    magick::write("test/test-read-write-magick1.png", &a).unwrap();
+fn test_read_write_rgba() {
+    let a: Image<u16, Rgba> = Image::open("images/A.exr").unwrap();
+    assert!(a.save("images/test-read-write-rgba0.jpg").is_ok());
+    assert!(a.save("images/test-read-write-rgba1.png").is_ok());
 
-    let b: ImageBuf<u16, Rgb> = magick::read("test/test-read-write-magick1.png").unwrap();
-    magick::write("test/test-read-write-magick2.png", &b).unwrap();
+    let b: Image<u16, Rgb> = Image::open("images/test-read-write-rgba1.png").unwrap();
+    assert!(b.save("images/test-read-write-rgba2.png").is_ok());
 }
 
 #[test]
 fn test_to_grayscale() {
-    let image: ImageBuf<f32, Rgb> = read("test/test.jpg").unwrap();
-    let mut dest = image.new_like();
-    timer("ToGrayscale", || ToGrayscale.eval(&mut dest, &[&image]));
-    write("test/test-grayscale.jpg", &dest).unwrap();
+    let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
+    let mut dest: Image<f32, Gray> = image.new_like_with_type_and_color::<f32, Gray>();
+    timer("ToGrayscale", || {
+        Convert::<Gray>::new().eval(&mut dest, &[&image])
+    });
+    assert!(dest.save("images/test-grayscale.jpg").is_ok());
 }
 
 #[test]
 fn test_invert() {
-    let image: ImageBuf<f32, Rgb> = read("test/test.jpg").unwrap();
+    let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest = image.new_like();
     timer("Invert", || Invert.eval(&mut dest, &[&image]));
-    write("test/test-invert.jpg", &dest).unwrap();
+    assert!(dest.save("images/test-invert.jpg").is_ok());
+}
+
+#[test]
+fn test_invert_async() {
+    let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
+    let mut dest = image.new_like();
+    timer("Invert async", || {
+        smol::run(filter::eval_async(
+            &Invert,
+            filter::AsyncMode::Row,
+            &mut dest,
+            &[&image],
+        ))
+    });
+    assert!(dest.save("images/test-invert-async.jpg").is_ok());
 }
 
 #[test]
 fn test_hash() {
-    let a: ImageBuf<f32, Rgb> = read("test/test.jpg").unwrap();
-    let b: ImageBuf<f32, Rgb> = read("test/test.jpg").unwrap();
+    let a: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
+    let b: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     timer("Hash", || assert!(a.hash() == b.hash()));
     assert!(a.hash().diff(&b.hash()) == 0);
     let mut c = a.new_like();
@@ -79,34 +92,44 @@ fn test_hash() {
 
 #[test]
 fn test_kernel() {
-    let image: ImageBuf<f32, Gray> = read("test/test.jpg").unwrap();
+    let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest = image.new_like();
     let k = Kernel::from([[-1.0, -1.0, -1.0], [-1.0, 8.0, -1.0], [-1.0, -1.0, -1.0]]);
     timer("Kernel", || k.eval(&mut dest, &[&image]));
-    write("test/test-simple-kernel.jpg", &dest).unwrap();
+    assert!(dest.save("images/test-simple-kernel.jpg").is_ok());
 }
 
 #[test]
 fn test_gaussian_blur() {
-    let image: ImageBuf<f32, Rgb> = read("test/test.jpg").unwrap();
+    let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest = image.new_like();
-    let k = gaussian_5x5();
+    let k = kernel::gaussian_5x5();
     timer("Gaussian blur", || k.eval(&mut dest, &[&image]));
-    write("test/test-gaussian-blur.jpg", &dest).unwrap();
+    assert!(dest.save("images/test-gaussian-blur.jpg").is_ok());
 }
 
 #[test]
 fn test_sobel() {
-    let image: ImageBuf<f32, Gray> = read("test/test.jpg").unwrap();
+    let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest = image.new_like();
-    let k = sobel();
+    let k = kernel::sobel();
     timer("Sobel", || k.eval(&mut dest, &[&image]));
-    write("test/test-sobel.jpg", &dest).unwrap();
+    assert!(dest.save("images/test-sobel.jpg").is_ok());
 }
 
 #[test]
+fn test_convert_color() {
+    let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
+    let image2 = image.convert_colorspace("srgb", "lnf").unwrap();
+    let image3 = image.convert_colorspace("lnf", "srgb").unwrap();
+
+    assert!(image2.save("images/test-convert-color1.jpg").is_ok());
+    assert!(image3.save("images/test-convert-color2.jpg").is_ok());
+}
+
+/*#[test]
 fn test_diff() {
-    let image: ImageBuf<u8, Rgb> = read("test/test.jpg").unwrap();
+    let image: ImageBuf<u8, Rgb> = read("images/A.exr").unwrap();
     let mut image2: ImageBuf<u8, Rgb> = image.new_like();
     let diff = image.diff(&image2);
     assert!(diff.len() > 0);
@@ -114,14 +137,14 @@ fn test_diff() {
     let diff2 = image.diff(&image2);
     assert!(diff2.len() == 0);
     assert!(image == image2);
-    write("test/test-diff.png", &image2).unwrap()
+    write("images/test-diff.png", &image2).unwrap()
 }
 
 #[test]
 fn test_colorspace() {
-    let image: ImageBuf<u8, Rgb> = read("test/test.jpg").unwrap();
+    let image: ImageBuf<u8, Rgb> = read("images/A.exr").unwrap();
     let mut px = image.empty_pixel();
     image.get_pixel(10, 10, &mut px);
     let rgb = Pixel::<u8, Rgb>::to_rgb(&px);
     println!("{:?}", rgb);
-}
+}*/

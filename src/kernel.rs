@@ -3,13 +3,9 @@ use std::ops;
 
 use lazy_static::lazy_static;
 
-use crate::color::Color;
-use crate::filter::Filter;
-use crate::image::Image;
-use crate::ty::Type;
+use crate::*;
 
 /// Kernels defines a 2-dimensional convolution filter
-#[cfg_attr(feature = "ser", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Kernel {
     rows: usize,
@@ -45,7 +41,7 @@ macro_rules! kernel_from {
     ($n:expr) => {
         impl From<[[f64; $n]; $n]> for Kernel {
             fn from(data: [[f64; $n]; $n]) -> Kernel {
-               let data = data.into_iter().map(|d| d.to_vec()).collect();
+               let data = data.iter().map(|d| d.to_vec()).collect();
                Kernel {
                    data,
                    rows: $n,
@@ -61,15 +57,18 @@ macro_rules! kernel_from {
    }
 }
 
-kernel_from!(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,);
+kernel_from!(
+    2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+    28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+);
 
 impl Filter for Kernel {
-    fn compute_at<T: Type, C: Color, I: Image<T, C>>(
+    fn compute_at(
         &self,
         x: usize,
         y: usize,
         c: usize,
-        input: &[&I],
+        input: &[&Image<impl Type, impl Color>],
     ) -> f64 {
         let r2 = (self.rows / 2) as isize;
         let c2 = (self.cols / 2) as isize;
@@ -184,12 +183,12 @@ macro_rules! op {
         }
 
         impl Filter for $name {
-            fn compute_at<T: Type, C: Color, I: Image<T, C>>(
+            fn compute_at(
                 &self,
                 x: usize,
                 y: usize,
                 c: usize,
-                input: &[&I],
+                input: &[&Image<impl Type, impl Color>],
             ) -> f64 {
                 let r2 = (self.a.rows / 2) as isize;
                 let c2 = (self.a.cols / 2) as isize;
