@@ -3,7 +3,7 @@ use crate::*;
 pub trait Type: Unpin + Default + Clone + Copy + Sync + Send + PartialEq + PartialOrd {
     const MIN: f64;
     const MAX: f64;
-    const BASE: oiio::BaseType;
+    const BASE: io::BaseType;
 
     fn to_f64(&self) -> f64;
 
@@ -51,7 +51,7 @@ pub trait Type: Unpin + Default + Clone + Copy + Sync + Send + PartialEq + Parti
 impl Type for u8 {
     const MIN: f64 = 0.0;
     const MAX: f64 = u8::MAX as f64;
-    const BASE: oiio::BaseType = oiio::BaseType::UInt8;
+    const BASE: io::BaseType = io::BaseType::UInt8;
 
     fn to_f64(&self) -> f64 {
         *self as f64
@@ -65,7 +65,7 @@ impl Type for u8 {
 impl Type for i8 {
     const MIN: f64 = i8::MIN as f64;
     const MAX: f64 = i8::MAX as f64;
-    const BASE: oiio::BaseType = oiio::BaseType::Int8;
+    const BASE: io::BaseType = io::BaseType::Int8;
 
     fn to_f64(&self) -> f64 {
         *self as f64
@@ -79,7 +79,7 @@ impl Type for i8 {
 impl Type for u16 {
     const MIN: f64 = 0.0;
     const MAX: f64 = u16::MAX as f64;
-    const BASE: oiio::BaseType = oiio::BaseType::UInt16;
+    const BASE: io::BaseType = io::BaseType::UInt16;
 
     fn to_f64(&self) -> f64 {
         *self as f64
@@ -93,7 +93,7 @@ impl Type for u16 {
 impl Type for i16 {
     const MIN: f64 = i16::MIN as f64;
     const MAX: f64 = i16::MAX as f64;
-    const BASE: oiio::BaseType = oiio::BaseType::Int16;
+    const BASE: io::BaseType = io::BaseType::Int16;
 
     fn to_f64(&self) -> f64 {
         *self as f64
@@ -107,7 +107,7 @@ impl Type for i16 {
 impl Type for u32 {
     const MIN: f64 = 0.0;
     const MAX: f64 = u32::MAX as f64;
-    const BASE: oiio::BaseType = oiio::BaseType::UInt32;
+    const BASE: io::BaseType = io::BaseType::UInt32;
 
     fn to_f64(&self) -> f64 {
         *self as f64
@@ -121,7 +121,7 @@ impl Type for u32 {
 impl Type for i32 {
     const MIN: f64 = i32::MIN as f64;
     const MAX: f64 = i32::MAX as f64;
-    const BASE: oiio::BaseType = oiio::BaseType::Int32;
+    const BASE: io::BaseType = io::BaseType::Int32;
 
     fn to_f64(&self) -> f64 {
         *self as f64
@@ -135,7 +135,7 @@ impl Type for i32 {
 impl Type for u64 {
     const MIN: f64 = 0.0;
     const MAX: f64 = u64::MAX as f64;
-    const BASE: oiio::BaseType = oiio::BaseType::UInt64;
+    const BASE: io::BaseType = io::BaseType::UInt64;
 
     fn to_f64(&self) -> f64 {
         *self as f64
@@ -149,7 +149,7 @@ impl Type for u64 {
 impl Type for i64 {
     const MIN: f64 = i64::MIN as f64;
     const MAX: f64 = i64::MAX as f64;
-    const BASE: oiio::BaseType = oiio::BaseType::Int64;
+    const BASE: io::BaseType = io::BaseType::Int64;
 
     fn to_f64(&self) -> f64 {
         *self as f64
@@ -163,7 +163,7 @@ impl Type for i64 {
 impl Type for f16 {
     const MIN: f64 = 0.0;
     const MAX: f64 = 1.0;
-    const BASE: oiio::BaseType = oiio::BaseType::Half;
+    const BASE: io::BaseType = io::BaseType::Half;
 
     fn to_f64(&self) -> f64 {
         f16::to_f64(*self)
@@ -177,7 +177,7 @@ impl Type for f16 {
 impl Type for f32 {
     const MIN: f64 = 0.0;
     const MAX: f64 = 1.0;
-    const BASE: oiio::BaseType = oiio::BaseType::Float;
+    const BASE: io::BaseType = io::BaseType::Float;
 
     fn to_f64(&self) -> f64 {
         *self as f64
@@ -191,7 +191,7 @@ impl Type for f32 {
 impl Type for f64 {
     const MIN: f64 = 0.0;
     const MAX: f64 = 1.0;
-    const BASE: oiio::BaseType = oiio::BaseType::Double;
+    const BASE: io::BaseType = io::BaseType::Double;
 
     fn to_f64(&self) -> f64 {
         *self as f64

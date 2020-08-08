@@ -30,11 +30,11 @@ mod color;
 mod error;
 mod histogram;
 mod image;
-mod oiio;
 mod pixel;
 mod r#type;
 
 pub mod filter;
+pub mod io;
 pub mod kernel;
 pub mod transform;
 

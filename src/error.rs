@@ -6,6 +6,7 @@ pub enum Error {
     CannotReadImage(String),
     InvalidDimensions(usize, usize, usize),
     FailedColorConversion(String, String),
+    MultipleImagesNotSupported(String),
 }
 
 impl std::fmt::Display for Error {
@@ -20,6 +21,9 @@ impl std::fmt::Display for Error {
                 write!(fmt, "invalid image dimensions: {}x{}x{}", w, h, c)
             }
             FailedColorConversion(a, b) => write!(fmt, "failed color conversion: {} to {}", a, b),
+            MultipleImagesNotSupported(filename) => {
+                write!(fmt, "multiple images not supported: {}", filename)
+            }
         }
     }
 }

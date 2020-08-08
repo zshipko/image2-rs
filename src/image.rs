@@ -33,6 +33,7 @@ pub struct Image<T: Type, C: Color> {
     pub data: Vec<T>,
 }
 
+/// Hash is used for content-based hashing
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Hash(u128);
 
@@ -41,6 +42,7 @@ fn check_bit(number: u128, n: usize) -> bool {
 }
 
 impl Hash {
+    /// Compute difference between two hashes
     pub fn diff(&self, other: &Hash) -> u128 {
         let mut diff = 0;
 
@@ -81,6 +83,7 @@ impl<T: Type, C: Color> Image<T, C> {
         }
     }
 
+    /// Get image hash
     pub fn hash(&self) -> Hash {
         let mut small: Image<T, C> = Image::new(16, 8);
         crate::transform::resize(self, 16, 8).eval(&mut small, &[self]);
@@ -103,26 +106,34 @@ impl<T: Type, C: Color> Image<T, C> {
         Hash(hash)
     }
 
+
+    /// Create a new image with the same size, type and color
     pub fn new_like(&self) -> Image<T, C> {
         Image::new(self.meta.width, self.meta.height)
     }
 
+
+    /// Create a new image with the same size and color as an existing image with the given type
     pub fn new_like_with_type<U: Type>(&self) -> Image<U, C> {
         Image::new(self.meta.width, self.meta.height)
     }
 
+    /// Create a new image with the same size and type as an existing image with the given color
     pub fn new_like_with_color<D: Color>(&self) -> Image<T, D> {
         Image::new(self.meta.width, self.meta.height)
     }
 
+    /// Create a new image with the same size as an existing image with the given type and color
     pub fn new_like_with_type_and_color<U: Type, D: Color>(&self) -> Image<U, D> {
         Image::new(self.meta.width, self.meta.height)
     }
 
+    /// Maximum value for image type
     pub fn type_max(&self) -> f64 {
         T::MAX
     }
 
+    /// Minimum value for image type
     pub fn type_min(&self) -> f64 {
         T::MIN
     }
@@ -133,11 +144,13 @@ impl<T: Type, C: Color> Image<T, C> {
         C::CHANNELS
     }
 
+    /// Image width
     #[inline]
     pub fn width(&self) -> usize {
         self.meta.width
     }
 
+    /// Image height
     #[inline]
     pub fn height(&self) -> usize {
         self.meta.height
@@ -183,12 +196,13 @@ impl<T: Type, C: Color> Image<T, C> {
         image.clone_from_slice(data.as_ref())
     }
 
+    /// Returns true when (x, y) is in bounds for the given image
     #[inline]
     pub fn in_bounds(&self, x: usize, y: usize) -> bool {
         x < self.meta.width && y < self.meta.height
     }
 
-    /// Get a normalized pixel from an image, reusing an existing `Pixel`
+    /// Get image data from an image, reusing an existing data buffer big enough for a single pixel
     pub fn at(&self, x: usize, y: usize, px: &mut [T]) -> bool {
         if !self.in_bounds(x, y) || px.len() < C::CHANNELS {
             return false;
@@ -241,27 +255,15 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Open an image from disk
     pub fn open(path: impl AsRef<std::path::Path>) -> Result<Image<T, C>, Error> {
-        oiio::read_to_image(path, 0, 0)
+        let input = io::Input::open(path)?;
+        input.read()
     }
 
-    /// Open image, specifying a subimage, from disk
-    pub fn open_subimage(
-        path: impl AsRef<std::path::Path>,
-        subimage: usize,
-        miplevel: usize,
-    ) -> Result<Image<T, C>, Error> {
-        oiio::read_to_image(path, subimage, miplevel)
-    }
 
     /// Save an image to disk
     pub fn save(&self, path: impl AsRef<std::path::Path>) -> Result<(), Error> {
-        if oiio::write_image(self, path.as_ref()) {
-            Ok(())
-        } else {
-            Err(Error::UnableToWriteImage(
-                path.as_ref().to_string_lossy().to_string(),
-            ))
-        }
+        let output = io::Output::create(path)?;
+        output.write(self)
     }
 
     /// Iterate over part of an image in parallel with mutable data access
@@ -407,8 +409,8 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Convert to `ImageBuf`
-    pub(crate) fn to_image_buf(&mut self) -> oiio::ImageBuf {
-        oiio::ImageBuf::new_with_data(
+    pub(crate) fn to_image_buf(&mut self) -> io::internal::ImageBuf {
+        io::internal::ImageBuf::new_with_data(
             self.meta.width,
             self.meta.height,
             self.channels(),
@@ -417,8 +419,8 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Convert to `ImageBuf`
-    pub(crate) fn to_const_image_buf(&self) -> oiio::ImageBuf {
-        oiio::ImageBuf::const_new_with_data(
+    pub(crate) fn to_const_image_buf(&self) -> io::internal::ImageBuf {
+        io::internal::ImageBuf::const_new_with_data(
             self.meta.width,
             self.meta.height,
             self.channels(),
@@ -426,6 +428,7 @@ impl<T: Type, C: Color> Image<T, C> {
         )
     }
 
+    /// Convert colorspace from `a` to `b` into an existing image
     pub fn convert_colorspace_to(
         &self,
         dest: &mut Image<T, C>,
@@ -444,6 +447,7 @@ impl<T: Type, C: Color> Image<T, C> {
         }
     }
 
+    /// Convert colorspace from `a` to `b` into a new image
     pub fn convert_colorspace(
         &self,
         a: impl AsRef<str>,
@@ -454,6 +458,7 @@ impl<T: Type, C: Color> Image<T, C> {
         Ok(dest)
     }
 
+    /// Get image histogram
     pub fn histogram(&self, bins: usize) -> Vec<Histogram> {
         let mut hist = vec![Histogram::new(bins); C::CHANNELS];
 
