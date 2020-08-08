@@ -33,65 +33,6 @@ pub enum BaseType {
     Last,
 }
 
-cpp_class!(
-    /// ImageSpec wraps `OIIO::ImageSpec`
-    pub unsafe struct ImageSpec as "ImageSpec"
-);
-impl ImageSpec {
-    fn empty() -> ImageSpec {
-        unsafe {
-            cpp!([] -> ImageSpec as "ImageSpec" {
-                return ImageSpec();
-            })
-        }
-    }
-
-    /// Create new ImageSpec
-    pub fn new(w: usize, h: usize, c: usize, t: BaseType) -> ImageSpec {
-        unsafe {
-            cpp!([w as "size_t", h as "size_t", c as "size_t", t as "TypeDesc::BASETYPE"] -> ImageSpec as "ImageSpec" {
-                return ImageSpec(w, h, c, t);
-            })
-        }
-    }
-
-    /// Get width
-    pub fn width(&self) -> usize {
-        unsafe {
-            cpp!([self as "const ImageSpec*"] -> usize as "size_t" {
-                return (size_t)self->width;
-            })
-        }
-    }
-
-    /// Get height
-    pub fn height(&self) -> usize {
-        unsafe {
-            cpp!([self as "const ImageSpec*"] -> usize as "size_t" {
-                return (size_t)self->height;
-            })
-        }
-    }
-
-    /// Get number of channels
-    pub fn nchannels(&self) -> usize {
-        unsafe {
-            cpp!([self as "const ImageSpec*"] -> usize as "size_t" {
-                return (size_t)self->nchannels;
-            })
-        }
-    }
-
-    /// Get image format
-    pub fn format(&self) -> BaseType {
-        unsafe {
-            cpp!([self as "const ImageSpec*"] -> BaseType as "TypeDesc::BASETYPE" {
-                return (TypeDesc::BASETYPE)self->format.basetype;
-            })
-        }
-    }
-}
-
 /// Output is used to write images to disk
 pub struct Output {
     spec: ImageSpec,
@@ -366,6 +307,187 @@ impl Input {
         let mut image = Image::new(self.spec.width(), self.spec.height());
         self.read_into(&mut image)?;
         Ok(image)
+    }
+}
+
+cpp_class!(
+    /// ImageSpec wraps `OIIO::ImageSpec`
+    pub unsafe struct ImageSpec as "ImageSpec"
+);
+impl ImageSpec {
+    fn empty() -> ImageSpec {
+        unsafe {
+            cpp!([] -> ImageSpec as "ImageSpec" {
+                return ImageSpec();
+            })
+        }
+    }
+
+    /// Create new ImageSpec
+    pub fn new(w: usize, h: usize, c: usize, t: BaseType) -> ImageSpec {
+        unsafe {
+            cpp!([w as "size_t", h as "size_t", c as "size_t", t as "TypeDesc::BASETYPE"] -> ImageSpec as "ImageSpec" {
+                return ImageSpec(w, h, c, t);
+            })
+        }
+    }
+
+    /// Get width
+    pub fn width(&self) -> usize {
+        unsafe {
+            cpp!([self as "const ImageSpec*"] -> usize as "size_t" {
+                return (size_t)self->width;
+            })
+        }
+    }
+
+    /// Get height
+    pub fn height(&self) -> usize {
+        unsafe {
+            cpp!([self as "const ImageSpec*"] -> usize as "size_t" {
+                return (size_t)self->height;
+            })
+        }
+    }
+
+    /// Get number of channels
+    pub fn nchannels(&self) -> usize {
+        unsafe {
+            cpp!([self as "const ImageSpec*"] -> usize as "size_t" {
+                return (size_t)self->nchannels;
+            })
+        }
+    }
+
+    /// Get image format
+    pub fn format(&self) -> BaseType {
+        unsafe {
+            cpp!([self as "const ImageSpec*"] -> BaseType as "TypeDesc::BASETYPE" {
+                return (TypeDesc::BASETYPE)self->format.basetype;
+            })
+        }
+    }
+
+    pub fn get_attr_int(&self, key: impl AsRef<str>, case_sensitive: bool) -> Option<i64> {
+        let key_str = std::ffi::CString::new(key.as_ref().as_bytes().to_vec()).unwrap();
+        let key_ptr = key_str.as_ptr();
+        let mut is_ok = false;
+        let ok = &mut is_ok;
+        let value = unsafe {
+            cpp!([self as "const ImageSpec*", key_ptr as "const char*", case_sensitive as "bool", ok as "bool*"] -> i64 as "int64_t" {
+                ParamValue param;
+                auto value = self->find_attribute(key_ptr, param, TypeInt, case_sensitive);
+                if (!value){
+                    *ok = false;
+                    return 0;
+                }
+
+                *ok = true;
+                return (int64_t)value->get<int>();
+            })
+        };
+
+        if is_ok {
+            Some(value)
+        } else {
+            None
+        }
+    }
+
+    pub fn set_attr_int(&mut self, key: impl AsRef<str>, value: impl Into<i64>) {
+        let key_str = std::ffi::CString::new(key.as_ref().as_bytes().to_vec()).unwrap();
+        let key_ptr = key_str.as_ptr();
+        let value = value.into();
+        unsafe {
+            cpp!([self as "ImageSpec*", key_ptr as "const char*", value as "int64_t"] {
+                self->attribute(key_ptr, (int)value);
+            });
+        }
+    }
+
+    pub fn get_attr_float(&self, key: impl AsRef<str>, case_sensitive: bool) -> Option<f64> {
+        let key_str = std::ffi::CString::new(key.as_ref().as_bytes().to_vec()).unwrap();
+        let key_ptr = key_str.as_ptr();
+        let mut is_ok = false;
+        let ok = &mut is_ok;
+        let value = unsafe {
+            cpp!([self as "const ImageSpec*", key_ptr as "const char*", case_sensitive as "bool", ok as "bool*"] -> f64 as "double" {
+                ParamValue param;
+                auto value = self->find_attribute(key_ptr, param, TypeFloat, case_sensitive);
+                if (!value){
+                    *ok = false;
+                    return 0;
+                }
+
+                *ok = true;
+                return (double)value->get<float>();
+            })
+        };
+
+        if is_ok {
+            Some(value)
+        } else {
+            None
+        }
+    }
+
+    pub fn set_attr_float(&mut self, key: impl AsRef<str>, value: impl Into<f64>) {
+        let key_str = std::ffi::CString::new(key.as_ref().as_bytes().to_vec()).unwrap();
+        let key_ptr = key_str.as_ptr();
+        let value = value.into();
+        unsafe {
+            cpp!([self as "ImageSpec*", key_ptr as "const char*", value as "double"] {
+                self->attribute(key_ptr, (float)value);
+            });
+        }
+    }
+
+    pub fn get_attr_str(&self, key: impl AsRef<str>, case_sensitive: bool) -> Option<&str> {
+        let key_str = std::ffi::CString::new(key.as_ref().as_bytes().to_vec()).unwrap();
+        let key_ptr = key_str.as_ptr();
+        let mut count = 0;
+        let count_ptr = &mut count;
+        let value = unsafe {
+            cpp!([self as "const ImageSpec*", key_ptr as "const char*", case_sensitive as "bool", count_ptr as "size_t*"] -> *const u8 as "const char *" {
+                ParamValue param;
+                auto value = self->find_attribute(key_ptr, param, TypeString, case_sensitive);
+                if (!value){
+                    return nullptr;
+                }
+
+                auto data = (const char*)value->data();
+                if (data == nullptr){
+                    return nullptr;
+                }
+
+                *count_ptr = strlen(data);
+                return data;
+            })
+        };
+
+        if value.is_null() {
+            return None;
+        }
+
+        unsafe {
+            let b = std::slice::from_raw_parts(value, count);
+            let s = std::str::from_utf8_unchecked(b);
+            Some(s)
+        }
+    }
+
+    pub fn set_attr_str(&mut self, key: impl AsRef<str>, value: impl AsRef<str>) {
+        let key_str = std::ffi::CString::new(key.as_ref().as_bytes().to_vec()).unwrap();
+        let key_ptr = key_str.as_ptr();
+
+        let value_str = std::ffi::CString::new(value.as_ref().as_bytes().to_vec()).unwrap();
+        let value_ptr = value_str.as_ptr();
+
+        unsafe {
+            cpp!([self as "ImageSpec*", key_ptr as "const char*", value_ptr as "const char *"] {
+                self->attribute(key_ptr, value_ptr);
+            });
+        }
     }
 }
 
