@@ -311,6 +311,11 @@ impl Input {
 }
 
 cpp_class!(
+    /// ImageSpec wraps `OIIO::ParamValue`
+    pub unsafe struct ParamValue as "ParamValue"
+);
+
+cpp_class!(
     /// ImageSpec wraps `OIIO::ImageSpec`
     pub unsafe struct ImageSpec as "ImageSpec"
 );
@@ -368,15 +373,15 @@ impl ImageSpec {
         }
     }
 
-    pub fn get_attr_int(&self, key: impl AsRef<str>, case_sensitive: bool) -> Option<i64> {
+    pub fn get_attr_int(&self, key: impl AsRef<str>) -> Option<i64> {
         let key_str = std::ffi::CString::new(key.as_ref().as_bytes().to_vec()).unwrap();
         let key_ptr = key_str.as_ptr();
         let mut is_ok = false;
         let ok = &mut is_ok;
         let value = unsafe {
-            cpp!([self as "const ImageSpec*", key_ptr as "const char*", case_sensitive as "bool", ok as "bool*"] -> i64 as "int64_t" {
+            cpp!([self as "const ImageSpec*", key_ptr as "const char*",  ok as "bool*"] -> i64 as "int64_t" {
                 ParamValue param;
-                auto value = self->find_attribute(key_ptr, param, TypeInt, case_sensitive);
+                auto value = self->find_attribute(key_ptr, param, TypeInt, false);
                 if (!value){
                     *ok = false;
                     return 0;
@@ -405,15 +410,15 @@ impl ImageSpec {
         }
     }
 
-    pub fn get_attr_float(&self, key: impl AsRef<str>, case_sensitive: bool) -> Option<f64> {
+    pub fn get_attr_float(&self, key: impl AsRef<str>) -> Option<f64> {
         let key_str = std::ffi::CString::new(key.as_ref().as_bytes().to_vec()).unwrap();
         let key_ptr = key_str.as_ptr();
         let mut is_ok = false;
         let ok = &mut is_ok;
         let value = unsafe {
-            cpp!([self as "const ImageSpec*", key_ptr as "const char*", case_sensitive as "bool", ok as "bool*"] -> f64 as "double" {
+            cpp!([self as "const ImageSpec*", key_ptr as "const char*",  ok as "bool*"] -> f64 as "double" {
                 ParamValue param;
-                auto value = self->find_attribute(key_ptr, param, TypeFloat, case_sensitive);
+                auto value = self->find_attribute(key_ptr, param, TypeFloat, false);
                 if (!value){
                     *ok = false;
                     return 0;
@@ -442,15 +447,15 @@ impl ImageSpec {
         }
     }
 
-    pub fn get_attr_str(&self, key: impl AsRef<str>, case_sensitive: bool) -> Option<&str> {
+    pub fn get_attr_str(&self, key: impl AsRef<str>) -> Option<&str> {
         let key_str = std::ffi::CString::new(key.as_ref().as_bytes().to_vec()).unwrap();
         let key_ptr = key_str.as_ptr();
         let mut count = 0;
         let count_ptr = &mut count;
         let value = unsafe {
-            cpp!([self as "const ImageSpec*", key_ptr as "const char*", case_sensitive as "bool", count_ptr as "size_t*"] -> *const u8 as "const char *" {
+            cpp!([self as "const ImageSpec*", key_ptr as "const char*",  count_ptr as "size_t*"] -> *const u8 as "const char *" {
                 ParamValue param;
-                auto value = self->find_attribute(key_ptr, param, TypeString, case_sensitive);
+                auto value = self->find_attribute(key_ptr, param, TypeString);
                 if (!value){
                     return nullptr;
                 }
@@ -488,6 +493,37 @@ impl ImageSpec {
                 self->attribute(key_ptr, value_ptr);
             });
         }
+    }
+
+    pub fn colorspace(&self) -> Option<&str> {
+        self.get_attr_str("oiio:ColorSpace")
+    }
+
+    pub fn list_attr_keys(&self) -> Vec<&str> {
+        let mut len = 0;
+        let len_ptr = &mut len;
+        let ptr = unsafe {
+            cpp!([self as "const ImageSpec*", len_ptr as "size_t*"] -> *const ParamValue as "const ParamValue*" {
+                *len_ptr = self->extra_attribs.size();
+                return self->extra_attribs.data();
+            })
+        };
+
+        let slice = unsafe { std::slice::from_raw_parts(ptr, len) };
+
+        slice.iter().map(|x| {
+            let mut len = 0;
+            let len_ptr = &mut len;
+            unsafe {
+                let s = cpp!([x as "const ParamValue*", len_ptr as "size_t*"] -> *const u8 as "const char*" {
+                    *len_ptr = x->name().size();
+                   return x->name().c_str();
+                });
+
+                let slice = std::slice::from_raw_parts(s, len);
+                std::str::from_utf8_unchecked(slice)
+            }
+        }).collect()
     }
 }
 
