@@ -173,8 +173,6 @@ impl Output {
     }
 }
 
-cpp_class!(unsafe struct IOMemReader as "IOMemReader");
-
 /// Input is used to load images from disk
 pub struct Input {
     path: std::path::PathBuf,
