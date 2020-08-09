@@ -8,6 +8,7 @@ cpp! {{
     #include <OpenImageIO/imagebufalgo.h>
     #include <OpenImageIO/filesystem.h>
     using namespace OIIO;
+    using namespace Filesystem;
 }}
 
 /// `BaseType` is compatible with OpenImageIO's `TypeDesc::BASETYPE`
@@ -174,6 +175,8 @@ impl Output {
     }
 }
 
+cpp_class!(unsafe struct IOMemReader as "IOMemReader");
+
 /// Input is used to load images from disk
 pub struct Input {
     path: std::path::PathBuf,
@@ -242,52 +245,6 @@ impl Input {
         let input = unsafe {
             cpp!([filename as "const char *", tmp as "ImageSpec*"] ->  *mut u8 as "std::unique_ptr<ImageInput>" {
                 auto input = ImageInput::open(filename);
-                if (!input) {
-                    return nullptr;
-                }
-
-                *tmp = input->spec();
-
-                return input;
-            })
-        };
-
-        if input.is_null() {
-            return Err(Error::UnableToOpenImage(path.to_string_lossy().to_string()));
-        }
-
-        Ok(Input {
-            spec,
-            image_input: input,
-            subimage: 0,
-            miplevel: 0,
-            path: path.to_path_buf(),
-        })
-    }
-
-    /// Open image from buffer
-    pub fn open_buffer(
-        path: impl AsRef<std::path::Path>,
-        buffer: impl AsRef<[u8]>,
-    ) -> Result<Input, Error> {
-        let mut spec = ImageSpec::empty();
-        let tmp = &mut spec;
-
-        let path = path.as_ref();
-        let path_str = std::ffi::CString::new(path.to_string_lossy().as_bytes().to_vec()).unwrap();
-        let filename = path_str.as_ptr();
-
-        let buffer = buffer.as_ref();
-        let buffer_ptr = buffer.as_ptr();
-        let buffer_len = buffer.len();
-
-        let input = unsafe {
-            cpp!([filename as "const char *", tmp as "ImageSpec*", buffer_ptr as "void*", buffer_len as "size_t"] ->  *mut u8 as "std::unique_ptr<ImageInput>" {
-                ImageSpec config;
-                Filesystem::IOMemReader memreader (buffer_ptr, buffer_len);  // I/O proxy object
-                void *ptr = &memreader;
-                config.attribute ("oiio:ioproxy", TypeDesc::PTR, &ptr);
-                auto input = ImageInput::open(filename, &config);
                 if (!input) {
                     return nullptr;
                 }
