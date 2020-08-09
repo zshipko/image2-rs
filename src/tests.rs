@@ -1,5 +1,6 @@
 use crate::*;
 use filter::*;
+use io::*;
 
 use std::time::Instant;
 
@@ -127,24 +128,19 @@ fn test_convert_color() {
     assert!(image3.save("images/test-convert-color2.jpg").is_ok());
 }
 
-/*#[test]
-fn test_diff() {
-    let image: ImageBuf<u8, Rgb> = read("images/A.exr").unwrap();
-    let mut image2: ImageBuf<u8, Rgb> = image.new_like();
-    let diff = image.diff(&image2);
-    assert!(diff.len() > 0);
-    diff.apply(&mut image2);
-    let diff2 = image.diff(&image2);
-    assert!(diff2.len() == 0);
-    assert!(image == image2);
-    write("images/test-diff.png", &image2).unwrap()
-}
-
 #[test]
-fn test_colorspace() {
-    let image: ImageBuf<u8, Rgb> = read("images/A.exr").unwrap();
-    let mut px = image.empty_pixel();
-    image.get_pixel(10, 10, &mut px);
-    let rgb = Pixel::<u8, Rgb>::to_rgb(&px);
-    println!("{:?}", rgb);
-}*/
+fn test_metadata() {
+    let input = Input::open("images/A.exr").unwrap();
+    let a = input.spec().attrs();
+    println!("KEYS: {:?}", a);
+
+    let image: Image<f32, Rgb> = input.read().unwrap();
+    let mut output = Output::create("images/test.exr").unwrap();
+    output.spec_mut().set_attr("testing", "123");
+    output.write(&image).unwrap();
+
+    let input2 = Input::open("images/test.exr").unwrap();
+    let b = input2.spec().attrs();
+    assert!(b.contains_key(&"testing"));
+    assert!(input2.spec().get_attr("testing") == Some(Attr::String("123")));
+}
