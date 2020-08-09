@@ -21,8 +21,8 @@ pub trait Filter: Sized + Sync {
         output
             .pixels_rect_mut(start_x, start_y, width, height)
             .for_each(|((x, y), pixel)| {
-                for c in 0..channels {
-                    pixel[c].set_from_f64(self.compute_at(x, y, c, input));
+                for (c, px) in pixel.iter_mut().enumerate().take(channels) {
+                    px.set_from_f64(self.compute_at(x, y, c, input));
                 }
             });
     }
@@ -31,8 +31,8 @@ pub trait Filter: Sized + Sync {
     fn eval(&self, output: &mut Image<impl Type, impl Color>, input: &[&Image<impl Type, impl Color>]) {
         let channels = output.channels();
         output.for_each(|(x, y), pixel| {
-            for c in 0..channels {
-                pixel[c].set_from_f64(self.compute_at(x, y, c, input))
+            for (c, px) in pixel.iter_mut().enumerate().take(channels) {
+                px.set_from_f64(self.compute_at(x, y, c, input));
             }
         });
     }
@@ -72,8 +72,8 @@ pub trait Filter: Sized + Sync {
         AsyncFilter {
             mode,
             filter: self,
-            input: input,
-            output: output,
+            input,
+            output,
             x: 0,
             y: 0,
         }
@@ -114,10 +114,7 @@ impl<
     > Filter for Join<'a, A, B, F>
 {
     fn compute_at(&self, x: usize, y: usize, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
-        let f = &self.f;
-        let a = self.a.compute_at(x, y, c, input);
-        let b = self.b.compute_at(x, y, c, input);
-        f((x, y, c), a, b)
+        (&self.f)((x, y, c), self.a.compute_at(x, y, c, input), self.b.compute_at(x, y, c, input))
     }
 }
 
@@ -219,7 +216,7 @@ impl<'a, F: Unpin + Filter, T: Type, C: Color, U: Unpin + Type,  D: Unpin + Colo
             return std::task::Poll::Pending;
         }
 
-        return std::task::Poll::Ready(());
+        std::task::Poll::Ready(())
     }
 }
 

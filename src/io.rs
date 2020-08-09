@@ -483,14 +483,14 @@ impl ImageSpec {
 pub(crate) mod internal {
     use super::*;
 
-    pub fn to_attr<'a>(param: &'a ParamValue) -> Option<Attr<'a>> {
+    pub fn to_attr(param: &ParamValue) -> Option<Attr<'_>> {
         let t = param.ty();
 
         match t {
-            BaseType::Int32 => return Some(Attr::Int(param.get_int())),
-            BaseType::Float => return Some(Attr::Float(param.get_float())),
-            BaseType::String => return Some(Attr::String(param.get_string())),
-            _ => return None,
+            BaseType::Int32 => Some(Attr::Int(param.get_int())),
+            BaseType::Float => Some(Attr::Float(param.get_float())),
+            BaseType::String => Some(Attr::String(param.get_string())),
+            _ => None,
         }
     }
 

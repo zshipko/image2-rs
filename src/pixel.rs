@@ -10,6 +10,12 @@ impl<C: Color> AsRef<[f64]> for Pixel<C> {
     }
 }
 
+impl<C: Color> Default for Pixel<C> {
+    fn default() -> Self {
+        Pixel::new()
+    }
+}
+
 impl<C: Color> Pixel<C> {
     pub fn into_vec(self) -> Vec<f64> {
         self.0.to_vec()
@@ -31,6 +37,10 @@ impl<C: Color> Pixel<C> {
         C::CHANNELS
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn is_alpha(&self, index: usize) -> bool {
         if C::ALPHA {
             let len = self.len();
@@ -50,11 +60,11 @@ impl<C: Color> Pixel<C> {
 
     #[inline]
     pub fn copy_from_slice<T: Type>(&mut self, data: &[T]) -> &mut Self {
-        for i in 0..data.len() {
+        for (i, px) in data.iter().enumerate() {
             if i >= C::CHANNELS {
                 break;
             }
-            (*self)[i] = data[i].to_norm();
+            (*self)[i] = px.to_norm();
         }
         self
     }
@@ -97,7 +107,7 @@ impl<C: Color> Pixel<C> {
         self
     }
 
-    pub fn map_in_place<'a>(&mut self, f: impl Fn(f64) -> f64) -> &mut Self {
+    pub fn map_in_place(&mut self, f: impl Fn(f64) -> f64) -> &mut Self {
         for i in 0..self.len() {
             (*self)[i] = f(self[i]);
         }

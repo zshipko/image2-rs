@@ -1,5 +1,4 @@
 use crate::*;
-use euclid;
 
 pub type Point<T> = euclid::Point2D<T, T>;
 pub struct Transform(pub euclid::Transform2D<f64, f64, f64>);
@@ -42,12 +41,10 @@ pub fn resize(src: &Image<impl Type, impl Color>, mut x: usize, mut y: usize) ->
         x = y * src.width() / src.height()
     }
 
-    let filter = Transform(euclid::Transform2D::scale(
+    Transform(euclid::Transform2D::scale(
         src.width() as f64 / x as f64,
         src.height() as f64 / y as f64,
-    ));
-
-    filter
+    ))
 }
 
 pub fn rotate90(

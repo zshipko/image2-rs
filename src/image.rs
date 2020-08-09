@@ -98,9 +98,9 @@ impl<T: Type, C: Color> Image<T, C> {
                 let avg: f64 = px.iter().sum();
                 let f = avg / C::CHANNELS as f64;
                 if f > 0.5 {
-                    hash = hash | (1 << index)
+                    hash |= 1 << index
                 } else {
-                    hash = hash & !(1 << index)
+                    hash &= !(1 << index)
                 }
                 index += 1
             }
@@ -411,7 +411,7 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Convert to `ImageBuf`
-    pub(crate) fn to_image_buf(&mut self) -> io::internal::ImageBuf {
+    pub(crate) fn image_buf(&mut self) -> io::internal::ImageBuf {
         io::internal::ImageBuf::new_with_data(
             self.meta.width,
             self.meta.height,
@@ -421,7 +421,7 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Convert to `ImageBuf`
-    pub(crate) fn to_const_image_buf(&self) -> io::internal::ImageBuf {
+    pub(crate) fn const_image_buf(&self) -> io::internal::ImageBuf {
         io::internal::ImageBuf::const_new_with_data(
             self.meta.width,
             self.meta.height,
@@ -437,8 +437,8 @@ impl<T: Type, C: Color> Image<T, C> {
         a: impl AsRef<str>,
         b: impl AsRef<str>,
     ) -> Result<(), Error> {
-        let buf = self.to_const_image_buf();
-        let ok = buf.convert_color(&mut dest.to_image_buf(), a.as_ref(), b.as_ref());
+        let buf = self.const_image_buf();
+        let ok = buf.convert_color(&mut dest.image_buf(), a.as_ref(), b.as_ref());
         if ok {
             Ok(())
         } else {
