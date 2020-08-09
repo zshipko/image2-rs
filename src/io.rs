@@ -6,9 +6,7 @@ cpp! {{
     #include <OpenImageIO/imageio.h>
     #include <OpenImageIO/imagebuf.h>
     #include <OpenImageIO/imagebufalgo.h>
-    #include <OpenImageIO/filesystem.h>
     using namespace OIIO;
-    using namespace Filesystem;
 }}
 
 /// `BaseType` is compatible with OpenImageIO's `TypeDesc::BASETYPE`
