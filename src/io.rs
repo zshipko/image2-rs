@@ -340,57 +340,6 @@ impl<'a> From<&'a str> for Attr<'a> {
 }
 
 cpp_class!(
-    /// ImageSpec wraps `OIIO::ParamValue`
-    unsafe struct ParamValue as "ParamValue"
-);
-impl ParamValue {
-    fn ty(&self) -> BaseType {
-        let param = self as *const _;
-        unsafe {
-            cpp!([param as "const ParamValue*"] -> BaseType as "TypeDesc::BASETYPE" {
-                return (TypeDesc::BASETYPE)param->type().basetype;
-            })
-        }
-    }
-
-    fn get_int(&self) -> i32 {
-        let param = self as *const _;
-        unsafe {
-            cpp!([param as "const ParamValue*"] -> i32 as "int32_t" {
-                return param->get_int();
-            })
-        }
-    }
-
-    fn get_float(&self) -> f32 {
-        let param = self as *const _;
-        unsafe {
-            cpp!([param as "const ParamValue*"] -> f32 as "float" {
-                return param->get_float();
-            })
-        }
-    }
-
-    fn get_string(&self) -> &str {
-        let param = self as *const _;
-        let mut len = 0;
-        let len_ptr = &mut len;
-        let x = unsafe {
-            cpp!([param as "const ParamValue*", len_ptr as "size_t*"] -> *const u8 as "const char*" {
-                auto s = param->get_ustring();
-                *len_ptr = s.size();
-                return s.c_str();
-            })
-        };
-
-        unsafe {
-            let x = std::slice::from_raw_parts(x, len);
-            std::str::from_utf8_unchecked(x)
-        }
-    }
-}
-
-cpp_class!(
     /// ImageSpec wraps `OIIO::ImageSpec`
     pub unsafe struct ImageSpec as "ImageSpec"
 );
@@ -452,7 +401,7 @@ impl ImageSpec {
         let key_str = std::ffi::CString::new(key.as_ref().as_bytes().to_vec()).unwrap();
         let key_ptr = key_str.as_ptr();
         let value = unsafe {
-            cpp!([self as "const ImageSpec*", key_ptr as "const char*"] -> *const ParamValue as "const ParamValue*" {
+            cpp!([self as "const ImageSpec*", key_ptr as "const char*"] -> *const internal::ParamValue as "const ParamValue*" {
                 ParamValue param;
                 return self->find_attribute(key_ptr, param, TypeDesc::UNKNOWN, false);
             })
@@ -462,7 +411,7 @@ impl ImageSpec {
             return None;
         }
 
-        unsafe { to_attr(&*value) }
+        unsafe { internal::to_attr(&*value) }
     }
 
     pub fn set_attr<'a>(&mut self, key: impl AsRef<str>, value: impl Into<Attr<'a>>) {
@@ -511,7 +460,7 @@ impl ImageSpec {
         let mut len = 0;
         let len_ptr = &mut len;
         let ptr = unsafe {
-            cpp!([self as "const ImageSpec*", len_ptr as "size_t*"] -> *const ParamValue as "const ParamValue*" {
+            cpp!([self as "const ImageSpec*", len_ptr as "size_t*"] -> *const internal::ParamValue as "const ParamValue*" {
                 *len_ptr = self->extra_attribs.size();
                 return self->extra_attribs.data();
             })
@@ -529,72 +478,128 @@ impl ImageSpec {
                 });
 
                 let slice = std::slice::from_raw_parts(s, len);
-                (std::str::from_utf8_unchecked(slice), to_attr(x).unwrap())
+                (std::str::from_utf8_unchecked(slice), internal::to_attr(x).unwrap())
             }
         }).collect()
     }
 }
 
-fn to_attr<'a>(param: &'a ParamValue) -> Option<Attr<'a>> {
-    let t = param.ty();
+pub(crate) mod internal {
+    use super::*;
 
-    match t {
-        BaseType::Int32 => return Some(Attr::Int(param.get_int())),
-        BaseType::Float => return Some(Attr::Float(param.get_float())),
-        BaseType::String => return Some(Attr::String(param.get_string())),
-        _ => return None,
-    }
-}
+    pub fn to_attr<'a>(param: &'a ParamValue) -> Option<Attr<'a>> {
+        let t = param.ty();
 
-cpp_class!(pub(crate) unsafe struct ImageBuf as "ImageBuf");
-impl ImageBuf {
-    pub fn new_with_data<T: Type>(
-        width: usize,
-        height: usize,
-        channels: usize,
-        data: &mut [T],
-    ) -> Self {
-        let base_type = T::BASE;
-        let data = data.as_mut_ptr();
-        unsafe {
-            cpp!([width as "size_t", height as "size_t", channels as "size_t", base_type as "TypeDesc::BASETYPE", data as "void *"] -> ImageBuf as "ImageBuf" {
-                return ImageBuf(ImageSpec(width, height, channels, base_type), data);
-            })
+        match t {
+            BaseType::Int32 => return Some(Attr::Int(param.get_int())),
+            BaseType::Float => return Some(Attr::Float(param.get_float())),
+            BaseType::String => return Some(Attr::String(param.get_string())),
+            _ => return None,
         }
     }
 
-    pub fn const_new_with_data<T: Type>(
-        width: usize,
-        height: usize,
-        channels: usize,
-        data: &[T],
-    ) -> Self {
-        let base_type = T::BASE;
-        let data = data.as_ptr();
-        unsafe {
-            cpp!([width as "size_t", height as "size_t", channels as "size_t", base_type as "TypeDesc::BASETYPE", data as "void *"] -> ImageBuf as "ImageBuf" {
-                return ImageBuf(ImageSpec(width, height, channels, base_type), data);
-            })
+    cpp_class!(
+        /// ImageSpec wraps `OIIO::ParamValue`
+        pub unsafe struct ParamValue as "ParamValue"
+    );
+    impl ParamValue {
+        fn ty(&self) -> BaseType {
+            let param = self as *const _;
+            unsafe {
+                cpp!([param as "const ParamValue*"] -> BaseType as "TypeDesc::BASETYPE" {
+                    return (TypeDesc::BASETYPE)param->type().basetype;
+                })
+            }
+        }
+
+        fn get_int(&self) -> i32 {
+            let param = self as *const _;
+            unsafe {
+                cpp!([param as "const ParamValue*"] -> i32 as "int32_t" {
+                    return param->get_int();
+                })
+            }
+        }
+
+        fn get_float(&self) -> f32 {
+            let param = self as *const _;
+            unsafe {
+                cpp!([param as "const ParamValue*"] -> f32 as "float" {
+                    return param->get_float();
+                })
+            }
+        }
+
+        fn get_string(&self) -> &str {
+            let param = self as *const _;
+            let mut len = 0;
+            let len_ptr = &mut len;
+            let x = unsafe {
+                cpp!([param as "const ParamValue*", len_ptr as "size_t*"] -> *const u8 as "const char*" {
+                    auto s = param->get_ustring();
+                    *len_ptr = s.size();
+                    return s.c_str();
+                })
+            };
+
+            unsafe {
+                let x = std::slice::from_raw_parts(x, len);
+                std::str::from_utf8_unchecked(x)
+            }
         }
     }
 
-    pub fn convert_color(
-        &self,
-        dest: &mut ImageBuf,
-        from_space: impl AsRef<str>,
-        to_space: impl AsRef<str>,
-    ) -> bool {
-        let from_space_str =
-            std::ffi::CString::new(from_space.as_ref().as_bytes().to_vec()).unwrap();
-        let from_space = from_space_str.as_ptr();
+    cpp_class!(pub unsafe struct ImageBuf as "ImageBuf");
+    impl ImageBuf {
+        pub fn new_with_data<T: Type>(
+            width: usize,
+            height: usize,
+            channels: usize,
+            data: &mut [T],
+        ) -> Self {
+            let base_type = T::BASE;
+            let data = data.as_mut_ptr();
+            unsafe {
+                cpp!([width as "size_t", height as "size_t", channels as "size_t", base_type as "TypeDesc::BASETYPE", data as "void *"] -> ImageBuf as "ImageBuf" {
+                    return ImageBuf(ImageSpec(width, height, channels, base_type), data);
+                })
+            }
+        }
 
-        let to_space_str = std::ffi::CString::new(to_space.as_ref().as_bytes().to_vec()).unwrap();
-        let to_space = to_space_str.as_ptr();
+        pub fn const_new_with_data<T: Type>(
+            width: usize,
+            height: usize,
+            channels: usize,
+            data: &[T],
+        ) -> Self {
+            let base_type = T::BASE;
+            let data = data.as_ptr();
+            unsafe {
+                cpp!([width as "size_t", height as "size_t", channels as "size_t", base_type as "TypeDesc::BASETYPE", data as "void *"] -> ImageBuf as "ImageBuf" {
+                    return ImageBuf(ImageSpec(width, height, channels, base_type), data);
+                })
+            }
+        }
 
-        unsafe {
-            cpp!([dest as "ImageBuf*", self as "const ImageBuf*", from_space as "const char *", to_space as "const char *"] -> bool as "bool" {
-                return ImageBufAlgo::colorconvert(*dest, *self, from_space, to_space);
-            })
+        pub fn convert_color(
+            &self,
+            dest: &mut ImageBuf,
+            from_space: impl AsRef<str>,
+            to_space: impl AsRef<str>,
+        ) -> bool {
+            let from_space_str =
+                std::ffi::CString::new(from_space.as_ref().as_bytes().to_vec()).unwrap();
+            let from_space = from_space_str.as_ptr();
+
+            let to_space_str =
+                std::ffi::CString::new(to_space.as_ref().as_bytes().to_vec()).unwrap();
+            let to_space = to_space_str.as_ptr();
+
+            unsafe {
+                cpp!([dest as "ImageBuf*", self as "const ImageBuf*", from_space as "const char *", to_space as "const char *"] -> bool as "bool" {
+                    return ImageBufAlgo::colorconvert(*dest, *self, from_space, to_space);
+                })
+            }
         }
     }
 }
