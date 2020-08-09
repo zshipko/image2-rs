@@ -1,5 +1,6 @@
 use crate::*;
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Pixel<C: Color>(Box<[f64]>, std::marker::PhantomData<C>);
 

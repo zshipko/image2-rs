@@ -5,6 +5,7 @@ use crate::*;
 use rayon::prelude::*;
 
 /// Image metadata
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq)]
 pub struct Meta<T: Type, C: Color> {
     pub width: usize,
@@ -24,6 +25,7 @@ impl<T: Type, C: Color> Meta<T, C> {
 }
 
 /// Image type
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Image<T: Type, C: Color> {
     /// Metadata
