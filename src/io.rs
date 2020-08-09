@@ -6,6 +6,7 @@ cpp! {{
     #include <OpenImageIO/imageio.h>
     #include <OpenImageIO/imagebuf.h>
     #include <OpenImageIO/imagebufalgo.h>
+    #include <OpenImageIO/filesystem.h>
     using namespace OIIO;
 }}
 
@@ -264,6 +265,52 @@ impl Input {
         })
     }
 
+    /// Open image from buffer
+    pub fn open_buffer(
+        path: impl AsRef<std::path::Path>,
+        buffer: impl AsRef<[u8]>,
+    ) -> Result<Input, Error> {
+        let mut spec = ImageSpec::empty();
+        let tmp = &mut spec;
+
+        let path = path.as_ref();
+        let path_str = std::ffi::CString::new(path.to_string_lossy().as_bytes().to_vec()).unwrap();
+        let filename = path_str.as_ptr();
+
+        let buffer = buffer.as_ref();
+        let buffer_ptr = buffer.as_ptr();
+        let buffer_len = buffer.len();
+
+        let input = unsafe {
+            cpp!([filename as "const char *", tmp as "ImageSpec*", buffer_ptr as "void*", buffer_len as "size_t"] ->  *mut u8 as "std::unique_ptr<ImageInput>" {
+                ImageSpec config;
+                Filesystem::IOMemReader memreader (buffer_ptr, buffer_len);  // I/O proxy object
+                void *ptr = &memreader;
+                config.attribute ("oiio:ioproxy", TypeDesc::PTR, &ptr);
+                auto input = ImageInput::open(filename, &config);
+                if (!input) {
+                    return nullptr;
+                }
+
+                *tmp = input->spec();
+
+                return input;
+            })
+        };
+
+        if input.is_null() {
+            return Err(Error::UnableToOpenImage(path.to_string_lossy().to_string()));
+        }
+
+        Ok(Input {
+            spec,
+            image_input: input,
+            subimage: 0,
+            miplevel: 0,
+            path: path.to_path_buf(),
+        })
+    }
+
     /// Read into existing Image
     pub fn read_into<T: Type, C: Color>(&self, image: &mut Image<T, C>) -> Result<(), Error> {
         let data = image.data.as_mut_ptr();
@@ -337,7 +384,7 @@ impl<'a> From<&'a str> for Attr<'a> {
 
 cpp_class!(
     /// ImageSpec wraps `OIIO::ParamValue`
-    pub unsafe struct ParamValue as "ParamValue"
+    unsafe struct ParamValue as "ParamValue"
 );
 impl ParamValue {
     fn ty(&self) -> BaseType {
@@ -542,60 +589,55 @@ fn to_attr<'a>(param: &'a ParamValue) -> Option<Attr<'a>> {
     }
 }
 
-pub(crate) mod internal {
-    use crate::*;
-    use cpp::{cpp, cpp_class};
-    cpp_class!(pub unsafe struct ImageBuf as "ImageBuf");
-    impl ImageBuf {
-        pub fn new_with_data<T: Type>(
-            width: usize,
-            height: usize,
-            channels: usize,
-            data: &mut [T],
-        ) -> Self {
-            let base_type = T::BASE;
-            let data = data.as_mut_ptr();
-            unsafe {
-                cpp!([width as "size_t", height as "size_t", channels as "size_t", base_type as "TypeDesc::BASETYPE", data as "void *"] -> ImageBuf as "ImageBuf" {
-                    return ImageBuf(ImageSpec(width, height, channels, base_type), data);
-                })
-            }
+cpp_class!(pub(crate) unsafe struct ImageBuf as "ImageBuf");
+impl ImageBuf {
+    pub fn new_with_data<T: Type>(
+        width: usize,
+        height: usize,
+        channels: usize,
+        data: &mut [T],
+    ) -> Self {
+        let base_type = T::BASE;
+        let data = data.as_mut_ptr();
+        unsafe {
+            cpp!([width as "size_t", height as "size_t", channels as "size_t", base_type as "TypeDesc::BASETYPE", data as "void *"] -> ImageBuf as "ImageBuf" {
+                return ImageBuf(ImageSpec(width, height, channels, base_type), data);
+            })
         }
+    }
 
-        pub fn const_new_with_data<T: Type>(
-            width: usize,
-            height: usize,
-            channels: usize,
-            data: &[T],
-        ) -> Self {
-            let base_type = T::BASE;
-            let data = data.as_ptr();
-            unsafe {
-                cpp!([width as "size_t", height as "size_t", channels as "size_t", base_type as "TypeDesc::BASETYPE", data as "void *"] -> ImageBuf as "ImageBuf" {
-                    return ImageBuf(ImageSpec(width, height, channels, base_type), data);
-                })
-            }
+    pub fn const_new_with_data<T: Type>(
+        width: usize,
+        height: usize,
+        channels: usize,
+        data: &[T],
+    ) -> Self {
+        let base_type = T::BASE;
+        let data = data.as_ptr();
+        unsafe {
+            cpp!([width as "size_t", height as "size_t", channels as "size_t", base_type as "TypeDesc::BASETYPE", data as "void *"] -> ImageBuf as "ImageBuf" {
+                return ImageBuf(ImageSpec(width, height, channels, base_type), data);
+            })
         }
+    }
 
-        pub fn convert_color(
-            &self,
-            dest: &mut ImageBuf,
-            from_space: impl AsRef<str>,
-            to_space: impl AsRef<str>,
-        ) -> bool {
-            let from_space_str =
-                std::ffi::CString::new(from_space.as_ref().as_bytes().to_vec()).unwrap();
-            let from_space = from_space_str.as_ptr();
+    pub fn convert_color(
+        &self,
+        dest: &mut ImageBuf,
+        from_space: impl AsRef<str>,
+        to_space: impl AsRef<str>,
+    ) -> bool {
+        let from_space_str =
+            std::ffi::CString::new(from_space.as_ref().as_bytes().to_vec()).unwrap();
+        let from_space = from_space_str.as_ptr();
 
-            let to_space_str =
-                std::ffi::CString::new(to_space.as_ref().as_bytes().to_vec()).unwrap();
-            let to_space = to_space_str.as_ptr();
+        let to_space_str = std::ffi::CString::new(to_space.as_ref().as_bytes().to_vec()).unwrap();
+        let to_space = to_space_str.as_ptr();
 
-            unsafe {
-                cpp!([dest as "ImageBuf*", self as "const ImageBuf*", from_space as "const char *", to_space as "const char *"] -> bool as "bool" {
-                    return ImageBufAlgo::colorconvert(*dest, *self, from_space, to_space);
-                })
-            }
+        unsafe {
+            cpp!([dest as "ImageBuf*", self as "const ImageBuf*", from_space as "const char *", to_space as "const char *"] -> bool as "bool" {
+                return ImageBufAlgo::colorconvert(*dest, *self, from_space, to_space);
+            })
         }
     }
 }

@@ -409,8 +409,8 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Convert to `ImageBuf`
-    pub(crate) fn to_image_buf(&mut self) -> io::internal::ImageBuf {
-        io::internal::ImageBuf::new_with_data(
+    pub(crate) fn to_image_buf(&mut self) -> io::ImageBuf {
+        io::ImageBuf::new_with_data(
             self.meta.width,
             self.meta.height,
             self.channels(),
@@ -419,8 +419,8 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Convert to `ImageBuf`
-    pub(crate) fn to_const_image_buf(&self) -> io::internal::ImageBuf {
-        io::internal::ImageBuf::const_new_with_data(
+    pub(crate) fn to_const_image_buf(&self) -> io::ImageBuf {
+        io::ImageBuf::const_new_with_data(
             self.meta.width,
             self.meta.height,
             self.channels(),
