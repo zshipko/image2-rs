@@ -22,6 +22,10 @@ impl<T: Type, C: Color> Meta<T, C> {
     pub fn color_name(&self) -> &str {
         C::NAME
     }
+
+    pub fn type_name(&self) -> &str {
+        T::name()
+    }
 }
 
 /// Image type
@@ -205,6 +209,7 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Get image data from an image, reusing an existing data buffer big enough for a single pixel
+    #[inline]
     pub fn at(&self, x: usize, y: usize, px: &mut [T]) -> bool {
         if !self.in_bounds(x, y) || px.len() < C::CHANNELS {
             return false;
@@ -215,6 +220,7 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Load data from and `Image` into an existing `Pixel` structure
+    #[inline]
     pub fn pixel_at(&self, x: usize, y: usize, px: &mut Pixel<C>) -> bool {
         if !self.in_bounds(x, y) {
             return false;
@@ -250,6 +256,7 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Set a normalized pixel to the specified location
+    #[inline]
     pub fn set_pixel(&mut self, x: usize, y: usize, px: &Pixel<C>) {
         let data = self.get_mut(x, y);
         px.copy_to_slice(data);
@@ -371,7 +378,7 @@ impl<T: Type, C: Color> Image<T, C> {
             });
     }
 
-    /// Iterate over each pixel without threads
+    /// Iterate over pixels, single threaded
     pub fn each_pixel<F: Sync + Send + FnMut((usize, usize), &[T])>(&self, mut f: F) {
         let (width, _height, channels) = self.shape();
 
@@ -386,7 +393,7 @@ impl<T: Type, C: Color> Image<T, C> {
             })
     }
 
-    /// Iterate over each pixel without threads
+    /// Iterate over mutable pixels, single threaded
     pub async fn each_pixel_mut<F: Sync + Send + FnMut((usize, usize), &mut [T])>(&mut self, mut f: F) {
         let (width, _height, channels) = self.shape();
         self.data

@@ -8,15 +8,15 @@
 //! use image2::*;
 //!
 //! fn main() -> Result<(), Error> {
-//!     /// Load an image from disk
+//!     // Load an image from disk
 //!     let image = Image::<f32, Rgb>::open("images/A.exr")?;
 //!
-//!     /// Apply a `Filter`, in this case using the `Convert` filter to
-//!     /// convert from `Rgb` to `Gray`
+//!     // Apply a `Filter`, in this case using the `Convert` filter to
+//!     // convert from `Rgb` to `Gray`
 //!     let dest = image.new_like_with_color::<Gray>();
 //!     let dest = image.apply(Convert::<Gray>::new(), dest);
 //!
-//!     /// Save an image to disk
+//!     // Save an image to disk
 //!     dest.save("test.jpg")?;
 //!
 //!     Ok(())

@@ -9,6 +9,10 @@ pub trait Type: Unpin + Default + Clone + Copy + Sync + Send + PartialEq + Parti
 
     fn from_f64(f: f64) -> Self;
 
+    fn name() -> &'static str {
+        io::internal::type_name(Self::BASE)
+    }
+
     fn set_from_f64(&mut self, f: f64) {
         *self = Self::from_f64(f);
     }

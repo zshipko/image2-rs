@@ -483,6 +483,26 @@ impl ImageSpec {
 pub(crate) mod internal {
     use super::*;
 
+    pub fn type_name(t: BaseType) -> &'static str {
+        let mut len = 0;
+        let len_ptr = &mut len;
+
+        let s = cpp!([len_ptr as "size_t*", t as "TypeDesc::BASETYPE"] -> *const u8 as "const char *" {
+            auto s = t.c_str();
+            *len_ptr = strlen(s);
+            return s;
+        });
+
+        if s.is_null() {
+            return "";
+        }
+
+        unsafe {
+            let slice = std::slice::from_raw_parts(s, len);
+            std::str::from_utf8_unchecked(slice)
+        }
+    }
+
     pub fn to_attr(param: &ParamValue) -> Option<Attr<'_>> {
         let t = param.ty();
 
