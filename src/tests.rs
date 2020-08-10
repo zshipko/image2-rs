@@ -144,3 +144,9 @@ fn test_metadata() {
     assert!(b.contains_key(&"testing"));
     assert!(input2.spec().get_attr("testing") == Some(Attr::String("123")));
 }
+
+#[test]
+fn test_type_and_color_name() {
+    assert!(f32::type_name() != f64::type_name());
+    assert!(u8::type_name() == u8::type_name());
+}

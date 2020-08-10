@@ -487,11 +487,13 @@ pub(crate) mod internal {
         let mut len = 0;
         let len_ptr = &mut len;
 
-        let s = cpp!([len_ptr as "size_t*", t as "TypeDesc::BASETYPE"] -> *const u8 as "const char *" {
-            auto s = t.c_str();
-            *len_ptr = strlen(s);
-            return s;
-        });
+        let s = unsafe {
+            cpp!([len_ptr as "size_t*", t as "TypeDesc::BASETYPE"] -> *const u8 as "const char *" {
+                auto s = TypeDesc(t).c_str();
+                *len_ptr = strlen(s);
+                return s;
+            })
+        };
 
         if s.is_null() {
             return "";

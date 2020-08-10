@@ -24,7 +24,7 @@ impl<T: Type, C: Color> Meta<T, C> {
     }
 
     pub fn type_name(&self) -> &str {
-        T::name()
+        T::type_name()
     }
 }
 
