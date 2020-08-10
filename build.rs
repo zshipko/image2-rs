@@ -1,4 +1,7 @@
 fn main() {
     cpp_build::Config::new().build("src/io.rs");
-    println!("cargo:rustc-link-lib=OpenImageIO");
+
+    if cfg!(not(feature = "docs-rs")) {
+        println!("cargo:rustc-link-lib=OpenImageIO");
+    }
 }
