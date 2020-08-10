@@ -14,11 +14,11 @@ edition = "2018"
 [dependencies]
 cpp = "0.5"
 half = "1"
-rayon = "1"
 euclid = "0.22"
 lazy_static = "1"
 async-trait = "0.1"
 futures = "0.3"
+rayon = "1"
 serde = {version = "1", optional = true, features = ["derive"]}
 
 [build-dependencies]

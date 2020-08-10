@@ -8,7 +8,9 @@ A Rust crate focused on generic image processing for a wide range of image forma
 
 ## Features
 
-- Supports a wide range of data types, easy to implement new color types
+- Supports a wide range of data types
+- Easy to implement new color types
+- Read/write images of any supported type
 - Generic image processing across data types
 - Composable operations using `Filter` with async support
 
