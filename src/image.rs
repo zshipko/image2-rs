@@ -2,8 +2,8 @@ use std::marker::PhantomData;
 
 use crate::*;
 
-use rayon::prelude::*;
 use rayon::iter::ParallelIterator;
+use rayon::prelude::*;
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default)]
@@ -11,7 +11,7 @@ pub struct Region {
     pub x: usize,
     pub y: usize,
     pub width: usize,
-    pub height: usize
+    pub height: usize,
 }
 
 impl Region {
@@ -20,7 +20,7 @@ impl Region {
             x,
             y,
             width,
-            height
+            height,
         }
     }
 
@@ -137,12 +137,10 @@ impl<T: Type, C: Color> Image<T, C> {
         Hash(hash)
     }
 
-
     /// Create a new image with the same size, type and color
     pub fn new_like(&self) -> Image<T, C> {
         Image::new(self.meta.width, self.meta.height)
     }
-
 
     /// Create a new image with the same size and color as an existing image with the given type
     pub fn new_like_with_type<U: Type>(&self) -> Image<U, C> {
@@ -293,7 +291,6 @@ impl<T: Type, C: Color> Image<T, C> {
         input.read()
     }
 
-
     /// Save an image to disk
     pub fn save(&self, path: impl AsRef<std::path::Path>) -> Result<(), Error> {
         let output = io::Output::create(path)?;
@@ -324,7 +321,7 @@ impl<T: Type, C: Color> Image<T, C> {
     /// Iterate over part of an image in parallel
     pub fn pixels_region<'a>(
         &'a self,
-        roi: Region
+        roi: Region,
     ) -> impl 'a + rayon::iter::ParallelIterator<Item = ((usize, usize), &[T])> {
         let (width, _height, channels) = self.shape();
         self.data
@@ -427,7 +424,7 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Copy a region of an image to a new image
-    pub async fn crop(&self, roi: Region) -> Image<T, C> {
+    pub fn crop(&self, roi: Region) -> Image<T, C> {
         let mut dest = Image::new(roi.width, roi.height);
         dest.each_pixel_mut(|(x, y), px| {
             px.copy_from_slice(self.get(x, y));
