@@ -14,6 +14,7 @@ edition = "2018"
 [dependencies]
 cpp = "0.5"
 half = "1"
+thiserror = "1"
 euclid = "0.22"
 lazy_static = "1"
 async-trait = "0.1"

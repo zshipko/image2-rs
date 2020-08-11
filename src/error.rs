@@ -1,37 +1,23 @@
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("Out of bounds: ({0}, {1})")]
     OutOfBounds(usize, usize),
+
+    #[error("Unable to open image: {0}")]
     UnableToOpenImage(String),
+
+    #[error("Unable to write image: {0}")]
     UnableToWriteImage(String),
+
+    #[error("Cannot read image: {0}")]
     CannotReadImage(String),
+
+    #[error("Invalid image dimensions: width={0}, height={1}, channels={2}")]
     InvalidDimensions(usize, usize, usize),
+
+    #[error("Failed color conversion from {0} to {1}")]
     FailedColorConversion(String, String),
+
+    #[error("Multiple images not supported in image: {0}")]
     MultipleImagesNotSupported(String),
-    Std(Box<dyn std::error::Error>),
-}
-
-impl<E: 'static + std::error::Error> From<E> for Error {
-    fn from(e: E) -> Error {
-        Error::Std(Box::new(e))
-    }
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use Error::*;
-        match self {
-            OutOfBounds(x, y) => write!(fmt, "out of bounds: {}, {}", x, y),
-            UnableToOpenImage(filename) => write!(fmt, "unable to open image: {}", filename),
-            UnableToWriteImage(filename) => write!(fmt, "unable to write image: {}", filename),
-            CannotReadImage(filename) => write!(fmt, "cannot read image: {}", filename),
-            InvalidDimensions(w, h, c) => {
-                write!(fmt, "invalid image dimensions: {}x{}x{}", w, h, c)
-            }
-            FailedColorConversion(a, b) => write!(fmt, "failed color conversion: {} to {}", a, b),
-            MultipleImagesNotSupported(filename) => {
-                write!(fmt, "multiple images not supported: {}", filename)
-            }
-            Std(e) => write!(fmt, "error: {:?}", e),
-        }
-    }
 }
