@@ -22,7 +22,7 @@ impl Filter for Transform {
 #[inline]
 pub fn rotate(deg: f64, center: Point<f64>) -> Transform {
     Transform(
-        euclid::Transform2D::rotation(euclid::Angle::degrees(deg))
+        euclid::Transform2D::rotation(euclid::Angle::degrees(-deg))
             .pre_translate(euclid::Vector2D::new(-center.x, -center.y))
             .then_translate(euclid::Vector2D::new(center.x, center.y)),
     )
@@ -51,8 +51,8 @@ pub fn rotate90(
     dest: &Image<impl Type, impl Color>,
     src: &Image<impl Type, impl Color>,
 ) -> Transform {
-    let dwidth = src.width() as f64;
-    let height = dest.height() as f64;
+    let dwidth = dest.width() as f64;
+    let height = src.height() as f64;
     rotate(90., Point::new(dwidth / 2., height / 2.))
 }
 
@@ -66,15 +66,15 @@ pub fn rotate270(
     dest: &Image<impl Type, impl Color>,
     src: &Image<impl Type, impl Color>,
 ) -> Transform {
-    let width = src.height() as f64;
-    let dheight = dest.width() as f64;
+    let width = dest.height() as f64;
+    let dheight = src.width() as f64;
     rotate(270., Point::new(width / 2., dheight / 2.))
 }
 
 #[cfg(test)]
 mod test {
     use crate::{
-        transform::{resize, rotate180, rotate90, scale},
+        transform::{resize, rotate180, rotate270, rotate90, scale},
         Filter, Image, Rgb,
     };
 
@@ -92,6 +92,14 @@ mod test {
         let mut dest = a.new_like();
         rotate180(&a).eval(&mut dest, &[&a]);
         assert!(dest.save("images/test-rotate180.jpg").is_ok())
+    }
+
+    #[test]
+    fn test_rotate270() {
+        let a = Image::<f32, Rgb>::open("images/A.exr").unwrap();
+        let mut dest: Image<f32, Rgb> = Image::new(a.height(), a.width());
+        rotate270(&dest, &a).eval(&mut dest, &[&a]);
+        assert!(dest.save("images/test-rotate270.jpg").is_ok())
     }
 
     #[test]
