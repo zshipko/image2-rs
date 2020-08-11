@@ -374,6 +374,16 @@ impl<T: Type, C: Color> Image<T, C> {
         self.pixels_mut().for_each(|((x, y), px)| f((x, y), px));
     }
 
+    /// Iterate over a region of pixels in parallel
+    pub fn for_each_region<F: Sync + Send + Fn((usize, usize), &mut [T])>(
+        &mut self,
+        roi: Region,
+        f: F,
+    ) {
+        self.pixels_region_mut(roi)
+            .for_each(|((x, y), px)| f((x, y), px));
+    }
+
     /// Iterate over each pixel of two images at once in parallel
     pub fn for_each2<F: Sync + Send + Fn((usize, usize), &mut [T], &[T])>(
         &mut self,
@@ -426,10 +436,15 @@ impl<T: Type, C: Color> Image<T, C> {
     /// Copy a region of an image to a new image
     pub fn crop(&self, roi: Region) -> Image<T, C> {
         let mut dest = Image::new(roi.width, roi.height);
-        dest.each_pixel_mut(|(x, y), px| {
-            px.copy_from_slice(self.get(x, y));
-        });
+        dest.copy_region(Region::new(0, 0, roi.width, roi.height), self, roi.x, roi.y);
         dest
+    }
+
+    /// Copy into a region from another image starting at the given offset
+    pub fn copy_region(&mut self, roi: Region, other: &Image<T, C>, x_offs: usize, y_offs: usize) {
+        self.for_each_region(roi, |(x, y), px| {
+            px.copy_from_slice(other.get(x - roi.x + x_offs, y - roi.y + y_offs));
+        });
     }
 
     /// Apply a filter
