@@ -7,6 +7,13 @@ pub enum Error {
     InvalidDimensions(usize, usize, usize),
     FailedColorConversion(String, String),
     MultipleImagesNotSupported(String),
+    Std(Box<dyn std::error::Error>),
+}
+
+impl<E: 'static + std::error::Error> From<E> for Error {
+    fn from(e: E) -> Error {
+        Error::Std(Box::new(e))
+    }
 }
 
 impl std::fmt::Display for Error {
@@ -24,8 +31,7 @@ impl std::fmt::Display for Error {
             MultipleImagesNotSupported(filename) => {
                 write!(fmt, "multiple images not supported: {}", filename)
             }
+            Std(e) => write!(fmt, "error: {:?}", e),
         }
     }
 }
-
-impl std::error::Error for Error {}
