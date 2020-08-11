@@ -42,7 +42,7 @@ pub use color::{Color, Convert, Gray, Rgb, Rgba, Xyz};
 pub use error::Error;
 pub use filter::Filter;
 pub use histogram::Histogram;
-pub use image::{Hash, Image, Meta};
+pub use image::{Hash, Image, Meta, Region};
 pub use kernel::Kernel;
 pub use pixel::Pixel;
 pub use r#type::Type;

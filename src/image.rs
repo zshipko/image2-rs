@@ -3,6 +3,31 @@ use std::marker::PhantomData;
 use crate::*;
 
 use rayon::prelude::*;
+use rayon::iter::ParallelIterator;
+
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default)]
+pub struct Region {
+    pub x: usize,
+    pub y: usize,
+    pub width: usize,
+    pub height: usize
+}
+
+impl Region {
+    pub fn new(x: usize, y: usize, width: usize, height: usize) -> Region {
+        Region {
+            x,
+            y,
+            width,
+            height
+        }
+    }
+
+    pub fn in_bounds(&self, x: usize, y: usize) -> bool {
+        x >= self.x && x < self.x + self.width && y >= self.y && y < self.y + self.height
+    }
+}
 
 /// Image metadata
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -276,12 +301,9 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Iterate over part of an image in parallel with mutable data access
-    pub fn pixels_rect_mut<'a>(
+    pub fn pixels_region_mut<'a>(
         &'a mut self,
-        x_: usize,
-        y_: usize,
-        width_: usize,
-        height_: usize,
+        roi: Region,
     ) -> impl 'a + rayon::iter::ParallelIterator<Item = ((usize, usize), &mut [T])> {
         let (width, _height, channels) = self.shape();
         self.data
@@ -291,7 +313,7 @@ impl<T: Type, C: Color> Image<T, C> {
             .filter_map(move |(n, pixel)| {
                 let y = n / width;
                 let x = n - (y * width);
-                if x >= x_ && x < x_ + width_ && y >= y_ && y < y_ + height_ {
+                if roi.in_bounds(x, y) {
                     return Some(((x, y), pixel));
                 }
 
@@ -300,12 +322,9 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Iterate over part of an image in parallel
-    pub fn pixels_rect<'a>(
+    pub fn pixels_region<'a>(
         &'a self,
-        x_: usize,
-        y_: usize,
-        width_: usize,
-        height_: usize,
+        roi: Region
     ) -> impl 'a + rayon::iter::ParallelIterator<Item = ((usize, usize), &[T])> {
         let (width, _height, channels) = self.shape();
         self.data
@@ -315,7 +334,7 @@ impl<T: Type, C: Color> Image<T, C> {
             .filter_map(move |(n, pixel)| {
                 let y = n / width;
                 let x = n - (y * width);
-                if x >= x_ && x < x_ + width_ && y >= y_ && y < y_ + height_ {
+                if roi.in_bounds(x, y) {
                     return Some(((x, y), pixel));
                 }
 
@@ -394,7 +413,7 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Iterate over mutable pixels, single threaded
-    pub async fn each_pixel_mut<F: Sync + Send + FnMut((usize, usize), &mut [T])>(&mut self, mut f: F) {
+    pub fn each_pixel_mut<F: Sync + Send + FnMut((usize, usize), &mut [T])>(&mut self, mut f: F) {
         let (width, _height, channels) = self.shape();
         self.data
             .as_mut_slice()
@@ -405,6 +424,15 @@ impl<T: Type, C: Color> Image<T, C> {
                 let x = n - (y * width);
                 f((x, y), pixel)
             });
+    }
+
+    /// Copy a region of an image to a new image
+    pub async fn crop(&self, roi: Region) -> Image<T, C> {
+        let mut dest = Image::new(roi.width, roi.height);
+        dest.each_pixel_mut(|(x, y), px| {
+            px.copy_from_slice(self.get(x, y));
+        });
+        dest
     }
 
     /// Apply a filter

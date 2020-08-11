@@ -10,16 +10,13 @@ pub trait Filter: Sized + Sync {
     /// Evaluate a filter on part of an image
     fn eval_partial<A: Type, B: Type, C: Color, D: Color>(
         &self,
-        start_x: usize,
-        start_y: usize,
-        width: usize,
-        height: usize,
+        roi: Region,
         output: &mut Image<A, impl Color>,
         input: &[&Image<B, impl Color>],
     ) {
         let channels = output.channels();
         output
-            .pixels_rect_mut(start_x, start_y, width, height)
+            .pixels_region_mut(roi)
             .for_each(|((x, y), pixel)| {
                 for (c, px) in pixel.iter_mut().enumerate().take(channels) {
                     px.set_from_f64(self.compute_at(x, y, c, input));
