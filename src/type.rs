@@ -17,6 +17,10 @@ pub trait Type: Unpin + Default + Clone + Copy + Sync + Send + PartialEq + Parti
         *self = Self::from_f64(f);
     }
 
+    fn set_from_norm(&mut self, f: f64) {
+        *self = Self::from_norm(f);
+    }
+
     fn to_norm(&self) -> f64 {
         Self::normalize(self.to_f64())
     }

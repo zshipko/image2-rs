@@ -20,6 +20,8 @@ async-trait = "0.1"
 futures = "0.3"
 rayon = "1"
 serde = {version = "1", optional = true, features = ["derive"]}
+glfw = {version = "0.39", optional = true}
+gl = {version = "0.14", optional = true}
 
 [build-dependencies]
 cpp_build = "0.5"

@@ -265,6 +265,7 @@ impl<T: Type, C: Color> Image<T, C> {
         if !self.in_bounds(x, y) || c >= C::CHANNELS {
             return 0.0;
         }
+
         let data = self.get(x, y);
         data[c].to_norm()
     }
@@ -449,12 +450,12 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Apply a filter
     pub fn apply(
-        &self,
+        &mut self,
+        input: &[&Image<impl Type, impl Color>],
         filter: impl Filter,
-        mut dest: Image<impl Type, impl Color>,
-    ) -> Image<impl Type, impl Color> {
-        filter.eval(&mut dest, &[self]);
-        dest
+    ) -> &mut Self {
+        filter.eval(self, input);
+        self
     }
 
     /// Convert to `ImageBuf`

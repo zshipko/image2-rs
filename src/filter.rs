@@ -19,7 +19,7 @@ pub trait Filter: Sized + Sync {
             .pixels_region_mut(roi)
             .for_each(|((x, y), pixel)| {
                 for (c, px) in pixel.iter_mut().enumerate().take(channels) {
-                    px.set_from_f64(self.compute_at(x, y, c, input));
+                    px.set_from_norm(self.compute_at(x, y, c, input));
                 }
             });
     }
@@ -29,7 +29,7 @@ pub trait Filter: Sized + Sync {
         let channels = output.channels();
         output.for_each(|(x, y), pixel| {
             for (c, px) in pixel.iter_mut().enumerate().take(channels) {
-                px.set_from_f64(self.compute_at(x, y, c, input));
+                px.set_from_norm(self.compute_at(x, y, c, input));
             }
         });
     }
