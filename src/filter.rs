@@ -1,5 +1,6 @@
 use crate::*;
 
+#[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
 

@@ -2,8 +2,8 @@ use std::marker::PhantomData;
 
 use crate::*;
 
-use rayon::iter::ParallelIterator;
-use rayon::prelude::*;
+#[cfg(feature = "parallel")]
+use rayon::{iter::ParallelIterator, prelude::*};
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default)]
@@ -40,6 +40,15 @@ pub struct Meta<T: Type, C: Color> {
 }
 
 impl<T: Type, C: Color> Meta<T, C> {
+    pub fn new(w: usize, h: usize) -> Meta<T, C> {
+        Meta {
+            width: w,
+            height: h,
+            _type: PhantomData,
+            _color: PhantomData,
+        }
+    }
+
     pub fn has_alpha(&self) -> bool {
         C::ALPHA
     }
@@ -191,6 +200,24 @@ impl<T: Type, C: Color> Image<T, C> {
         (self.meta.width, self.meta.height, self.channels())
     }
 
+    pub fn buffer(&self) -> &[u8] {
+        unsafe {
+            std::slice::from_raw_parts(
+                self.data.as_ptr() as *const u8,
+                self.data.len() * std::mem::size_of::<T>(),
+            )
+        }
+    }
+
+    pub fn buffer_mut(&self) -> &[u8] {
+        unsafe {
+            std::slice::from_raw_parts_mut(
+                self.data.as_ptr() as *mut u8,
+                self.data.len() * std::mem::size_of::<T>(),
+            )
+        }
+    }
+
     /// Returns the size of a row
     #[inline]
     pub fn width_step(&self) -> usize {
@@ -288,17 +315,36 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Open an image from disk
     pub fn open(path: impl AsRef<std::path::Path>) -> Result<Image<T, C>, Error> {
-        let input = io::Input::open(path)?;
-        input.read()
+        #[cfg(feature = "oiio")]
+        {
+            let input = io::Input::open(path)?;
+            input.read()
+        }
+
+        #[cfg(not(feature = "oiio"))]
+        {
+            let x = io::magick::read(path)?;
+            Ok(x)
+        }
     }
 
     /// Save an image to disk
     pub fn save(&self, path: impl AsRef<std::path::Path>) -> Result<(), Error> {
-        let output = io::Output::create(path)?;
-        output.write(self)
+        #[cfg(feature = "oiio")]
+        {
+            let output = io::Output::create(path)?;
+            output.write(self)
+        }
+
+        #[cfg(not(feature = "oiio"))]
+        {
+            io::magick::write(path, self)?;
+            Ok(())
+        }
     }
 
     /// Iterate over part of an image in parallel with mutable data access
+    #[cfg(feature = "parallel")]
     pub fn pixels_region_mut<'a>(
         &'a mut self,
         roi: Region,
@@ -319,7 +365,30 @@ impl<T: Type, C: Color> Image<T, C> {
             })
     }
 
+    /// Iterate over part of an image with mutable data access
+    #[cfg(not(feature = "parallel"))]
+    pub fn pixels_region_mut<'a>(
+        &'a mut self,
+        roi: Region,
+    ) -> impl 'a + std::iter::Iterator<Item = ((usize, usize), &mut [T])> {
+        let (width, _height, channels) = self.shape();
+        self.data
+            .as_mut_slice()
+            .chunks_mut(channels)
+            .enumerate()
+            .filter_map(move |(n, pixel)| {
+                let y = n / width;
+                let x = n - (y * width);
+                if roi.in_bounds(x, y) {
+                    return Some(((x, y), pixel));
+                }
+
+                None
+            })
+    }
+
     /// Iterate over part of an image in parallel
+    #[cfg(feature = "parallel")]
     pub fn pixels_region<'a>(
         &'a self,
         roi: Region,
@@ -340,7 +409,30 @@ impl<T: Type, C: Color> Image<T, C> {
             })
     }
 
+    /// Iterate over part of an image
+    #[cfg(not(feature = "parallel"))]
+    pub fn pixels_region<'a>(
+        &'a self,
+        roi: Region,
+    ) -> impl 'a + std::iter::Iterator<Item = ((usize, usize), &[T])> {
+        let (width, _height, channels) = self.shape();
+        self.data
+            .as_slice()
+            .chunks(channels)
+            .enumerate()
+            .filter_map(move |(n, pixel)| {
+                let y = n / width;
+                let x = n - (y * width);
+                if roi.in_bounds(x, y) {
+                    return Some(((x, y), pixel));
+                }
+
+                None
+            })
+    }
+
     /// Get pixel iterator
+    #[cfg(feature = "parallel")]
     pub fn pixels<'a>(
         &'a self,
     ) -> impl 'a + rayon::iter::ParallelIterator<Item = ((usize, usize), &[T])> {
@@ -355,7 +447,22 @@ impl<T: Type, C: Color> Image<T, C> {
             })
     }
 
+    /// Get pixel iterator
+    #[cfg(not(feature = "parallel"))]
+    pub fn pixels<'a>(&'a self) -> impl 'a + std::iter::Iterator<Item = ((usize, usize), &[T])> {
+        let (width, _height, channels) = self.shape();
+        self.data
+            .chunks(channels)
+            .enumerate()
+            .map(move |(n, pixel)| {
+                let y = n / width;
+                let x = n - (y * width);
+                ((x, y), pixel)
+            })
+    }
+
     /// Get mutable pixel iterator
+    #[cfg(feature = "parallel")]
     pub fn pixels_mut<'a>(
         &'a mut self,
     ) -> impl 'a + rayon::iter::ParallelIterator<Item = ((usize, usize), &mut [T])> {
@@ -370,12 +477,28 @@ impl<T: Type, C: Color> Image<T, C> {
             })
     }
 
-    /// Iterate over each pixel in parallel
+    /// Get mutable pixel iterator
+    #[cfg(not(feature = "parallel"))]
+    pub fn pixels_mut<'a>(
+        &'a mut self,
+    ) -> impl 'a + std::iter::Iterator<Item = ((usize, usize), &mut [T])> {
+        let (width, _height, channels) = self.shape();
+        self.data
+            .chunks_mut(channels)
+            .enumerate()
+            .map(move |(n, pixel)| {
+                let y = n / width;
+                let x = n - (y * width);
+                ((x, y), pixel)
+            })
+    }
+
+    /// Iterate over each pixel applying `f` to every pixel
     pub fn for_each<F: Sync + Send + Fn((usize, usize), &mut [T])>(&mut self, f: F) {
         self.pixels_mut().for_each(|((x, y), px)| f((x, y), px));
     }
 
-    /// Iterate over a region of pixels in parallel
+    /// Iterate over a region of pixels qpplying `f` to every pixel
     pub fn for_each_region<F: Sync + Send + Fn((usize, usize), &mut [T])>(
         &mut self,
         roi: Region,
@@ -385,7 +508,8 @@ impl<T: Type, C: Color> Image<T, C> {
             .for_each(|((x, y), px)| f((x, y), px));
     }
 
-    /// Iterate over each pixel of two images at once in parallel
+    /// Iterate over each pixel of two images at once
+    #[cfg(feature = "parallel")]
     pub fn for_each2<F: Sync + Send + Fn((usize, usize), &mut [T], &[T])>(
         &mut self,
         other: &Image<T, C>,
@@ -405,7 +529,28 @@ impl<T: Type, C: Color> Image<T, C> {
             });
     }
 
-    /// Iterate over pixels, single threaded
+    /// Iterate over each pixel of two images at once
+    #[cfg(not(feature = "parallel"))]
+    pub fn for_each2<F: Sync + Send + Fn((usize, usize), &mut [T], &[T])>(
+        &mut self,
+        other: &Image<T, C>,
+        f: F,
+    ) {
+        let (width, _height, channels) = self.shape();
+        let b = other.data.as_slice().chunks(channels);
+        self.data
+            .as_mut_slice()
+            .chunks_mut(channels)
+            .zip(b)
+            .enumerate()
+            .for_each(|(n, (pixel, pixel1))| {
+                let y = n / width;
+                let x = n - (y * width);
+                f((x, y), pixel, pixel1)
+            });
+    }
+
+    /// Iterate over pixels, with a mutable closure
     pub fn each_pixel<F: Sync + Send + FnMut((usize, usize), &[T])>(&self, mut f: F) {
         let (width, _height, channels) = self.shape();
 
@@ -420,7 +565,7 @@ impl<T: Type, C: Color> Image<T, C> {
             })
     }
 
-    /// Iterate over mutable pixels, single threaded
+    /// Iterate over mutable pixels, with a mutable closure
     pub fn each_pixel_mut<F: Sync + Send + FnMut((usize, usize), &mut [T])>(&mut self, mut f: F) {
         let (width, _height, channels) = self.shape();
         self.data
@@ -459,6 +604,7 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Convert to `ImageBuf`
+    #[cfg(feature = "oiio")]
     pub(crate) fn image_buf(&mut self) -> io::internal::ImageBuf {
         io::internal::ImageBuf::new_with_data(
             self.meta.width,
@@ -469,6 +615,7 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Convert to `ImageBuf`
+    #[cfg(feature = "oiio")]
     pub(crate) fn const_image_buf(&self) -> io::internal::ImageBuf {
         io::internal::ImageBuf::const_new_with_data(
             self.meta.width,
@@ -479,6 +626,7 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Convert colorspace from `a` to `b` into an existing image
+    #[cfg(feature = "oiio")]
     pub fn convert_colorspace_to(
         &self,
         dest: &mut Image<T, C>,
@@ -498,6 +646,7 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Convert colorspace from `a` to `b` into a new image
+    #[cfg(feature = "oiio")]
     pub fn convert_colorspace(
         &self,
         a: impl AsRef<str>,

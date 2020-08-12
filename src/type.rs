@@ -9,8 +9,31 @@ pub trait Type: Unpin + Default + Clone + Copy + Sync + Send + PartialEq + Parti
 
     fn from_f64(f: f64) -> Self;
 
+    fn is_float() -> bool {
+        let x = Self::to_f64(&Self::from_f64(0.5));
+        x > 0.0 && x < 1.0
+    }
+
     fn type_name() -> &'static str {
-        io::internal::type_name(Self::BASE)
+        use io::BaseType::*;
+        match Self::BASE {
+            Unknown => "unknown",
+            None => "none",
+            UInt8 => "uint8",
+            Int8 => "int8",
+            UInt16 => "uint16",
+            Int16 => "int16",
+            UInt32 => "uint32",
+            Int32 => "int32",
+            UInt64 => "uint64",
+            Int64 => "int64",
+            Half => "half",
+            Float => "float",
+            Double => "double",
+            String => "string",
+            Ptr => "ptr",
+            Last => "",
+        }
     }
 
     fn set_from_f64(&mut self, f: f64) {

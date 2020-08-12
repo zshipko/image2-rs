@@ -1,3 +1,4 @@
+use super::BaseType;
 use crate::*;
 
 use cpp::{cpp, cpp_class};
@@ -8,30 +9,6 @@ cpp! {{
     #include <OpenImageIO/imagebufalgo.h>
     using namespace OIIO;
 }}
-
-/// `BaseType` is compatible with OpenImageIO's `TypeDesc::BASETYPE`
-///
-/// This enum is used to convert from `Type` into a representation that can be used with OIIO
-#[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
-pub enum BaseType {
-    Unknown,
-    None,
-    UInt8,
-    Int8,
-    UInt16,
-    Int16,
-    UInt32,
-    Int32,
-    UInt64,
-    Int64,
-    Half,
-    Float,
-    Double,
-    String,
-    Ptr,
-    Last,
-}
 
 /// Output is used to write images to disk
 pub struct Output {
@@ -482,28 +459,6 @@ impl ImageSpec {
 
 pub(crate) mod internal {
     use super::*;
-
-    pub fn type_name(t: BaseType) -> &'static str {
-        let mut len = 0;
-        let len_ptr = &mut len;
-
-        let s = unsafe {
-            cpp!([len_ptr as "size_t*", t as "TypeDesc::BASETYPE"] -> *const u8 as "const char *" {
-                auto s = TypeDesc(t).c_str();
-                *len_ptr = strlen(s);
-                return s;
-            })
-        };
-
-        if s.is_null() {
-            return "";
-        }
-
-        unsafe {
-            let slice = std::slice::from_raw_parts(s, len);
-            std::str::from_utf8_unchecked(slice)
-        }
-    }
 
     pub fn to_attr(param: &ParamValue) -> Option<Attr<'_>> {
         let t = param.ty();
