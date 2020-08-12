@@ -343,7 +343,7 @@ impl<T: Type, C: Color> Image<T, C> {
         }
     }
 
-    /// Iterate over part of an image in parallel with mutable data access
+    /// Iterate over part of an image with mutable data access
     #[cfg(feature = "parallel")]
     pub fn pixels_region_mut<'a>(
         &'a mut self,
@@ -387,7 +387,7 @@ impl<T: Type, C: Color> Image<T, C> {
             })
     }
 
-    /// Iterate over part of an image in parallel
+    /// Iterate over part of an image
     #[cfg(feature = "parallel")]
     pub fn pixels_region<'a>(
         &'a self,

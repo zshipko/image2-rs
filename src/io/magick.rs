@@ -112,22 +112,22 @@ impl Magick {
         depth::<T, C>(&mut cmd);
         cmd.arg(kind);
 
-        let mut cmd = match cmd.output() {
+        let cmd = match cmd.output() {
             Ok(cmd) => cmd,
             Err(_) => return Err(Error::InvalidImageData),
         };
 
-        let data = unsafe {
-            Vec::from_raw_parts(
-                cmd.stdout.as_mut_ptr() as *mut T,
-                cmd.stdout.len() / std::mem::size_of::<T>(),
-                cmd.stdout.capacity() / std::mem::size_of::<T>(),
-            )
-        };
+        if cmd.stdout.len() != std::mem::size_of::<T>() * width * height * C::CHANNELS {
+            return Err(Error::InvalidImageData);
+        }
 
         Ok(Image {
             meta: crate::Meta::new(width, height),
-            data,
+            data: unsafe {
+                let mut data: Vec<T> = std::mem::transmute(cmd.stdout);
+                data.set_len(width * height * C::CHANNELS);
+                data
+            },
         })
     }
 

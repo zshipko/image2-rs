@@ -1,5 +1,7 @@
 use crate::*;
 use filter::*;
+
+#[cfg(feature = "oiio")]
 use io::*;
 
 use std::time::Instant;
@@ -118,6 +120,7 @@ fn test_sobel() {
     assert!(dest.save("images/test-sobel.jpg").is_ok());
 }
 
+#[cfg(feature = "oiio")]
 #[test]
 fn test_convert_color() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
@@ -128,6 +131,7 @@ fn test_convert_color() {
     assert!(image3.save("images/test-convert-color2.jpg").is_ok());
 }
 
+#[cfg(feature = "oiio")]
 #[test]
 fn test_metadata() {
     let input = Input::open("images/A.exr").unwrap();

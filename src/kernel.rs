@@ -1,8 +1,6 @@
 use std::f64;
 use std::ops;
 
-use lazy_static::lazy_static;
-
 use crate::*;
 
 /// Kernels defines a 2-dimensional convolution filter
@@ -135,44 +133,44 @@ pub fn gaussian(n: usize, std: f64) -> Kernel {
     k
 }
 
-lazy_static! {
-    pub static ref GAUSSIAN_3X3: Kernel = gaussian(3, 1.4);
+pub fn gaussian_3x3() -> Kernel {
+    gaussian(3, 1.4)
 }
 
-lazy_static! {
-    pub static ref GAUSSIAN_5X5: Kernel = gaussian(5, 1.4);
+pub fn gaussian_5x5() -> Kernel {
+    gaussian(5, 1.4)
 }
 
-lazy_static! {
-    pub static ref GAUSSIAN_7X7: Kernel = gaussian(7, 1.4);
+pub fn gaussian_7x7() -> Kernel {
+    gaussian(7, 1.4)
 }
 
-lazy_static! {
-    pub static ref GAUSSIAN_9X9: Kernel = gaussian(9, 1.4);
+pub fn gaussian_9x9() -> Kernel {
+    gaussian(9, 1.4)
 }
 
-lazy_static! {
-    pub static ref SOBEL_X: Kernel = Kernel {
+pub fn sobel_x() -> Kernel {
+    Kernel {
         rows: 3,
         cols: 3,
         data: vec![
             vec![1.0, 0.0, -1.0],
             vec![2.0, 0.0, -2.0],
             vec![1.0, 0.0, -1.0],
-        ]
-    };
+        ],
+    }
 }
 
-lazy_static! {
-    pub static ref SOBEL_Y: Kernel = Kernel {
+pub fn sobel_y() -> Kernel {
+    Kernel {
         rows: 3,
         cols: 3,
         data: vec![
             vec![1.0, 2.0, 1.0],
             vec![0.0, 0.0, 0.0],
             vec![-1.0, -2.0, -1.0],
-        ]
-    };
+        ],
+    }
 }
 
 macro_rules! op {
@@ -226,21 +224,5 @@ op!(Div, div, |a, b| a / b);
 op!(Rem, rem, |a, b| a % b);
 
 pub fn sobel() -> Add {
-    SOBEL_X.clone() + SOBEL_Y.clone()
-}
-
-pub fn gaussian_3x3() -> Kernel {
-    GAUSSIAN_3X3.clone()
-}
-
-pub fn gaussian_5x5() -> Kernel {
-    GAUSSIAN_5X5.clone()
-}
-
-pub fn gaussian_7x7() -> Kernel {
-    GAUSSIAN_7X7.clone()
-}
-
-pub fn gaussian_9x9() -> Kernel {
-    GAUSSIAN_9X9.clone()
+    sobel_x() + sobel_y()
 }
