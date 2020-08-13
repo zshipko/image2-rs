@@ -669,4 +669,13 @@ impl<T: Type, C: Color> Image<T, C> {
 
         hist
     }
+
+    /// Gamma correction
+    pub fn gamma(&mut self, value: f64) {
+        self.for_each(|_, px| {
+            for x in px {
+                *x = T::from_f64(T::to_f64(x).powf(1. / value))
+            }
+        })
+    }
 }

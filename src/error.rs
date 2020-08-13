@@ -21,6 +21,7 @@ pub enum Error {
     #[error("Multiple images not supported in image: {0}")]
     MultipleImagesNotSupported(String),
 
+    #[cfg(not(feature = "oiio"))]
     #[error("Magick: {0}")]
     Magick(#[from] crate::io::magick::Error),
 }
