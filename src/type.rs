@@ -77,6 +77,10 @@ pub trait Type: Unpin + Default + Clone + Copy + Sync + Send + PartialEq + Parti
     fn convert<X: Type>(&self) -> X {
         X::from_f64(X::denormalize(Self::normalize(Self::to_f64(self))))
     }
+
+    fn bits() -> usize {
+        std::mem::size_of::<Self>() * 8
+    }
 }
 
 impl Type for u8 {

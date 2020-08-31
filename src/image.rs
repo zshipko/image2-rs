@@ -209,7 +209,7 @@ impl<T: Type, C: Color> Image<T, C> {
         }
     }
 
-    pub fn buffer_mut(&self) -> &[u8] {
+    pub fn buffer_mut(&mut self) -> &mut [u8] {
         unsafe {
             std::slice::from_raw_parts_mut(
                 self.data.as_ptr() as *mut u8,

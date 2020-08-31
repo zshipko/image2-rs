@@ -33,6 +33,9 @@ mod image;
 mod pixel;
 mod r#type;
 
+#[cfg(feature = "halide")]
+mod halide_wrapper;
+
 pub mod filter;
 pub mod io;
 pub mod kernel;
