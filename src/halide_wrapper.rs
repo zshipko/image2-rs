@@ -25,21 +25,4 @@ impl<T: Type, C: Color> crate::Image<T, C> {
             &mut self.data,
         ))
     }
-
-    /// Use the image as a halide_buffer_t
-    ///
-    /// NOTE: This buffer should only be used immutably, it is not safe to
-    /// use the resulting Buffer as an output argument. Use `as_mut_halide_buffer`
-    /// if you will be mutating the contents
-    pub fn as_halide_buffer(&self) -> Result<halide_runtime::Buffer, Error> {
-        let kind = kind::<T>()?;
-
-        Ok(halide_runtime::Buffer::new(
-            self.width() as i32,
-            self.height() as i32,
-            self.channels() as i32,
-            halide_runtime::Type::new(kind, T::bits() as u8),
-            unsafe { &mut *(self.data.as_slice() as *const [T] as *mut [T]) },
-        ))
-    }
 }
