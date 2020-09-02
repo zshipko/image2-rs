@@ -27,11 +27,11 @@ cpp_build = {version = "0.5", optional = true}
 smol = "*"
 
 [features]
-default = ["oiio", "parallel", "halide"]
+default = ["oiio", "parallel""]
 oiio = ["cpp", "cpp_build"]
 parallel = ["rayon"]
 halide = ["halide-runtime"]
 docs-rs = []
 
 [package.metadata.docs.rs]
-features = ["docs-rs", "oiio", "parallel"]
+features = ["docs-rs", "oiio", "parallel", "halide"]
