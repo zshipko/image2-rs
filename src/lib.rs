@@ -36,6 +36,9 @@ mod r#type;
 #[cfg(feature = "halide")]
 mod halide_wrapper;
 
+#[cfg(feature = "halide")]
+pub use halide_runtime as halide;
+
 pub mod filter;
 pub mod io;
 pub mod kernel;
