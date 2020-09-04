@@ -14,7 +14,7 @@ fn kind<T: Type>() -> Result<halide_runtime::Kind, Error> {
 
 impl<T: Type, C: Color> crate::Image<T, C> {
     /// Use the image as a mutable halide_buffer_t
-    pub fn as_mut_halide_buffer(&mut self) -> Result<halide_runtime::Buffer, Error> {
+    pub fn to_mut_halide_buffer(&mut self) -> Result<halide_runtime::Buffer, Error> {
         let kind = kind::<T>()?;
 
         Ok(halide_runtime::Buffer::new(
@@ -23,6 +23,19 @@ impl<T: Type, C: Color> crate::Image<T, C> {
             self.channels() as i32,
             halide_runtime::Type::new(kind, T::bits() as u8),
             &mut self.data,
+        ))
+    }
+
+    /// Use the image as a mutable halide_buffer_t
+    pub fn to_halide_buffer(&self) -> Result<halide_runtime::Buffer, Error> {
+        let kind = kind::<T>()?;
+
+        Ok(halide_runtime::Buffer::new_const(
+            self.width() as i32,
+            self.height() as i32,
+            self.channels() as i32,
+            halide_runtime::Type::new(kind, T::bits() as u8),
+            &self.data,
         ))
     }
 }
