@@ -92,6 +92,45 @@ impl Color for Xyz {
     }
 }
 
+color!(Hsv);
+impl Color for Hsv {
+    const NAME: &'static str = "hsv";
+    const CHANNELS: usize = 3;
+
+    fn from_rgb(c: usize, rgb: &Pixel<Rgb>) -> f64 {
+        let r = rgb[0];
+        let g = rgb[1];
+        let b = rgb[2];
+        let cmax = r.max(g).max(b);
+        let cmin = r.min(g).min(b);
+        let delta = cmax - cmin;
+        match c {
+            0 => {
+                if cmin == cmax {
+                    0.0
+                } else if cmax == rgb[0] {
+                    (60. * ((g - b) / delta) + 360.0) % 360.
+                } else if cmax == rgb[1] {
+                    (60. * ((b - r) / delta) + 120.0) % 360.
+                } else if cmax == rgb[2] {
+                    (60. * ((r - g) / delta) + 240.0) % 360.
+                } else {
+                    -1.0
+                }
+            }
+            1 => {
+                if cmax == 0.0 {
+                    0.0
+                } else {
+                    (delta / cmax) * 100.0
+                }
+            }
+            2 => cmax * 100.,
+            _ => -1.0,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Default)]
 pub struct Convert<T: Color>(std::marker::PhantomData<T>);
 
