@@ -1,3 +1,5 @@
+#![allow(clippy::float_cmp)]
+
 use crate::*;
 
 pub trait Color: Unpin + PartialEq + Eq + Clone + Sync + Send {
