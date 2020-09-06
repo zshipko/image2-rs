@@ -108,11 +108,11 @@ impl Color for Hsv {
             0 => {
                 if cmin == cmax {
                     0.0
-                } else if cmax == rgb[0] {
+                } else if cmax == r {
                     (60. * ((g - b) / delta) + 360.0) % 360.
-                } else if cmax == rgb[1] {
+                } else if cmax == g {
                     (60. * ((b - r) / delta) + 120.0) % 360.
-                } else if cmax == rgb[2] {
+                } else if cmax == b {
                     (60. * ((r - g) / delta) + 240.0) % 360.
                 } else {
                     -1.0
