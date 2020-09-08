@@ -133,6 +133,70 @@ impl Color for Hsv {
     }
 }
 
+color!(Yuv);
+impl Color for Yuv {
+    const NAME: &'static str = "yuv";
+    const CHANNELS: usize = 3;
+
+    fn from_rgb(c: usize, rgb: &Pixel<Rgb>) -> f64 {
+        let r = rgb[0];
+        let g = rgb[1];
+        let b = rgb[2];
+
+        match c {
+            0 => 0.299 * r + 0.587 * g + 0.114 * b,
+            1 => -0.147 * r + 0.289 + g + 0.436 * b,
+            2 => 0.615 * r + 0.515 * g + 0.1 * b,
+            _ => 0.0,
+        }
+    }
+
+    fn to_rgb(c: usize, px: &Pixel<Self>) -> f64 {
+        let y = px[0];
+        let u = px[1];
+        let v = px[2];
+        match c {
+            0 => y + 1.14 * v,
+            1 => y - 0.395 * u - 0.581 * v,
+            2 => y + 2.032 * u,
+            _ => 0.0,
+        }
+    }
+}
+
+color!(Cmyk);
+impl Color for Cmyk {
+    const NAME: &'static str = "cmyk";
+    const CHANNELS: usize = 4;
+
+    fn from_rgb(c: usize, rgb: &Pixel<Rgb>) -> f64 {
+        let r = rgb[0];
+        let g = rgb[1];
+        let b = rgb[2];
+        let k = 1.0 - r.max(g).max(b);
+        match c {
+            0 => (1. - r - k) / (1. - k),
+            1 => (1. - g - k) / (1. - k),
+            2 => (1. - b - k) / (1.0 - k),
+            4 => k,
+            _ => 0.0,
+        }
+    }
+
+    fn to_rgb(i: usize, cmyk: &Pixel<Cmyk>) -> f64 {
+        let c = cmyk[0];
+        let m = cmyk[1];
+        let y = cmyk[2];
+        let k = cmyk[3];
+        match i {
+            0 => (1. - c / 100.) * (1. - k / 100.),
+            1 => (1. - m / 100.) * (1. - k / 100.),
+            2 => (1. - y / 100.) * (1. - k / 100.),
+            _ => 0.0,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Default)]
 pub struct Convert<T: Color>(std::marker::PhantomData<T>);
 
