@@ -5,6 +5,20 @@ pub struct Histogram {
     pub bins: Box<[usize]>,
 }
 
+impl std::ops::Index<usize> for Histogram {
+    type Output = usize;
+
+    fn index(&self, i: usize) -> &usize {
+        &self.bins[i]
+    }
+}
+
+impl std::ops::IndexMut<usize> for Histogram {
+    fn index_mut(&mut self, i: usize) -> &mut usize {
+        &mut self.bins[i]
+    }
+}
+
 impl Histogram {
     pub fn new(nbins: usize) -> Histogram {
         Histogram {
