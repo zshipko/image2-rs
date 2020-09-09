@@ -45,7 +45,7 @@ impl Histogram {
 
     /// Get the bin index of the minimum value. There may be other bins with the same value, which
     /// would not be reported by this function
-    pub fn min(&self) -> usize {
+    pub fn min_index(&self) -> usize {
         let mut min = usize::MAX;
         let mut index = 0;
         for (i, n) in self.bins.iter().enumerate() {
@@ -58,8 +58,9 @@ impl Histogram {
         index
     }
 
-    /// Get the bin index
-    pub fn max(&self) -> usize {
+    /// Get the bin index of the maximum value. There may be other bins with the same value, which
+    /// would not be reported by this function
+    pub fn max_index(&self) -> usize {
         let mut max = 0;
         let mut index = 0;
         for (i, n) in self.bins.iter().enumerate() {
