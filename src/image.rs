@@ -108,6 +108,34 @@ impl From<Hash> for u128 {
     }
 }
 
+impl<T: Type, C: Color> std::ops::Index<(usize, usize)> for Image<T, C> {
+    type Output = [T];
+
+    fn index(&self, (x, y): (usize, usize)) -> &Self::Output {
+        self.get(x, y)
+    }
+}
+
+impl<T: Type, C: Color> std::ops::IndexMut<(usize, usize)> for Image<T, C> {
+    fn index_mut(&mut self, (x, y): (usize, usize)) -> &mut Self::Output {
+        self.get_mut(x, y)
+    }
+}
+
+impl<T: Type, C: Color> std::ops::Index<(usize, usize, usize)> for Image<T, C> {
+    type Output = T;
+
+    fn index(&self, (x, y, c): (usize, usize, usize)) -> &Self::Output {
+        &self.get(x, y)[c]
+    }
+}
+
+impl<T: Type, C: Color> std::ops::IndexMut<(usize, usize, usize)> for Image<T, C> {
+    fn index_mut(&mut self, (x, y, c): (usize, usize, usize)) -> &mut Self::Output {
+        &mut self.get_mut(x, y)[c]
+    }
+}
+
 impl<T: Type, C: Color> Image<T, C> {
     /// Create a new image
     pub fn new(width: usize, height: usize) -> Image<T, C> {
@@ -267,6 +295,21 @@ impl<T: Type, C: Color> Image<T, C> {
 
         px.copy_from_slice(self.get(x, y));
         true
+    }
+
+    /// Get row
+    #[inline]
+    pub fn row(&self, y: usize) -> &[T] {
+        let index = self.index(0, y);
+        &self.data[index..index + self.channels() * self.width()]
+    }
+
+    /// Get mutable row
+    #[inline]
+    pub fn row_mut(&mut self, y: usize) -> &mut [T] {
+        let index = self.index(0, y);
+        let len = self.channels() * self.width();
+        &mut self.data[index..index + len]
     }
 
     /// Load data from and `Image` into an existing `Pixel` structure
