@@ -35,6 +35,14 @@ impl Histogram {
         self.bins.iter().enumerate().map(|(a, b)| (a, *b))
     }
 
+    pub fn len(&self) -> usize {
+        self.bins.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Get the bin index of the minimum value. There may be other bins with the same value, which
     /// would not be reported by this function
     pub fn min(&self) -> usize {
