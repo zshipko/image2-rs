@@ -706,7 +706,7 @@ impl<T: Type, C: Color> Image<T, C> {
 
         self.each_pixel(|_, px| {
             for i in 0..C::CHANNELS {
-                hist[i].add(px[i]);
+                hist[i].add_value(px[i]);
             }
         });
 

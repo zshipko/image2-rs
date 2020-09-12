@@ -40,7 +40,7 @@ fn main() {
 
     let mut max = 0;
     for h in histogram.iter() {
-        max = h.bins[h.max()].max(max);
+        max = h.bins[h.max_index()].max(max);
     }
 
     max += 10;

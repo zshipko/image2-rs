@@ -26,7 +26,20 @@ impl Histogram {
         }
     }
 
-    pub fn add<T: Type>(&mut self, value: T) {
+    pub fn join<'a>(h: impl AsRef<[Histogram]>) -> Histogram {
+        let h = h.as_ref();
+        let mut hist = Histogram::new(h[0].len());
+
+        for i in h {
+            for (index, value) in i.bins() {
+                hist[index] = hist[index] + value
+            }
+        }
+
+        hist
+    }
+
+    pub fn add_value<T: Type>(&mut self, value: T) {
         let x = value.to_norm() * (self.bins.len() - 1) as f64;
         self.bins[x as usize] += 1
     }
@@ -89,8 +102,8 @@ mod tests {
 
         for h in hist {
             assert!(h.bins[0] == 100 * 100);
-            assert!(h.min() == 1);
-            assert!(h.max() == 0);
+            assert!(h.min_index() == 1);
+            assert!(h.max_index() == 0);
         }
     }
 }
