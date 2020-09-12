@@ -388,7 +388,7 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Iterate over part of an image with mutable data access
     #[cfg(feature = "parallel")]
-    pub fn pixels_region_mut<'a>(
+    pub fn parallel_iter_region_mut<'a>(
         &'a mut self,
         roi: Region,
     ) -> impl 'a + rayon::iter::ParallelIterator<Item = ((usize, usize), &mut [T])> {
@@ -409,8 +409,7 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Iterate over part of an image with mutable data access
-    #[cfg(not(feature = "parallel"))]
-    pub fn pixels_region_mut<'a>(
+    pub fn iter_region_mut<'a>(
         &'a mut self,
         roi: Region,
     ) -> impl 'a + std::iter::Iterator<Item = ((usize, usize), &mut [T])> {
@@ -432,7 +431,7 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Iterate over part of an image
     #[cfg(feature = "parallel")]
-    pub fn pixels_region<'a>(
+    pub fn parallel_iter_region<'a>(
         &'a self,
         roi: Region,
     ) -> impl 'a + rayon::iter::ParallelIterator<Item = ((usize, usize), &[T])> {
@@ -453,8 +452,7 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Iterate over part of an image
-    #[cfg(not(feature = "parallel"))]
-    pub fn pixels_region<'a>(
+    pub fn iter_region<'a>(
         &'a self,
         roi: Region,
     ) -> impl 'a + std::iter::Iterator<Item = ((usize, usize), &[T])> {
@@ -476,7 +474,7 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Get pixel iterator
     #[cfg(feature = "parallel")]
-    pub fn pixels<'a>(
+    pub fn parallel_iter<'a>(
         &'a self,
     ) -> impl 'a + rayon::iter::ParallelIterator<Item = ((usize, usize), &[T])> {
         let (width, _height, channels) = self.shape();
@@ -491,8 +489,7 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Get pixel iterator
-    #[cfg(not(feature = "parallel"))]
-    pub fn pixels<'a>(&'a self) -> impl 'a + std::iter::Iterator<Item = ((usize, usize), &[T])> {
+    pub fn iter<'a>(&'a self) -> impl 'a + std::iter::Iterator<Item = ((usize, usize), &[T])> {
         let (width, _height, channels) = self.shape();
         self.data
             .chunks(channels)
@@ -506,7 +503,7 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Get mutable pixel iterator
     #[cfg(feature = "parallel")]
-    pub fn pixels_mut<'a>(
+    pub fn parallel_iter_mut<'a>(
         &'a mut self,
     ) -> impl 'a + rayon::iter::ParallelIterator<Item = ((usize, usize), &mut [T])> {
         let (width, _height, channels) = self.shape();
@@ -520,9 +517,8 @@ impl<T: Type, C: Color> Image<T, C> {
             })
     }
 
-    /// Get mutable pixel iterator
-    #[cfg(not(feature = "parallel"))]
-    pub fn pixels_mut<'a>(
+    /// Get mutable data iterator
+    pub fn iter_mut<'a>(
         &'a mut self,
     ) -> impl 'a + std::iter::Iterator<Item = ((usize, usize), &mut [T])> {
         let (width, _height, channels) = self.shape();
@@ -538,7 +534,17 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Iterate over each pixel applying `f` to every pixel
     pub fn for_each<F: Sync + Send + Fn((usize, usize), &mut [T])>(&mut self, f: F) {
-        self.pixels_mut().for_each(|((x, y), px)| f((x, y), px));
+        let x = |((x, y), px)| f((x, y), px);
+
+        #[cfg(feature = "parallel")]
+        {
+            self.parallel_iter_mut().for_each(x)
+        }
+
+        #[cfg(not(feature = "parallel"))]
+        {
+            self.iter_mut().for_each(x)
+        }
     }
 
     /// Iterate over a region of pixels qpplying `f` to every pixel
@@ -547,8 +553,16 @@ impl<T: Type, C: Color> Image<T, C> {
         roi: Region,
         f: F,
     ) {
-        self.pixels_region_mut(roi)
-            .for_each(|((x, y), px)| f((x, y), px));
+        let x = |((x, y), px)| f((x, y), px);
+        #[cfg(feature = "parallel")]
+        {
+            self.parallel_iter_region_mut(roi).for_each(x)
+        }
+
+        #[cfg(not(feature = "parallel"))]
+        {
+            self.iter_region_mut().for_each(x)
+        }
     }
 
     /// Iterate over each pixel of two images at once
@@ -720,5 +734,35 @@ impl<T: Type, C: Color> Image<T, C> {
                 *x = T::from_f64(T::to_f64(x).powf(1. / value))
             }
         })
+    }
+
+    pub fn min(&self) -> ((usize, usize), Pixel<C>) {
+        let mut min = Pixel::new();
+        let mut x = 0;
+        let mut y = 0;
+        self.iter().for_each(|((a, b), px)| {
+            let px = Pixel::from_slice(px);
+            if px < min {
+                min = px;
+                x = a;
+                y = b;
+            }
+        });
+        ((x, y), min)
+    }
+
+    pub fn max(&self) -> ((usize, usize), Pixel<C>) {
+        let mut max = Pixel::new().fill(1.0);
+        let mut x = 0;
+        let mut y = 0;
+        self.iter().for_each(|((a, b), px)| {
+            let px = Pixel::from_slice(px);
+            if px > max {
+                max = px;
+                x = a;
+                y = b;
+            }
+        });
+        ((x, y), max)
     }
 }

@@ -16,13 +16,22 @@ pub trait Filter: Sized + Sync {
         input: &[&Image<B, impl Color>],
     ) {
         let channels = output.channels();
-        output
-            .pixels_region_mut(roi)
-            .for_each(|((x, y), pixel)| {
-                for (c, px) in pixel.iter_mut().enumerate().take(channels) {
-                    px.set_from_norm(self.compute_at(x, y, c, input));
-                }
-            });
+
+        #[cfg(feature = "parallel")]
+        let iter = {
+            output.parallel_iter_region_mut(roi)
+        };
+
+        #[cfg(not(feature = "parallel"))]
+        let iter = {
+            output.iter_region_mut(roi)
+        };
+
+        iter.for_each(|((x, y), pixel)| {
+            for (c, px) in pixel.iter_mut().enumerate().take(channels) {
+                px.set_from_norm(self.compute_at(x, y, c, input));
+            }
+        });
     }
 
     /// Evaluate filter in parallel

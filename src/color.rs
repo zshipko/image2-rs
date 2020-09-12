@@ -2,7 +2,7 @@
 
 use crate::*;
 
-pub trait Color: Unpin + PartialEq + Eq + Clone + Sync + Send {
+pub trait Color: Unpin + PartialEq + Eq + PartialOrd + Ord + Clone + Sync + Send {
     const NAME: &'static str;
     const CHANNELS: usize;
     const ALPHA: bool = false;
@@ -25,7 +25,7 @@ pub trait Color: Unpin + PartialEq + Eq + Clone + Sync + Send {
 #[macro_export]
 macro_rules! color {
     ($t:ident) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
         pub struct $t;
 
         unsafe impl Sync for $t {}
