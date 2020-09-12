@@ -561,7 +561,7 @@ impl<T: Type, C: Color> Image<T, C> {
 
         #[cfg(not(feature = "parallel"))]
         {
-            self.iter_region_mut().for_each(x)
+            self.iter_region_mut(roi).for_each(x)
         }
     }
 
