@@ -2,7 +2,7 @@ use crate::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Histogram {
-    pub total: usize,
+    total: usize,
     bins: Box<[usize]>,
 }
 
@@ -111,6 +111,10 @@ impl Histogram {
     pub fn distribution(&self) -> Vec<f64> {
         let total: f64 = self.bins().map(|(_, x)| x as f64).sum();
         self.bins().map(|(_, x)| x as f64 / total).collect()
+    }
+
+    pub fn sum(&self) -> usize {
+        self.total
     }
 }
 
