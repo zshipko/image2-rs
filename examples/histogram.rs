@@ -39,8 +39,9 @@ fn main() {
     let histogram = image.histogram(255);
 
     let mut max = 0;
+
     for h in histogram.iter() {
-        max = h.bins[h.max_index()].max(max);
+        max = h.bin(h.max_index()).max(max);
     }
 
     max += 10;

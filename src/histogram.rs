@@ -2,7 +2,8 @@ use crate::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Histogram {
-    pub bins: Box<[usize]>,
+    pub total: usize,
+    bins: Box<[usize]>,
 }
 
 impl std::ops::Index<usize> for Histogram {
@@ -19,9 +20,16 @@ impl std::ops::IndexMut<usize> for Histogram {
     }
 }
 
+impl AsRef<[usize]> for Histogram {
+    fn as_ref(&self) -> &[usize] {
+        self.bins.as_ref()
+    }
+}
+
 impl Histogram {
     pub fn new(nbins: usize) -> Histogram {
         Histogram {
+            total: 0,
             bins: vec![0; nbins].into_boxed_slice(),
         }
     }
@@ -31,6 +39,7 @@ impl Histogram {
         let mut hist = Histogram::new(h[0].len());
 
         for i in h {
+            hist.total += i.total;
             for (index, value) in i.bins() {
                 hist[index] = hist[index] + value
             }
@@ -41,7 +50,16 @@ impl Histogram {
 
     pub fn add_value<T: Type>(&mut self, value: T) {
         let x = value.to_norm() * (self.bins.len() - 1) as f64;
-        self.bins[x as usize] += 1
+        self.incr_bin(x.round() as usize)
+    }
+
+    pub fn incr_bin(&mut self, index: usize) {
+        self.bins[index] += 1;
+        self.total += 1;
+    }
+
+    pub fn bin(&self, index: usize) -> usize {
+        self.bins[index]
     }
 
     pub fn bins<'a>(&'a self) -> impl 'a + Iterator<Item = (usize, usize)> {
@@ -89,6 +107,11 @@ impl Histogram {
     pub fn count(&self, v: usize) -> usize {
         self.bins.iter().map(|bin| (*bin == v) as usize).sum()
     }
+
+    pub fn distribution(&self) -> Vec<f64> {
+        let total: f64 = self.bins().map(|(_, x)| x as f64).sum();
+        self.bins().map(|(_, x)| x as f64 / total).collect()
+    }
 }
 
 #[cfg(test)]
@@ -104,6 +127,8 @@ mod tests {
             assert!(h.bins[0] == 100 * 100);
             assert!(h.min_index() == 1);
             assert!(h.max_index() == 0);
+            assert!(h.distribution()[0] == 1.0);
+            assert!(h.distribution().into_iter().skip(1).sum::<f64>() == 0.0);
         }
     }
 }
