@@ -55,3 +55,9 @@ pub use r#type::Type;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(feature = "ui")]
+pub mod ui;
+
+#[cfg(feature = "ui")]
+pub use bevy;
