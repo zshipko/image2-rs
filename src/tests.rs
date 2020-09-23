@@ -120,9 +120,21 @@ fn test_sobel() {
     assert!(dest.save("images/test-sobel.jpg").is_ok());
 }
 
+#[test]
+fn test_saturation() {
+    let mut image: Image<f32, Hsv> = Image::open("images/A.exr").unwrap();
+
+    assert!(image.save("images/test-saturation0.jpg").is_ok());
+    image.each_pixel_mut(|_, px| {
+        px[1] *= 1.25;
+    });
+
+    assert!(image.save("images/test-saturation1.jpg").is_ok());
+}
+
 #[cfg(feature = "oiio")]
 #[test]
-fn test_convert_color() {
+fn test_convert_colorspace() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let image2 = image.convert_colorspace("srgb", "lnf").unwrap();
     let image3 = image.convert_colorspace("lnf", "srgb").unwrap();

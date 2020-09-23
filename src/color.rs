@@ -82,19 +82,70 @@ impl Color for Xyz {
     const CHANNELS: usize = 3;
 
     fn from_rgb(c: usize, rgb: &Pixel<Rgb>) -> f64 {
+        let mut r = rgb[0];
+        let mut g = rgb[1];
+        let mut b = rgb[2];
+
+        if r > 0.04045 {
+            r = ((r + 0.055) / 1.055).powf(2.4)
+        } else {
+            r = r / 12.92
+        }
+
+        if g > 0.4045 {
+            g = ((g + 0.055) / 1.055).powf(2.4);
+        } else {
+            g = g / 12.92
+        }
+
+        if b > 0.04045 {
+            b = ((b + 0.055) / 1.055).powf(2.4)
+        } else {
+            b = b / 12.92
+        }
+
+        r *= 100.;
+        g *= 100.;
+        b *= 100.;
+
         match c {
-            0 => rgb[0] * 0.576700 + rgb[1] * 0.185556 + rgb[2] * 0.188212,
-            1 => rgb[0] * 0.297361 + rgb[1] * 0.627355 + rgb[2] * 0.0752847,
-            2 => rgb[0] * 0.0270328 + rgb[1] * 0.0706879 + rgb[2] * 0.991248,
+            0 => r * 0.4124 + g * 0.3576 + b * 0.1805,
+            1 => r * 0.2126 + g * 0.7152 + b * 0.0722,
+            2 => r * 0.0193 + g * 0.1192 + b * 0.9505,
             _ => 0.0,
         }
     }
 
     fn to_rgb(c: usize, px: &Pixel<Xyz>) -> f64 {
+        let x = px[0] / 100.;
+        let y = px[1] / 100.;
+        let z = px[2] / 100.;
+
         match c {
-            0 => 3.2404542 * px[0] - 1.5371385 * px[1] - 0.4985314 * px[2],
-            1 => -0.9692660 * px[0] + 1.8760108 * px[1] + 0.0415560 * px[2],
-            2 => 0.0556434 * px[0] - 0.2040259 * px[1] + 1.0572252 * px[2],
+            0 => {
+                let var_r = x * 3.2406 + y * -1.5372 + z * -0.4986;
+                if var_r > 0.0031308 {
+                    1.055 * (var_r.powf(1.0 / 2.4)) - 0.055
+                } else {
+                    12.92 * var_r
+                }
+            }
+            1 => {
+                let var_g = x * -0.9689 + y * 1.8758 + z * 0.0415;
+                if var_g > 0.0031308 {
+                    1.055 * (var_g.powf(1. / 2.4)) - 0.055
+                } else {
+                    12.92 * var_g
+                }
+            }
+            2 => {
+                let var_b = x * 0.0557 + y * -0.2040 + z * 1.0570;
+                if var_b > 0.0031308 {
+                    1.055 * (var_b.powf(1. / 2.4)) - 0.055
+                } else {
+                    12.92 * var_b
+                }
+            }
             _ => 0.0,
         }
     }
@@ -112,29 +163,40 @@ impl Color for Hsv {
         let cmax = r.max(g).max(b);
         let cmin = r.min(g).min(b);
         let delta = cmax - cmin;
+        let del_r = (((cmax - r) / 6.) + (delta / 2.)) / delta;
+        let del_g = (((cmax - g) / 6.) + (delta / 2.)) / delta;
+        let del_b = (((cmax - b) / 6.) + (delta / 2.)) / delta;
         match c {
             0 => {
-                if cmin == cmax {
+                let x = if cmin == cmax {
                     0.0
                 } else if cmax == r {
-                    (60. * ((g - b) / delta) + 360.0) % 360.
+                    del_b - del_g
                 } else if cmax == g {
-                    (60. * ((b - r) / delta) + 120.0) % 360.
+                    (1. / 3.) + del_r - del_b
                 } else if cmax == b {
-                    (60. * ((r - g) / delta) + 240.0) % 360.
+                    (2. / 3.) + del_g - del_r
                 } else {
                     -1.0
+                };
+
+                if x < 0. {
+                    x + 1.
+                } else if x > 1. {
+                    x - 1.
+                } else {
+                    x
                 }
             }
             1 => {
                 if cmax == 0.0 {
                     0.0
                 } else {
-                    (delta / cmax) * 100.0
+                    delta / cmax
                 }
             }
-            2 => cmax * 100.,
-            _ => -1.0,
+            2 => cmax,
+            _ => 0.0,
         }
     }
 
@@ -235,29 +297,58 @@ impl Color for Cmyk {
     const NAME: &'static str = "cmyk";
     const CHANNELS: usize = 4;
 
-    fn from_rgb(c: usize, rgb: &Pixel<Rgb>) -> f64 {
+    fn from_rgb(index: usize, rgb: &Pixel<Rgb>) -> f64 {
         let r = rgb[0];
         let g = rgb[1];
         let b = rgb[2];
-        let k = 1.0 - r.max(g).max(b);
-        match c {
-            0 => (1. - r - k) / (1. - k),
-            1 => (1. - g - k) / (1. - k),
-            2 => (1. - b - k) / (1.0 - k),
-            4 => k,
-            _ => 0.0,
+        let c = 1.0 - r;
+        let m = 1.0 - g;
+        let y = 1.0 - b;
+        let mut k = 1.0;
+
+        if c < k {
+            k = c
+        }
+
+        if m < k {
+            k = m
+        }
+
+        if y < k {
+            k = y
+        }
+
+        if k == 1. {
+            match index {
+                0 | 1 | 2 => 0.0,
+                3 => k,
+                _ => 0.0,
+            }
+        } else {
+            match index {
+                0 => (c - k) / (1. - k),
+                1 => (m - k) / (1. - k),
+                2 => (y - k) / (1. - k),
+                3 => k,
+                _ => 0.0,
+            }
         }
     }
 
     fn to_rgb(i: usize, cmyk: &Pixel<Cmyk>) -> f64 {
-        let c = cmyk[0];
-        let m = cmyk[1];
-        let y = cmyk[2];
+        let mut c = cmyk[0];
+        let mut m = cmyk[1];
+        let mut y = cmyk[2];
         let k = cmyk[3];
+
+        c = c * (1.0 - k) + k;
+        m = m * (1.0 - k) + k;
+        y = y * (1.0 - k) + k;
+
         match i {
-            0 => (1. - c / 100.) * (1. - k / 100.),
-            1 => (1. - m / 100.) * (1. - k / 100.),
-            2 => (1. - y / 100.) * (1. - k / 100.),
+            0 => 1.0 - c,
+            1 => 1.0 - m,
+            2 => 1.0 - y,
             _ => 0.0,
         }
     }

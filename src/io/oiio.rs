@@ -84,6 +84,11 @@ impl Output {
     ///
     /// Note: `image` dimensions and type will take precendence over the ImageSpec
     pub fn write<T: Type, C: Color>(self, image: &Image<T, C>) -> Result<(), Error> {
+        if !["gray", "rgb", "rgba"].contains(&C::NAME) {
+            let image = image.convert::<T, Rgb>();
+            return self.write(&image);
+        }
+
         let base_type = T::BASE;
         let path: &std::path::Path = self.path.as_ref();
         let path_str = std::ffi::CString::new(path.to_string_lossy().as_bytes().to_vec()).unwrap();
@@ -110,6 +115,11 @@ impl Output {
     ///
     /// Note: `image` dimensions and type will take precendence over the ImageSpec
     pub fn append<T: Type, C: Color>(&mut self, image: &Image<T, C>) -> Result<(), Error> {
+        if !["gray", "rgb", "rgba"].contains(&C::NAME) {
+            let image = image.convert::<T, Rgb>();
+            return self.append(&image);
+        }
+
         let base_type = T::BASE;
         let path: &std::path::Path = self.path.as_ref();
         let path_str = std::ffi::CString::new(path.to_string_lossy().as_bytes().to_vec()).unwrap();

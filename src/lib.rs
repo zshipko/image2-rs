@@ -44,7 +44,7 @@ pub mod io;
 pub mod kernel;
 pub mod transform;
 
-pub use color::{Color, Convert, Gray, Rgb, Rgba, Xyz};
+pub use color::{Cmyk, Color, Convert, Gray, Hsv, Rgb, Rgba, Xyz};
 pub use error::Error;
 pub use filter::Filter;
 pub use histogram::Histogram;
