@@ -7,10 +7,7 @@ pub trait Color: Unpin + PartialEq + Eq + PartialOrd + Ord + Clone + Sync + Send
     const CHANNELS: usize;
     const ALPHA: bool = false;
 
-    fn to_rgb(_c: usize, _pixel: &Pixel<Self>) -> f64 {
-        panic!("to_rgb not implemented");
-    }
-
+    fn to_rgb(_c: usize, _pixel: &Pixel<Self>) -> f64;
     fn from_rgb(c: usize, pixel: &Pixel<Rgb>) -> f64;
 
     fn convert<ToColor: Color>(c: usize, pixel: &Pixel<Self>) -> f64 {
@@ -92,6 +89,15 @@ impl Color for Xyz {
             _ => 0.0,
         }
     }
+
+    fn to_rgb(c: usize, px: &Pixel<Xyz>) -> f64 {
+        match c {
+            0 => 3.2404542 * px[0] - 1.5371385 * px[1] - 0.4985314 * px[2],
+            1 => -0.9692660 * px[0] + 1.8760108 * px[1] + 0.0415560 * px[2],
+            2 => 0.0556434 * px[0] - 0.2040259 * px[1] + 1.0572252 * px[2],
+            _ => 0.0,
+        }
+    }
 }
 
 color!(Hsv);
@@ -129,6 +135,66 @@ impl Color for Hsv {
             }
             2 => cmax * 100.,
             _ => -1.0,
+        }
+    }
+
+    fn to_rgb(c: usize, px: &Pixel<Hsv>) -> f64 {
+        if px[1] == 0. {
+            px[2]
+        } else {
+            let (h, s, v) = (px[0], px[1], px[2]);
+            let mut var_h = h * 6.;
+            if var_h == 6. {
+                var_h = 0.0;
+            }
+            let var_i = var_h.floor();
+            let var_1 = v * (1. - s);
+            let var_2 = v * (1. - s * (var_h - var_i));
+            let var_3 = v * (1. - s * (1. - (var_h - var_i)));
+
+            if var_i == 0. {
+                match c {
+                    0 => v,
+                    1 => var_3,
+                    2 => var_1,
+                    _ => 0.0,
+                }
+            } else if var_i == 1. {
+                match c {
+                    0 => var_2,
+                    1 => v,
+                    2 => var_1,
+                    _ => 0.0,
+                }
+            } else if var_i == 2. {
+                match c {
+                    0 => var_1,
+                    1 => v,
+                    2 => var_3,
+                    _ => 0.0,
+                }
+            } else if var_i == 3. {
+                match c {
+                    0 => var_1,
+                    1 => var_2,
+                    2 => v,
+                    _ => 0.0,
+                }
+            } else if var_i == 4. {
+                match c {
+                    0 => var_3,
+                    1 => var_1,
+                    2 => v,
+                    _ => 0.0,
+                }
+            } else {
+                match c {
+                    0 => v,
+                    1 => var_1,
+                    2 => var_2,
+                    _ => 0.0,
+                }
+            }
         }
     }
 }

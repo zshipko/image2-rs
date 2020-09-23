@@ -660,6 +660,13 @@ impl<T: Type, C: Color> Image<T, C> {
         self
     }
 
+    /// Convert image type/color
+    pub fn convert<U: Type, D: Color>(&self) -> Image<U, D> {
+        let mut dest = self.new_like_with_type_and_color();
+        dest.apply(&[self], Convert::<D>::new());
+        dest
+    }
+
     /// Convert to `ImageBuf`
     #[cfg(feature = "oiio")]
     pub(crate) fn image_buf(&mut self) -> io::internal::ImageBuf {

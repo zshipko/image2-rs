@@ -280,10 +280,32 @@ impl Input {
     }
 
     /// Read to new image
+    ///
+    /// Note: the `convert` method may be called if the requested color doesn't match
     pub fn read<T: Type, C: Color>(&self) -> Result<Image<T, C>, Error> {
-        let mut image = Image::new(self.spec.width(), self.spec.height());
-        self.read_into(&mut image)?;
-        Ok(image)
+        let nchannels = self.spec.nchannels();
+
+        // `convert` is called if the channels don't match the image on disk or the color is not
+        // Gray, Rgb, or Rgba
+        if C::CHANNELS != nchannels || !["gray", "rgb", "rgba"].contains(&C::NAME) {
+            if nchannels == 1 {
+                let mut image = Image::<f32, Gray>::new(self.spec.width(), self.spec.height());
+                self.read_into(&mut image)?;
+                Ok(image.convert())
+            } else if nchannels == 4 {
+                let mut image = Image::<f32, Rgba>::new(self.spec.width(), self.spec.height());
+                self.read_into(&mut image)?;
+                Ok(image.convert())
+            } else {
+                let mut image = Image::<f32, Rgb>::new(self.spec.width(), self.spec.height());
+                self.read_into(&mut image)?;
+                Ok(image.convert())
+            }
+        } else {
+            let mut image = Image::new(self.spec.width(), self.spec.height());
+            self.read_into(&mut image)?;
+            Ok(image)
+        }
     }
 }
 
