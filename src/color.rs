@@ -92,7 +92,7 @@ impl Color for Xyz {
             r = r / 12.92
         }
 
-        if g > 0.4045 {
+        if g > 0.04045 {
             g = ((g + 0.055) / 1.055).powf(2.4);
         } else {
             g = g / 12.92

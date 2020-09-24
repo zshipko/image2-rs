@@ -132,6 +132,12 @@ fn test_saturation() {
     assert!(image.save("images/test-saturation1.jpg").is_ok());
 }
 
+#[test]
+fn test_xyz() {
+    let image: Image<f32, Xyz> = Image::open("images/A.exr").unwrap();
+    assert!(image.save("images/test-xyz.jpg").is_ok());
+}
+
 #[cfg(feature = "oiio")]
 #[test]
 fn test_convert_colorspace() {
