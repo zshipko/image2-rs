@@ -66,6 +66,7 @@ fn test_invert() {
     assert!(dest.save("images/test-invert.jpg").is_ok());
 }
 
+#[cfg(feature = "smol_test")]
 #[test]
 fn test_invert_async() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
