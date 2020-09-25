@@ -70,7 +70,7 @@ pub struct Image<T: Type, C: Color> {
     pub meta: Meta<T, C>,
 
     /// Pixel data
-    pub data: Vec<T>,
+    pub data: Box<[T]>,
 }
 
 /// Hash is used for content-based hashing
@@ -137,9 +137,11 @@ impl<T: Type, C: Color> std::ops::IndexMut<(usize, usize, usize)> for Image<T, C
 }
 
 impl<T: Type, C: Color> Image<T, C> {
-    /// Create a new image
-    pub fn new(width: usize, height: usize) -> Image<T, C> {
-        let data = vec![T::default(); width * height * C::CHANNELS];
+    pub unsafe fn new_with_data(
+        width: usize,
+        height: usize,
+        data: impl Into<Box<[T]>>,
+    ) -> Image<T, C> {
         Image {
             meta: Meta {
                 width,
@@ -147,8 +149,14 @@ impl<T: Type, C: Color> Image<T, C> {
                 _type: PhantomData,
                 _color: PhantomData,
             },
-            data,
+            data: data.into(),
         }
+    }
+
+    /// Create a new image
+    pub fn new(width: usize, height: usize) -> Image<T, C> {
+        let data = vec![T::default(); width * height * C::CHANNELS];
+        unsafe { Self::new_with_data(width, height, data) }
     }
 
     /// Get image hash
@@ -394,7 +402,6 @@ impl<T: Type, C: Color> Image<T, C> {
     ) -> impl 'a + rayon::iter::ParallelIterator<Item = ((usize, usize), &mut [T])> {
         let (width, _height, channels) = self.shape();
         self.data
-            .as_mut_slice()
             .par_chunks_mut(channels)
             .enumerate()
             .filter_map(move |(n, pixel)| {
@@ -415,7 +422,6 @@ impl<T: Type, C: Color> Image<T, C> {
     ) -> impl 'a + std::iter::Iterator<Item = ((usize, usize), &mut [T])> {
         let (width, _height, channels) = self.shape();
         self.data
-            .as_mut_slice()
             .chunks_mut(channels)
             .enumerate()
             .filter_map(move |(n, pixel)| {
@@ -437,7 +443,6 @@ impl<T: Type, C: Color> Image<T, C> {
     ) -> impl 'a + rayon::iter::ParallelIterator<Item = ((usize, usize), &[T])> {
         let (width, _height, channels) = self.shape();
         self.data
-            .as_slice()
             .par_chunks(channels)
             .enumerate()
             .filter_map(move |(n, pixel)| {
@@ -458,7 +463,6 @@ impl<T: Type, C: Color> Image<T, C> {
     ) -> impl 'a + std::iter::Iterator<Item = ((usize, usize), &[T])> {
         let (width, _height, channels) = self.shape();
         self.data
-            .as_slice()
             .chunks(channels)
             .enumerate()
             .filter_map(move |(n, pixel)| {
@@ -573,9 +577,8 @@ impl<T: Type, C: Color> Image<T, C> {
         f: F,
     ) {
         let (width, _height, channels) = self.shape();
-        let b = other.data.as_slice().par_chunks(channels);
+        let b = other.data.par_chunks(channels);
         self.data
-            .as_mut_slice()
             .par_chunks_mut(channels)
             .zip(b)
             .enumerate()
@@ -594,9 +597,8 @@ impl<T: Type, C: Color> Image<T, C> {
         f: F,
     ) {
         let (width, _height, channels) = self.shape();
-        let b = other.data.as_slice().chunks(channels);
+        let b = other.data.chunks(channels);
         self.data
-            .as_mut_slice()
             .chunks_mut(channels)
             .zip(b)
             .enumerate()
@@ -612,7 +614,6 @@ impl<T: Type, C: Color> Image<T, C> {
         let (width, _height, channels) = self.shape();
 
         self.data
-            .as_slice()
             .chunks_exact(channels)
             .enumerate()
             .for_each(|(n, pixel)| {
@@ -626,7 +627,6 @@ impl<T: Type, C: Color> Image<T, C> {
     pub fn each_pixel_mut<F: Sync + Send + FnMut((usize, usize), &mut [T])>(&mut self, mut f: F) {
         let (width, _height, channels) = self.shape();
         self.data
-            .as_mut_slice()
             .chunks_exact_mut(channels)
             .enumerate()
             .for_each(|(n, pixel)| {
@@ -674,7 +674,7 @@ impl<T: Type, C: Color> Image<T, C> {
             self.meta.width,
             self.meta.height,
             self.channels(),
-            self.data.as_mut_slice(),
+            &mut self.data,
         )
     }
 
@@ -685,7 +685,7 @@ impl<T: Type, C: Color> Image<T, C> {
             self.meta.width,
             self.meta.height,
             self.channels(),
-            self.data.as_slice(),
+            &self.data,
         )
     }
 
@@ -735,12 +735,22 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Gamma correction
-    pub fn gamma(&mut self, value: f64) {
+    fn gamma(&mut self, value: f64) {
         self.for_each(|_, px| {
             for x in px {
-                *x = T::from_f64(T::to_f64(x).powf(1. / value))
+                *x = T::from_f64(T::to_f64(x).powf(value))
             }
         })
+    }
+
+    /// Convert to log RGB
+    pub fn gamma_log(&mut self) {
+        self.gamma(1. / 2.2)
+    }
+
+    /// Convert to linear RGB
+    pub fn gamma_lin(&mut self) {
+        self.gamma(2.2)
     }
 
     pub fn min(&self) -> ((usize, usize), Pixel<C>) {

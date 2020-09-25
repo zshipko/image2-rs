@@ -134,6 +134,21 @@ impl<C: Color> Pixel<C> {
     pub fn iter_mut(&mut self) -> std::slice::IterMut<f64> {
         self.0.iter_mut()
     }
+
+    /// Gamma correction
+    pub fn gamma(&mut self, value: f64) {
+        self.map_in_place(|x| x.powf(value));
+    }
+
+    /// Convert to log RGB
+    pub fn gamma_log(&mut self) {
+        self.gamma(1. / 2.2)
+    }
+
+    /// Convert to linear RGB
+    pub fn gamma_lin(&mut self) {
+        self.gamma(2.2)
+    }
 }
 
 impl<T: Type, C: Color> std::iter::FromIterator<T> for Pixel<C> {

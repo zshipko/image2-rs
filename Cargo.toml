@@ -29,7 +29,6 @@ bevy = {version = "0.2", default-features=false, optional = true, features=[
     "dynamic_plugins",
     "mp3",
     "x11",
-    "png",
 ]}
 bevy_asset = {version = "0.2", optional = true}
 bevy_render = {version = "0.2", optional = true}
