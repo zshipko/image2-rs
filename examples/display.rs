@@ -58,7 +58,7 @@ fn update(
 fn main() {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
     let arg = if !args.is_empty() {
-        args[1].as_str()
+        args[0].as_str()
     } else {
         "images/A.exr"
     };
