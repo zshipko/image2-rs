@@ -25,32 +25,29 @@ impl AssetLoader<Texture> for ImageLoader {
     }
 }
 
-fn image(
+pub fn make_image(
     width: usize,
     height: usize,
     texture: Handle<Texture>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-) -> (Handle<Texture>, ImageComponents) {
-    (
-        texture,
-        ImageComponents {
-            style: Style {
-                size: Size {
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                    ..Default::default()
-                },
-                position_type: PositionType::Relative,
-                margin: Rect::all(Val::Auto),
-                align_content: AlignContent::Center,
-                align_items: AlignItems::Center,
-                aspect_ratio: Some(width as f32 / height as f32),
+) -> ImageComponents {
+    ImageComponents {
+        style: Style {
+            size: Size {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
                 ..Default::default()
             },
-            material: materials.add(texture.into()),
+            position_type: PositionType::Relative,
+            margin: Rect::all(Val::Auto),
+            align_content: AlignContent::Center,
+            align_items: AlignItems::Center,
+            aspect_ratio: Some(width as f32 / height as f32),
             ..Default::default()
         },
-    )
+        material: materials.add(texture.into()),
+        ..Default::default()
+    }
 }
 
 impl<T: Type, C: Color> Image<T, C>
@@ -66,7 +63,7 @@ where
         let height = self.height();
         let texture: Texture = self.into();
         let texture = assets.add(texture);
-        image(width, height, texture, materials)
+        (texture, make_image(width, height, texture, materials))
     }
 }
 
@@ -81,16 +78,23 @@ where
     ) -> (Handle<Texture>, ImageComponents) {
         let texture: Texture = self.into();
         let texture = assets.add(texture);
-        image(self.width(), self.height(), texture, materials)
+        (
+            texture,
+            make_image(self.width(), self.height(), texture, materials),
+        )
     }
 
     pub fn update_texture(&'a self, texture: &mut Texture) {
-        unsafe {
-            std::ptr::copy(
-                self.data.as_ptr() as *const u8,
-                texture.data.as_mut_ptr(),
-                self.data.len() * std::mem::size_of::<T>(),
-            )
+        if texture.data.len()
+            == self.width() * self.height() * self.channels() * std::mem::size_of::<T>()
+        {
+            unsafe {
+                std::ptr::copy(
+                    self.data.as_ptr() as *const u8,
+                    texture.data.as_mut_ptr(),
+                    self.data.len() * std::mem::size_of::<T>(),
+                )
+            }
         }
     }
 }
@@ -214,7 +218,10 @@ pub struct ImageView<T: Type, C: crate::Color> {
     dirty: bool,
 }
 
-impl<T: Type, C: crate::Color> ImageView<T, C> {
+impl<'a, T: 'a + Type, C: 'a + crate::Color> ImageView<T, C>
+where
+    &'a Image<T, C>: Into<Texture>,
+{
     pub fn new(image: Image<T, C>) -> ImageView<T, C> {
         ImageView {
             image: Box::new(std::sync::Arc::new(image)),
@@ -234,6 +241,17 @@ impl<T: Type, C: crate::Color> ImageView<T, C> {
 
     pub fn image(&self) -> &Image<T, C> {
         self.image.as_ref()
+    }
+
+    pub fn draw(&'a mut self, mut assets: ResMut<Assets<Texture>>) {
+        if let Some(handle) = &self.handle {
+            if self.dirty {
+                if let Some(texture) = assets.get_mut(&handle) {
+                    self.dirty = false;
+                    self.image().update_texture(texture);
+                }
+            }
+        }
     }
 }
 
@@ -257,15 +275,8 @@ fn startup_window(
     commands.spawn(image);
 }
 
-fn update_window(mut assets: ResMut<Assets<Texture>>, mut window: ResMut<ImageView<f32, Rgba>>) {
-    if let Some(handle) = &window.handle {
-        if window.dirty {
-            if let Some(texture) = assets.get_mut(&handle) {
-                window.image.update_texture(texture);
-                window.dirty = false;
-            }
-        }
-    }
+fn update_window(assets: ResMut<Assets<Texture>>, mut window: ResMut<ImageView<f32, Rgba>>) {
+    window.draw(assets)
 }
 
 pub fn init(mut commands: Commands) {
