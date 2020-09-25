@@ -9,7 +9,7 @@ fn main() {
         "images/A.exr"
     };
 
-    let mut image = Image::<f32, Rgba>::open(arg).unwrap().scale(0.5, 0.5);
+    let mut image = Image::<f32, Rgba>::open(arg).unwrap();
     if args.is_empty() {
         image.set_gamma_lin();
     }

@@ -32,12 +32,12 @@ where
         self,
         mut assets: ResMut<Assets<Texture>>,
         mut materials: ResMut<Assets<ColorMaterial>>,
-    ) -> (Handle<Texture>, SpriteComponents) {
+    ) -> (Handle<Texture>, ImageComponents) {
         let texture: Texture = self.into();
         let texture = assets.add(texture);
         (
             texture,
-            SpriteComponents {
+            ImageComponents {
                 material: materials.add(texture.into()),
                 ..Default::default()
             },
@@ -53,12 +53,12 @@ where
         &'a self,
         mut assets: ResMut<Assets<Texture>>,
         mut materials: ResMut<Assets<ColorMaterial>>,
-    ) -> (Handle<Texture>, SpriteComponents) {
+    ) -> (Handle<Texture>, ImageComponents) {
         let texture: Texture = self.into();
         let texture = assets.add(texture);
         (
             texture,
-            SpriteComponents {
+            ImageComponents {
                 material: materials.add(texture.into()),
                 ..Default::default()
             },
@@ -241,5 +241,5 @@ fn update_window(
 }
 
 fn startup(mut commands: Commands) {
-    commands.spawn(Camera2dComponents::default());
+    commands.spawn(UiCameraComponents::default());
 }
