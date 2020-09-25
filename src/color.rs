@@ -68,7 +68,7 @@ impl Color for Rgba {
     }
 
     fn from_rgb(c: usize, pixel: &Pixel<Rgb>) -> f64 {
-        if c == 3 {
+        if c >= 3 {
             return 1.0;
         }
 
