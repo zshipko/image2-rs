@@ -152,6 +152,7 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Get image hash
+#[cfg(feature = "transforms")]
     pub fn hash(&self) -> Hash {
         let mut small: Image<T, C> = Image::new(16, 8);
         crate::transform::resize(self, 16, 8).eval(&mut small, &[self]);

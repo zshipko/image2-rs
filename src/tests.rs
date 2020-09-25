@@ -81,6 +81,7 @@ fn test_invert_async() {
     assert!(dest.save("images/test-invert-async.jpg").is_ok());
 }
 
+#[cfg(feature = "transforms")]
 #[test]
 fn test_hash() {
     let a: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();

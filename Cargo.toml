@@ -14,7 +14,7 @@ edition = "2018"
 [dependencies]
 half = "1"
 thiserror = "1"
-euclid = "0.22"
+euclid = {version="0.22", optional = true}
 cpp = {version = "0.5", optional = true}
 rayon = {version = "1", optional = true}
 serde = {version = "1", optional = true, features = ["derive"]}
@@ -27,7 +27,8 @@ cpp_build = {version = "0.5", optional = true}
 smol = "1"
 
 [features]
-default = ["oiio", "parallel"]
+default = ["oiio", "parallel", "transforms"]
+transforms = ["euclid"]
 oiio = ["cpp", "cpp_build"]
 parallel = ["rayon"]
 halide = ["halide-runtime"]

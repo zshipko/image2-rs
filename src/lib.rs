@@ -42,6 +42,8 @@ pub use halide_runtime as halide;
 pub mod filter;
 pub mod io;
 pub mod kernel;
+
+#[cfg(feature = "transforms")]
 pub mod transform;
 
 pub use color::{Color, Convert, Gray, Rgb, Rgba, Xyz};

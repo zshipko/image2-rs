@@ -1,3 +1,4 @@
+#![cfg(feature = "transforms")]
 use crate::*;
 
 pub type Point<T> = euclid::Point2D<T, T>;
