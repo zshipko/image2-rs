@@ -207,7 +207,7 @@ impl<T: Type, C: crate::Color> ImageView<T, C> {
 impl<T: 'static + Type, C: 'static + crate::Color> Plugin for ImageView<T, C> {
     fn build(&self, app: &mut AppBuilder) {
         app.add_resource(self.clone())
-            .add_startup_system(startup.system())
+            .add_startup_system(init.system())
             .add_startup_system(startup_window.system())
             .add_system(update_window.system());
     }
@@ -240,6 +240,6 @@ fn update_window(
     }
 }
 
-fn startup(mut commands: Commands) {
+pub fn init(mut commands: Commands) {
     commands.spawn(UiCameraComponents::default());
 }
