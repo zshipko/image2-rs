@@ -16,6 +16,8 @@ fn main() {
 
     App::build()
         .add_default_plugins()
+        .add_startup_system(ui::init.system())
+        .add_plugin(ui::ImageView::new(image.clone()))
         .add_plugin(ui::ImageView::new(image))
         .run();
 }

@@ -1,10 +1,11 @@
+use std::path::Path;
+
 use crate::{Color, Image, Rgba, Type};
 use anyhow::Result;
 use bevy::prelude::*;
 use bevy_asset::AssetLoader;
 use bevy_math::Vec2;
 use bevy_render::{prelude::Texture, texture::TextureFormat};
-use std::path::Path;
 
 /// Loader for images that can be read by the `image` crate.
 ///
@@ -33,11 +34,18 @@ where
         mut assets: ResMut<Assets<Texture>>,
         mut materials: ResMut<Assets<ColorMaterial>>,
     ) -> (Handle<Texture>, ImageComponents) {
+        let width = self.width();
+        let height = self.height();
         let texture: Texture = self.into();
         let texture = assets.add(texture);
         (
             texture,
             ImageComponents {
+                style: Style {
+                    position_type: PositionType::Relative,
+                    aspect_ratio: Some(width as f32 / height as f32),
+                    ..Default::default()
+                },
                 material: materials.add(texture.into()),
                 ..Default::default()
             },
@@ -59,6 +67,11 @@ where
         (
             texture,
             ImageComponents {
+                style: Style {
+                    position_type: PositionType::Relative,
+                    aspect_ratio: Some(self.width() as f32 / self.height() as f32),
+                    ..Default::default()
+                },
                 material: materials.add(texture.into()),
                 ..Default::default()
             },
@@ -189,25 +202,38 @@ impl<'a> From<&'a Image<i32, Rgba>> for Texture {
 
 #[derive(Clone)]
 pub struct ImageView<T: Type, C: crate::Color> {
-    image: std::sync::Arc<Image<T, C>>,
+    image: Box<std::sync::Arc<Image<T, C>>>,
     handle: Option<Handle<Texture>>,
-    timer: Timer,
+    components: Option<ImageComponents>,
+    dirty: bool,
 }
 
 impl<T: Type, C: crate::Color> ImageView<T, C> {
     pub fn new(image: Image<T, C>) -> ImageView<T, C> {
         ImageView {
-            image: std::sync::Arc::new(image),
+            image: Box::new(std::sync::Arc::new(image)),
             handle: None,
-            timer: Timer::from_seconds(1.0, true),
+            components: None,
+            dirty: true,
         }
+    }
+
+    pub fn mark_as_dirty(&mut self) {
+        self.dirty = true
+    }
+
+    pub fn image_mut(&mut self) -> &mut Image<T, C> {
+        std::sync::Arc::make_mut(&mut self.image)
+    }
+
+    pub fn image(&self) -> &Image<T, C> {
+        self.image.as_ref()
     }
 }
 
 impl<T: 'static + Type, C: 'static + crate::Color> Plugin for ImageView<T, C> {
     fn build(&self, app: &mut AppBuilder) {
         app.add_resource(self.clone())
-            .add_startup_system(init.system())
             .add_startup_system(startup_window.system())
             .add_system(update_window.system());
     }
@@ -221,20 +247,16 @@ fn startup_window(
 ) {
     let (handle, image) = window.image.show_clone(assets, materials);
     window.handle = Some(handle);
+    window.components = Some(image.clone());
     commands.spawn(image);
 }
 
-fn update_window(
-    time: Res<Time>,
-    mut assets: ResMut<Assets<Texture>>,
-    mut window: ResMut<ImageView<f32, Rgba>>,
-) {
-    window.timer.tick(time.delta_seconds);
-
-    if window.timer.finished {
-        if let Some(handle) = &window.handle {
+fn update_window(mut assets: ResMut<Assets<Texture>>, mut window: ResMut<ImageView<f32, Rgba>>) {
+    if let Some(handle) = &window.handle {
+        if window.dirty {
             if let Some(texture) = assets.get_mut(&handle) {
                 window.image.update_texture(texture);
+                window.dirty = false;
             }
         }
     }
