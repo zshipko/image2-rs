@@ -129,6 +129,10 @@ pub struct Invert;
 
 impl Filter for Invert {
     fn compute_at(&self, x: usize, y: usize, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
+        if input[0].meta.is_alpha_channel(c) {
+            return input[0].get_f(x, y, c);
+        }
+
         1.0 - input[0].get_f(x, y, c)
     }
 }

@@ -202,9 +202,9 @@ impl<'a> From<&'a Image<i32, Rgba>> for Texture {
 
 #[derive(Clone)]
 pub struct ImageView<T: Type, C: crate::Color> {
-    image: Box<std::sync::Arc<Image<T, C>>>,
-    handle: Option<Handle<Texture>>,
-    components: Option<ImageComponents>,
+    pub image: Box<std::sync::Arc<Image<T, C>>>,
+    pub handle: Option<Handle<Texture>>,
+    pub components: Option<ImageComponents>,
     dirty: bool,
 }
 

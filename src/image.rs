@@ -53,6 +53,10 @@ impl<T: Type, C: Color> Meta<T, C> {
         C::ALPHA.is_some()
     }
 
+    pub fn is_alpha_channel(&self, c: usize) -> bool {
+        C::ALPHA == Some(c)
+    }
+
     pub fn color_name(&self) -> &str {
         C::NAME
     }
