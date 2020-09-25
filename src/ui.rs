@@ -25,6 +25,34 @@ impl AssetLoader<Texture> for ImageLoader {
     }
 }
 
+fn image(
+    width: usize,
+    height: usize,
+    texture: Handle<Texture>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) -> (Handle<Texture>, ImageComponents) {
+    (
+        texture,
+        ImageComponents {
+            style: Style {
+                size: Size {
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    ..Default::default()
+                },
+                position_type: PositionType::Relative,
+                margin: Rect::all(Val::Auto),
+                align_content: AlignContent::Center,
+                align_items: AlignItems::Center,
+                aspect_ratio: Some(width as f32 / height as f32),
+                ..Default::default()
+            },
+            material: materials.add(texture.into()),
+            ..Default::default()
+        },
+    )
+}
+
 impl<T: Type, C: Color> Image<T, C>
 where
     Image<T, C>: Into<Texture>,
@@ -32,24 +60,13 @@ where
     pub fn show(
         self,
         mut assets: ResMut<Assets<Texture>>,
-        mut materials: ResMut<Assets<ColorMaterial>>,
+        materials: ResMut<Assets<ColorMaterial>>,
     ) -> (Handle<Texture>, ImageComponents) {
         let width = self.width();
         let height = self.height();
         let texture: Texture = self.into();
         let texture = assets.add(texture);
-        (
-            texture,
-            ImageComponents {
-                style: Style {
-                    position_type: PositionType::Relative,
-                    aspect_ratio: Some(width as f32 / height as f32),
-                    ..Default::default()
-                },
-                material: materials.add(texture.into()),
-                ..Default::default()
-            },
-        )
+        image(width, height, texture, materials)
     }
 }
 
@@ -60,22 +77,11 @@ where
     pub fn show_clone(
         &'a self,
         mut assets: ResMut<Assets<Texture>>,
-        mut materials: ResMut<Assets<ColorMaterial>>,
+        materials: ResMut<Assets<ColorMaterial>>,
     ) -> (Handle<Texture>, ImageComponents) {
         let texture: Texture = self.into();
         let texture = assets.add(texture);
-        (
-            texture,
-            ImageComponents {
-                style: Style {
-                    position_type: PositionType::Relative,
-                    aspect_ratio: Some(self.width() as f32 / self.height() as f32),
-                    ..Default::default()
-                },
-                material: materials.add(texture.into()),
-                ..Default::default()
-            },
-        )
+        image(self.width(), self.height(), texture, materials)
     }
 
     pub fn update_texture(&'a self, texture: &mut Texture) {
@@ -245,7 +251,7 @@ fn startup_window(
     materials: ResMut<Assets<ColorMaterial>>,
     mut window: ResMut<ImageView<f32, Rgba>>,
 ) {
-    let (handle, image) = window.image.show_clone(assets, materials);
+    let (handle, image) = window.image().show_clone(assets, materials);
     window.handle = Some(handle);
     window.components = Some(image.clone());
     commands.spawn(image);
