@@ -162,7 +162,7 @@ impl<T: Type, C: Color> Image<T, C> {
     /// Get image hash
     pub fn hash(&self) -> Hash {
         let mut small: Image<T, C> = Image::new(16, 8);
-        crate::transform::resize(self, 16, 8).eval(&mut small, &[self]);
+        transform::resize(self, 16, 8).eval(&mut small, &[self]);
         let mut hash = 0u128;
         let mut index = 0;
         let mut px = Pixel::new();
@@ -758,12 +758,12 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Convert to log RGB
-    pub fn gamma_log(&mut self) {
+    pub fn set_gamma_log(&mut self) {
         self.gamma(1. / 2.2)
     }
 
     /// Convert to linear RGB
-    pub fn gamma_lin(&mut self) {
+    pub fn set_gamma_lin(&mut self) {
         self.gamma(2.2)
     }
 
@@ -797,13 +797,7 @@ impl<T: Type, C: Color> Image<T, C> {
         ((x, y), max)
     }
 
-    pub fn resize(&self, mut width: usize, mut height: usize) -> Image<T, C> {
-        if width == 0 {
-            width = width * self.height() / self.width()
-        } else if height == 0 {
-            height = height * self.width() / self.height()
-        }
-
+    pub fn resize(&self, width: usize, height: usize) -> Image<T, C> {
         self.run(
             transform::resize(self, width, height),
             Some(Meta::new(width, height)),

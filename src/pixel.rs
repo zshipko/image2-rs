@@ -147,12 +147,12 @@ impl<C: Color> Pixel<C> {
     }
 
     /// Convert to log RGB
-    pub fn gamma_log(&mut self) {
+    pub fn set_gamma_log(&mut self) {
         self.gamma(1. / 2.2)
     }
 
     /// Convert to linear RGB
-    pub fn gamma_lin(&mut self) {
+    pub fn set_gamma_lin(&mut self) {
         self.gamma(2.2)
     }
 }

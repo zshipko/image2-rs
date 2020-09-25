@@ -34,13 +34,7 @@ pub fn scale(x: f64, y: f64) -> Transform {
 }
 
 #[inline]
-pub fn resize(src: &Image<impl Type, impl Color>, mut x: usize, mut y: usize) -> Transform {
-    if x == 0 {
-        y = x * src.height() / src.width()
-    } else if y == 0 {
-        x = y * src.width() / src.height()
-    }
-
+pub fn resize(src: &Image<impl Type, impl Color>, x: usize, y: usize) -> Transform {
     Transform(euclid::Transform2D::scale(
         src.width() as f64 / x as f64,
         src.height() as f64 / y as f64,

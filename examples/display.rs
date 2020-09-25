@@ -9,9 +9,9 @@ fn main() {
         "images/A.exr"
     };
 
-    let mut image = Image::<f32, Rgba>::open(arg).unwrap();
+    let mut image = Image::<f32, Rgba>::open(arg).unwrap().scale(0.5, 0.5);
     if args.is_empty() {
-        image.gamma_lin();
+        image.set_gamma_lin();
     }
 
     App::build()
