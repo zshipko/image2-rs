@@ -50,7 +50,7 @@ impl<T: Type, C: Color> Meta<T, C> {
     }
 
     pub fn has_alpha(&self) -> bool {
-        C::ALPHA
+        C::ALPHA.is_some()
     }
 
     pub fn color_name(&self) -> &str {
@@ -650,21 +650,35 @@ impl<T: Type, C: Color> Image<T, C> {
         });
     }
 
-    /// Apply a filter
+    /// Apply a filter using an Image as output
     pub fn apply(
         &mut self,
-        input: &[&Image<impl Type, impl Color>],
         filter: impl Filter,
+        input: &[&Image<impl Type, impl Color>],
     ) -> &mut Self {
         filter.eval(self, input);
         self
     }
 
+    /// Run a filter using an Image as input
+    pub fn run<U: Type, D: Color>(
+        &self,
+        filter: impl Filter,
+        output: Option<Meta<U, D>>,
+    ) -> Image<U, D> {
+        let (width, height) = if let Some(o) = output {
+            (o.width, o.height)
+        } else {
+            (self.width(), self.height())
+        };
+        let mut dest = Image::new(width, height);
+        dest.apply(filter, &[self]);
+        dest
+    }
+
     /// Convert image type/color
     pub fn convert<U: Type, D: Color>(&self) -> Image<U, D> {
-        let mut dest = self.new_like_with_type_and_color();
-        dest.apply(&[self], Convert::<D>::new());
-        dest
+        self.run(Convert::<D>::new(), None)
     }
 
     /// Convert to `ImageBuf`
@@ -781,5 +795,28 @@ impl<T: Type, C: Color> Image<T, C> {
             }
         });
         ((x, y), max)
+    }
+
+    pub fn resize(&self, mut width: usize, mut height: usize) -> Image<T, C> {
+        if width == 0 {
+            width = width * self.height() / self.width()
+        } else if height == 0 {
+            height = height * self.width() / self.height()
+        }
+
+        self.run(
+            transform::resize(self, width, height),
+            Some(Meta::new(width, height)),
+        )
+    }
+
+    pub fn scale(&self, width: f64, height: f64) -> Image<T, C> {
+        self.run(
+            transform::scale(width, height),
+            Some(Meta::new(
+                (self.width() as f64 * width) as usize,
+                (self.height() as f64 * height) as usize,
+            )),
+        )
     }
 }

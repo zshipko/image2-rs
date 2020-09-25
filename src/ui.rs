@@ -186,3 +186,60 @@ impl<'a> From<&'a Image<i32, Rgba>> for Texture {
         to_texture(image, TextureFormat::Rgba32Sint)
     }
 }
+
+#[derive(Clone)]
+pub struct ImageView<T: Type, C: crate::Color> {
+    image: std::sync::Arc<Image<T, C>>,
+    handle: Option<Handle<Texture>>,
+    timer: Timer,
+}
+
+impl<T: Type, C: crate::Color> ImageView<T, C> {
+    pub fn new(image: Image<T, C>) -> ImageView<T, C> {
+        ImageView {
+            image: std::sync::Arc::new(image),
+            handle: None,
+            timer: Timer::from_seconds(1.0, true),
+        }
+    }
+}
+
+impl<T: 'static + Type, C: 'static + crate::Color> Plugin for ImageView<T, C> {
+    fn build(&self, app: &mut AppBuilder) {
+        app.add_resource(self.clone())
+            .add_startup_system(startup.system())
+            .add_startup_system(startup_window.system())
+            .add_system(update_window.system());
+    }
+}
+
+fn startup_window(
+    mut commands: Commands,
+    assets: ResMut<Assets<Texture>>,
+    materials: ResMut<Assets<ColorMaterial>>,
+    mut window: ResMut<ImageView<f32, Rgba>>,
+) {
+    let (handle, image) = window.image.show_clone(assets, materials);
+    window.handle = Some(handle);
+    commands.spawn(image);
+}
+
+fn update_window(
+    time: Res<Time>,
+    mut assets: ResMut<Assets<Texture>>,
+    mut window: ResMut<ImageView<f32, Rgba>>,
+) {
+    window.timer.tick(time.delta_seconds);
+
+    if window.timer.finished {
+        if let Some(handle) = &window.handle {
+            if let Some(texture) = assets.get_mut(&handle) {
+                window.image.update_texture(texture);
+            }
+        }
+    }
+}
+
+fn startup(mut commands: Commands) {
+    commands.spawn(Camera2dComponents::default());
+}

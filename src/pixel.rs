@@ -26,6 +26,7 @@ impl<C: Color> Pixel<C> {
             vec![0.0; C::CHANNELS].into_boxed_slice(),
             std::marker::PhantomData,
         )
+        .with_alpha(1.0)
     }
 
     pub fn fill<T: Type>(mut self, x: T) -> Self {
@@ -42,18 +43,16 @@ impl<C: Color> Pixel<C> {
     }
 
     pub fn is_alpha(&self, index: usize) -> bool {
-        if C::ALPHA {
-            let len = self.len();
-            return index == len - 1;
+        if let Some(alpha) = C::ALPHA {
+            return alpha == index;
         }
 
         false
     }
 
     pub fn with_alpha(mut self, value: f64) -> Self {
-        if C::ALPHA {
-            let index = self.len() - 1;
-            self[index] = value
+        if let Some(alpha) = C::ALPHA {
+            self[alpha] = value
         }
         self
     }
@@ -127,12 +126,19 @@ impl<C: Color> Pixel<C> {
         }
     }
 
-    pub fn iter(&self) -> std::slice::Iter<f64> {
-        self.0.iter()
+    pub fn iter(&self) -> impl Iterator<Item = &f64> {
+        let iter = self.0.iter();
+
+        let alpha = C::ALPHA.unwrap_or(std::usize::MAX);
+        iter.enumerate()
+            .filter_map(move |(idx, item)| if idx != alpha { Some(item) } else { None })
     }
 
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<f64> {
-        self.0.iter_mut()
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut f64> {
+        let iter = self.0.iter_mut();
+        let alpha = C::ALPHA.unwrap_or(std::usize::MAX);
+        iter.enumerate()
+            .filter_map(move |(idx, item)| if idx != alpha { Some(item) } else { None })
     }
 
     /// Gamma correction

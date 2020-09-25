@@ -5,7 +5,7 @@ use crate::*;
 pub trait Color: Unpin + PartialEq + Eq + PartialOrd + Ord + Clone + Sync + Send {
     const NAME: &'static str;
     const CHANNELS: usize;
-    const ALPHA: bool = false;
+    const ALPHA: Option<usize> = None;
 
     fn to_rgb(_c: usize, _pixel: &Pixel<Self>) -> f64;
     fn from_rgb(c: usize, pixel: &Pixel<Rgb>) -> f64;
@@ -62,6 +62,7 @@ color!(Rgba);
 impl Color for Rgba {
     const NAME: &'static str = "rgba";
     const CHANNELS: usize = 4;
+    const ALPHA: Option<usize> = Some(3);
 
     fn to_rgb(c: usize, pixel: &Pixel<Self>) -> f64 {
         pixel[c] * pixel[3]
