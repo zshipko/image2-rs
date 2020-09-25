@@ -4,7 +4,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::usize;
 
-use crate::{Color, Image, Type};
+use crate::{Color, Image, Rgb, Type};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -101,6 +101,10 @@ impl Magick {
 
     /// Read image from disk using ImageMagick/GraphicsMagick
     pub fn read<P: AsRef<Path>, T: Type, C: Color>(&self, path: P) -> Result<Image<T, C>, Error> {
+        if !["gray", "rgb", "rgba"].contains(&C::NAME) {
+            return Ok(self.read::<P, f32, Rgb>(path)?.convert());
+        }
+
         let (width, height) = match self.get_image_shape(&path) {
             Ok((width, height)) => (width, height),
             Err(e) => return Err(e),
@@ -126,7 +130,7 @@ impl Magick {
             data: unsafe {
                 let mut data: Vec<T> = std::mem::transmute(cmd.stdout);
                 data.set_len(width * height * C::CHANNELS);
-                data
+                data.into()
             },
         })
     }
@@ -137,6 +141,10 @@ impl Magick {
         path: P,
         image: &Image<T, C>,
     ) -> Result<(), Error> {
+        if !["gray", "rgb", "rgba"].contains(&C::NAME) {
+            let image = image.convert::<T, Rgb>();
+            return self.write(path, &image);
+        }
         let kind = kind::<C>();
         let (width, height, _) = image.shape();
         let size = format!("{}x{}", width, height);

@@ -14,7 +14,10 @@
 //!     // Apply a `Filter`, in this case using the `Convert` filter to
 //!     // convert from `Rgb` to `Gray`
 //!     let mut dest = image.new_like_with_color::<Gray>();
-//!     let dest = dest.apply(&[&image], Convert::<Gray>::new());
+//!     dest.apply(Convert::<Gray>::new(), &[&image]);
+//!
+//!     // This is the same as:
+//!     let dest: Image<f32, Gray> = image.run(Convert::<Gray>::new(), None);
 //!
 //!     // Save an image to disk
 //!     dest.save("test.jpg")?;
