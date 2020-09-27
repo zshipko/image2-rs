@@ -61,20 +61,17 @@ kernel_from!(
 );
 
 impl Filter for Kernel {
-    fn compute_at(
-        &self,
-        x: usize,
-        y: usize,
-        c: usize,
-        input: &[&Image<impl Type, impl Color>],
-    ) -> f64 {
+    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
         let r2 = (self.rows / 2) as isize;
         let c2 = (self.cols / 2) as isize;
         let mut f = 0.0;
         for ky in -r2..=r2 {
             let kr = &self.data[(ky + r2) as usize];
             for kx in -c2..=c2 {
-                let x = input[0].get_f((x as isize + kx) as usize, (y as isize + ky) as usize, c);
+                let x = input[0].get_f(
+                    ((pt.x as isize + kx) as usize, (pt.y as isize + ky) as usize),
+                    c,
+                );
                 f += x * kr[(kx + c2) as usize];
             }
         }
@@ -183,8 +180,7 @@ macro_rules! op {
         impl Filter for $name {
             fn compute_at(
                 &self,
-                x: usize,
-                y: usize,
+                pt: Point,
                 c: usize,
                 input: &[&Image<impl Type, impl Color>],
             ) -> f64 {
@@ -196,8 +192,7 @@ macro_rules! op {
                     let kr1 = &self.b.data[(ky + r2) as usize];
                     for kx in -c2..=c2 {
                         let x = input[0].get_f(
-                            (x as isize + kx) as usize,
-                            (y as isize + ky) as usize,
+                            ((pt.x as isize + kx) as usize, (pt.y as isize + ky) as usize),
                             c,
                         );
                         f += $f(x * kr[(kx + c2) as usize], x * kr1[(kx + c2) as usize]);

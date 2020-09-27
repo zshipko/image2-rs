@@ -13,11 +13,13 @@
 //!
 //!     // Apply a `Filter`, in this case using the `Convert` filter to
 //!     // convert from `Rgb` to `Gray`
+//!     let conv = Convert::<Gray>::new();
 //!     let mut dest = image.new_like_with_color::<Gray>();
-//!     dest.apply(Convert::<Gray>::new(), &[&image]);
+//!     dest.apply(conv, &[&image]);
 //!
-//!     // This is the same as:
-//!     let dest: Image<f32, Gray> = image.run(Convert::<Gray>::new(), None);
+//!     // This is equivalent to:
+//!     let conv = Convert::<Gray>::new();
+//!     let dest: Image<f32, Gray> = image.run(conv, None);
 //!
 //!     // Save an image to disk
 //!     dest.save("test.jpg")?;
@@ -31,8 +33,10 @@ pub use half::f16;
 
 mod color;
 mod error;
+mod geom;
 mod histogram;
 mod image;
+mod meta;
 mod pixel;
 mod r#type;
 
@@ -47,11 +51,13 @@ pub mod io;
 pub mod kernel;
 pub mod transform;
 
-pub use color::{Cmyk, Color, Convert, Gray, Hsv, Rgb, Rgba, Xyz};
+pub use crate::meta::Meta;
+pub use color::{Channel, Cmyk, Color, Convert, Gray, Hsv, Rgb, Rgba, Xyz};
 pub use error::Error;
 pub use filter::Filter;
+pub use geom::{Point, Region, Size};
 pub use histogram::Histogram;
-pub use image::{Hash, Image, Meta, Region};
+pub use image::{Hash, Image};
 pub use kernel::Kernel;
 pub use pixel::Pixel;
 pub use r#type::Type;

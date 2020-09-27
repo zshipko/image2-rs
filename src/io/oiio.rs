@@ -299,20 +299,20 @@ impl Input {
         // Gray, Rgb, or Rgba
         if C::CHANNELS != nchannels || !["gray", "rgb", "rgba"].contains(&C::NAME) {
             if nchannels == 1 {
-                let mut image = Image::<f32, Gray>::new(self.spec.width(), self.spec.height());
+                let mut image = Image::<f32, Gray>::new((self.spec.width(), self.spec.height()));
                 self.read_into(&mut image)?;
                 Ok(image.convert())
             } else if nchannels == 4 {
-                let mut image = Image::<f32, Rgba>::new(self.spec.width(), self.spec.height());
+                let mut image = Image::<f32, Rgba>::new((self.spec.width(), self.spec.height()));
                 self.read_into(&mut image)?;
                 Ok(image.convert())
             } else {
-                let mut image = Image::<f32, Rgb>::new(self.spec.width(), self.spec.height());
+                let mut image = Image::<f32, Rgb>::new((self.spec.width(), self.spec.height()));
                 self.read_into(&mut image)?;
                 Ok(image.convert())
             }
         } else {
-            let mut image = Image::new(self.spec.width(), self.spec.height());
+            let mut image = Image::new((self.spec.width(), self.spec.height()));
             self.read_into(&mut image)?;
             Ok(image)
         }

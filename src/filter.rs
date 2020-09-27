@@ -6,40 +6,33 @@ use rayon::prelude::*;
 
 /// Filters are used to manipulate images in a generic, composable manner
 pub trait Filter: Sized + Sync {
-    fn compute_at(&self, x: usize, y: usize, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64;
+    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64;
 
     /// Evaluate a filter on part of an image
     fn eval_partial<A: Type, B: Type, C: Color, D: Color>(
         &self,
         roi: Region,
-        output: &mut Image<A, impl Color>,
         input: &[&Image<B, impl Color>],
+        output: &mut Image<A, impl Color>,
     ) {
         let channels = output.channels();
 
-        #[cfg(feature = "parallel")]
-        let iter = {
-            output.parallel_iter_region_mut(roi)
-        };
+        let iter =
+            output.iter_region_mut(roi);
 
-        #[cfg(not(feature = "parallel"))]
-        let iter = {
-            output.iter_region_mut(roi)
-        };
-
-        iter.for_each(|((x, y), pixel)| {
+        iter.for_each(|(pt, pixel)| {
             for (c, px) in pixel.iter_mut().enumerate().take(channels) {
-                px.set_from_norm(self.compute_at(x, y, c, input));
+                px.set_from_norm(self.compute_at(pt, c, input));
             }
         });
     }
 
     /// Evaluate filter in parallel
-    fn eval(&self, output: &mut Image<impl Type, impl Color>, input: &[&Image<impl Type, impl Color>]) {
+    fn eval(&self, input: &[&Image<impl Type, impl Color>], output: &mut Image<impl Type, impl Color>) {
         let channels = output.channels();
-        output.for_each(|(x, y), pixel| {
+        output.for_each(|pt, pixel| {
             for (c, px) in pixel.iter_mut().enumerate().take(channels) {
-                px.set_from_norm(self.compute_at(x, y, c, input));
+                px.set_from_norm(self.compute_at(pt, c, input));
             }
         });
     }
@@ -50,7 +43,7 @@ pub trait Filter: Sized + Sync {
         Y: Color,
         A: 'a + Filter,
         B: 'a + Filter,
-        F: Fn((usize, usize, usize), f64, f64) -> f64,
+        F: Fn((Point, usize), f64, f64) -> f64,
     >(
         &'a self,
         other: &'a B,
@@ -63,7 +56,7 @@ pub trait Filter: Sized + Sync {
         }
     }
 
-    fn and_then<E: Color, F: Fn((usize, usize, usize), f64) -> f64>(&self, f: F) -> AndThen<Self, F> {
+    fn and_then<E: Color, F: Fn((Point, usize), f64) -> f64>(&self, f: F) -> AndThen<Self, F> {
         AndThen {
             a: self,
             f,
@@ -73,8 +66,8 @@ pub trait Filter: Sized + Sync {
     fn to_async<'a, T: Type, C: Color, U: Type, D: Color>(
         &'a self,
         mode: AsyncMode,
-        output: &'a mut Image<U, D>,
         input: &'a [&Image<T, C>],
+        output: &'a mut Image<U, D>,
     ) -> AsyncFilter<'a, Self, T, C, U, D> {
         AsyncFilter {
             mode,
@@ -92,7 +85,7 @@ pub struct Join<
     'a,
     A: 'a + Filter,
     B: 'a + Filter,
-    F: Fn((usize, usize, usize), f64, f64) -> f64,
+    F: Fn((Point, usize), f64, f64) -> f64,
 > {
     a: &'a A,
     b: &'a B,
@@ -100,16 +93,16 @@ pub struct Join<
 }
 
 /// Executes `a` then `f(a)`
-pub struct AndThen<'a, A: 'a + Filter, F: Fn((usize, usize, usize), f64) -> f64> {
+pub struct AndThen<'a, A: 'a + Filter, F: Fn((Point, usize), f64) -> f64> {
     a: &'a A,
     f: F,
 }
 
-impl<'a, A: Filter, F: Sync + Fn((usize, usize, usize), f64) -> f64> Filter
+impl<'a, A: Filter, F: Sync + Fn((Point, usize), f64) -> f64> Filter
     for AndThen<'a, A, F>
 {
-    fn compute_at(&self, x: usize, y: usize, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
-        (self.f)((x, y, c), self.a.compute_at(x, y, c, input))
+    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
+        (self.f)((pt, c), self.a.compute_at(pt, c, input))
     }
 }
 
@@ -117,39 +110,47 @@ impl<
         'a,
         A: Filter,
         B: Filter,
-        F: Sync + Fn((usize, usize, usize), f64, f64) -> f64,
+        F: Sync + Fn((Point, usize), f64, f64) -> f64,
     > Filter for Join<'a, A, B, F>
 {
-    fn compute_at(&self, x: usize, y: usize, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
-        (&self.f)((x, y, c), self.a.compute_at(x, y, c, input), self.b.compute_at(x, y, c, input))
+    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
+        (&self.f)((pt, c), self.a.compute_at(pt, c, input), self.b.compute_at(pt, c, input))
     }
 }
 
 pub struct Invert;
 
 impl Filter for Invert {
-    fn compute_at(&self, x: usize, y: usize, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
+    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
         if input[0].meta.is_alpha_channel(c) {
-            return input[0].get_f(x, y, c);
+            return input[0].get_f(pt, c);
         }
 
-        1.0 - input[0].get_f(x, y, c)
+        1.0 - input[0].get_f(pt, c)
     }
 }
 
 pub struct Blend;
 
 impl Filter for Blend {
-    fn compute_at(&self, x: usize, y: usize, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
-        (input[0].get_f(x, y, c) + input[1].get_f(x, y, c)) / 2.0
+    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
+        (input[0].get_f(pt, c) + input[1].get_f(pt, c)) / 2.0
     }
 }
 
-pub struct Gamma(pub f64);
+pub struct GammaLog(pub f64);
 
-impl Filter for Gamma {
-    fn compute_at(&self, x: usize, y: usize, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
-        input[0].get_f(x, y, c).powf(1.0 / self.0)
+impl Filter for GammaLog {
+    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
+        input[0].get_f(pt, c).powf(1.0 / self.0)
+    }
+}
+
+pub struct GammaLin(pub f64);
+
+impl Filter for GammaLin {
+    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
+        input[0].get_f(pt, c).powf(self.0)
     }
 }
 
@@ -200,8 +201,8 @@ impl<'a, F: Unpin + Filter, T: Type, C: Color, U: Unpin + Type,  D: Unpin + Colo
                     for c in 0..C::CHANNELS {
                         let f = filter
                             .filter
-                            .compute_at(i, filter.y, c, &filter.input);
-                        filter.output.set_f(i, filter.y, c, f);
+                            .compute_at(Point::new(i, filter.y), c, &filter.input);
+                        filter.output.set_f((i, filter.y), c, f);
                     }
                 }
                 filter.y += 1;
@@ -210,8 +211,8 @@ impl<'a, F: Unpin + Filter, T: Type, C: Color, U: Unpin + Type,  D: Unpin + Colo
                 for c in 0..C::CHANNELS {
                     let f = filter
                         .filter
-                        .compute_at(filter.x, filter.y, c, &filter.input);
-                    filter.output.set_f(filter.x, filter.y, c, f);
+                        .compute_at(Point::new(filter.x, filter.y), c, &filter.input);
+                    filter.output.set_f((filter.x, filter.y), c, f);
                     filter.x += 1;
                     if filter.x >= input.width() {
                         filter.x = 0;
@@ -232,6 +233,6 @@ impl<'a, F: Unpin + Filter, T: Type, C: Color, U: Unpin + Type,  D: Unpin + Colo
 }
 
 pub async fn eval_async<'a, F: Unpin + Filter, T: Type, U: Type, C: Color, D: Color>(filter: &'a F, mode: AsyncMode, output: &'a mut Image<T, D>, input: &'a [&Image<U, C>]) {
-    filter.to_async(mode, output, input).await
+    filter.to_async(mode, input, output).await
 }
 

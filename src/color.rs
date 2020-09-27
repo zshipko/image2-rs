@@ -2,15 +2,27 @@
 
 use crate::*;
 
+/// `Channel` is an alias for `usize` used to identify channel values in function arguments
+pub type Channel = usize;
+
+/// `Color` trait is used to define color spaces
 pub trait Color: Unpin + PartialEq + Eq + PartialOrd + Ord + Clone + Sync + Send {
+    /// Color name
     const NAME: &'static str;
-    const CHANNELS: usize;
-    const ALPHA: Option<usize> = None;
 
-    fn to_rgb(_c: usize, _pixel: &Pixel<Self>) -> f64;
-    fn from_rgb(c: usize, pixel: &Pixel<Rgb>) -> f64;
+    /// Number of channels
+    const CHANNELS: Channel;
 
-    fn convert<ToColor: Color>(c: usize, pixel: &Pixel<Self>) -> f64 {
+    /// Index of alpha channel
+    const ALPHA: Option<Channel> = None;
+
+    /// Convert a single channel from Self -> Rgb
+    fn to_rgb(c: Channel, pixel: &Pixel<Self>) -> f64;
+
+    /// Convert a single channel from Rgb -> Self
+    fn from_rgb(c: Channel, pixel: &Pixel<Rgb>) -> f64;
+
+    fn convert<ToColor: Color>(c: Channel, pixel: &Pixel<Self>) -> f64 {
         let mut rgb: Pixel<Rgb> = Pixel::new();
         rgb[0] = Self::to_rgb(0, pixel);
         rgb[1] = Self::to_rgb(1, pixel);
@@ -33,13 +45,13 @@ macro_rules! color {
 color!(Gray);
 impl Color for Gray {
     const NAME: &'static str = "gray";
-    const CHANNELS: usize = 1;
+    const CHANNELS: Channel = 1;
 
-    fn to_rgb(_c: usize, pixel: &Pixel<Self>) -> f64 {
+    fn to_rgb(_c: Channel, pixel: &Pixel<Self>) -> f64 {
         pixel[0]
     }
 
-    fn from_rgb(_c: usize, pixel: &Pixel<Rgb>) -> f64 {
+    fn from_rgb(_c: Channel, pixel: &Pixel<Rgb>) -> f64 {
         pixel[0] * 0.21 + pixel[1] * 0.72 + pixel[2] * 0.7
     }
 }
@@ -47,13 +59,13 @@ impl Color for Gray {
 color!(Rgb);
 impl Color for Rgb {
     const NAME: &'static str = "rgb";
-    const CHANNELS: usize = 3;
+    const CHANNELS: Channel = 3;
 
-    fn to_rgb(c: usize, pixel: &Pixel<Self>) -> f64 {
+    fn to_rgb(c: Channel, pixel: &Pixel<Self>) -> f64 {
         pixel[c]
     }
 
-    fn from_rgb(c: usize, pixel: &Pixel<Rgb>) -> f64 {
+    fn from_rgb(c: Channel, pixel: &Pixel<Rgb>) -> f64 {
         pixel[c]
     }
 }
@@ -61,14 +73,14 @@ impl Color for Rgb {
 color!(Rgba);
 impl Color for Rgba {
     const NAME: &'static str = "rgba";
-    const CHANNELS: usize = 4;
-    const ALPHA: Option<usize> = Some(3);
+    const CHANNELS: Channel = 4;
+    const ALPHA: Option<Channel> = Some(3);
 
-    fn to_rgb(c: usize, pixel: &Pixel<Self>) -> f64 {
+    fn to_rgb(c: Channel, pixel: &Pixel<Self>) -> f64 {
         pixel[c] * pixel[3]
     }
 
-    fn from_rgb(c: usize, pixel: &Pixel<Rgb>) -> f64 {
+    fn from_rgb(c: Channel, pixel: &Pixel<Rgb>) -> f64 {
         if c >= 3 {
             return 1.0;
         }
@@ -80,9 +92,9 @@ impl Color for Rgba {
 color!(Xyz);
 impl Color for Xyz {
     const NAME: &'static str = "xyz";
-    const CHANNELS: usize = 3;
+    const CHANNELS: Channel = 3;
 
-    fn from_rgb(c: usize, rgb: &Pixel<Rgb>) -> f64 {
+    fn from_rgb(c: Channel, rgb: &Pixel<Rgb>) -> f64 {
         let mut r = rgb[0];
         let mut g = rgb[1];
         let mut b = rgb[2];
@@ -117,7 +129,7 @@ impl Color for Xyz {
         }
     }
 
-    fn to_rgb(c: usize, px: &Pixel<Xyz>) -> f64 {
+    fn to_rgb(c: Channel, px: &Pixel<Xyz>) -> f64 {
         let x = px[0] / 100.;
         let y = px[1] / 100.;
         let z = px[2] / 100.;
@@ -155,9 +167,9 @@ impl Color for Xyz {
 color!(Hsv);
 impl Color for Hsv {
     const NAME: &'static str = "hsv";
-    const CHANNELS: usize = 3;
+    const CHANNELS: Channel = 3;
 
-    fn from_rgb(c: usize, rgb: &Pixel<Rgb>) -> f64 {
+    fn from_rgb(c: Channel, rgb: &Pixel<Rgb>) -> f64 {
         let r = rgb[0];
         let g = rgb[1];
         let b = rgb[2];
@@ -201,7 +213,7 @@ impl Color for Hsv {
         }
     }
 
-    fn to_rgb(c: usize, px: &Pixel<Hsv>) -> f64 {
+    fn to_rgb(c: Channel, px: &Pixel<Hsv>) -> f64 {
         if px[1] == 0. {
             px[2]
         } else {
@@ -265,9 +277,9 @@ impl Color for Hsv {
 color!(Yuv);
 impl Color for Yuv {
     const NAME: &'static str = "yuv";
-    const CHANNELS: usize = 3;
+    const CHANNELS: Channel = 3;
 
-    fn from_rgb(c: usize, rgb: &Pixel<Rgb>) -> f64 {
+    fn from_rgb(c: Channel, rgb: &Pixel<Rgb>) -> f64 {
         let r = rgb[0];
         let g = rgb[1];
         let b = rgb[2];
@@ -280,7 +292,7 @@ impl Color for Yuv {
         }
     }
 
-    fn to_rgb(c: usize, px: &Pixel<Self>) -> f64 {
+    fn to_rgb(c: Channel, px: &Pixel<Self>) -> f64 {
         let y = px[0];
         let u = px[1];
         let v = px[2];
@@ -296,9 +308,9 @@ impl Color for Yuv {
 color!(Cmyk);
 impl Color for Cmyk {
     const NAME: &'static str = "cmyk";
-    const CHANNELS: usize = 4;
+    const CHANNELS: Channel = 4;
 
-    fn from_rgb(index: usize, rgb: &Pixel<Rgb>) -> f64 {
+    fn from_rgb(index: Channel, rgb: &Pixel<Rgb>) -> f64 {
         let r = rgb[0];
         let g = rgb[1];
         let b = rgb[2];
@@ -336,7 +348,7 @@ impl Color for Cmyk {
         }
     }
 
-    fn to_rgb(i: usize, cmyk: &Pixel<Cmyk>) -> f64 {
+    fn to_rgb(i: Channel, cmyk: &Pixel<Cmyk>) -> f64 {
         let mut c = cmyk[0];
         let mut m = cmyk[1];
         let mut y = cmyk[2];
@@ -365,13 +377,7 @@ impl<C: Color> Convert<C> {
 }
 
 impl<T: Color> Filter for Convert<T> {
-    fn compute_at(
-        &self,
-        x: usize,
-        y: usize,
-        c: usize,
-        input: &[&Image<impl Type, impl Color>],
-    ) -> f64 {
-        Color::convert::<T>(c, &input[0].get_pixel(x, y))
+    fn compute_at(&self, pt: Point, c: Channel, input: &[&Image<impl Type, impl Color>]) -> f64 {
+        Color::convert::<T>(c, &input[0].get_pixel(pt))
     }
 }

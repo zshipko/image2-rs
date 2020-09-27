@@ -99,27 +99,17 @@ where
     }
 }
 
-fn transmute_to_bytes_vec<T>(mut from: Vec<T>) -> Vec<u8> {
-    unsafe {
-        let capacity = from.capacity() * std::mem::size_of::<T>();
-        let len = from.len() * std::mem::size_of::<T>();
-        let ptr = from.as_mut_ptr();
-        std::mem::forget(from);
-        Vec::from_raw_parts(ptr as *mut u8, len, capacity)
-    }
-}
-
 fn into_texture<T: crate::Type, C: crate::Color>(
     image: Image<T, C>,
     fmt: TextureFormat,
 ) -> Texture {
     let size = Vec2::new(image.width() as f32, image.height() as f32);
-    Texture::new(size, transmute_to_bytes_vec(image.data.into_vec()), fmt)
+    Texture::new(size, image.into_buffer(), fmt)
 }
 
 fn to_texture<T: crate::Type, C: crate::Color>(image: &Image<T, C>, fmt: TextureFormat) -> Texture {
     let size = Vec2::new(image.width() as f32, image.height() as f32);
-    Texture::new(size, transmute_to_bytes_vec(image.data.to_vec()), fmt)
+    Texture::new(size, image.to_buffer(), fmt)
 }
 
 impl From<Image<f32, Rgba>> for Texture {

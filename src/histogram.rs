@@ -124,7 +124,7 @@ mod tests {
 
     #[test]
     fn test_histogram_basic() {
-        let image = Image::<f32, Rgb>::new(100, 100);
+        let image = Image::<f32, Rgb>::new((100, 100));
         let hist = image.histogram(255);
 
         for h in hist {

@@ -34,7 +34,7 @@ impl<C: Color> Pixel<C> {
         self
     }
 
-    pub fn len(&self) -> usize {
+    pub fn len(&self) -> Channel {
         C::CHANNELS
     }
 
@@ -42,7 +42,7 @@ impl<C: Color> Pixel<C> {
         self.len() == 0
     }
 
-    pub fn is_alpha(&self, index: usize) -> bool {
+    pub fn is_alpha(&self, index: Channel) -> bool {
         if let Some(alpha) = C::ALPHA {
             return alpha == index;
         }
@@ -55,6 +55,16 @@ impl<C: Color> Pixel<C> {
             self[alpha] = value
         }
         self
+    }
+
+    pub fn convert<D: Color>(&self) -> Pixel<D> {
+        let mut dest = Pixel::new();
+
+        for (i, x) in dest.iter_mut().enumerate() {
+            *x = Color::convert::<D>(i, self);
+        }
+
+        dest
     }
 
     #[inline]
@@ -175,35 +185,35 @@ impl<C: Color> IntoIterator for Pixel<C> {
     }
 }
 
-impl<C: Color> std::ops::Index<usize> for Pixel<C> {
+impl<C: Color> std::ops::Index<Channel> for Pixel<C> {
     type Output = f64;
-    fn index(&self, index: usize) -> &f64 {
+    fn index(&self, index: Channel) -> &f64 {
         &self.0[index]
     }
 }
 
-impl<'a, C: Color> std::ops::Index<usize> for &'a Pixel<C> {
+impl<'a, C: Color> std::ops::Index<Channel> for &'a Pixel<C> {
     type Output = f64;
-    fn index(&self, index: usize) -> &f64 {
+    fn index(&self, index: Channel) -> &f64 {
         &self.0[index]
     }
 }
 
-impl<'a, C: Color> std::ops::Index<usize> for &'a mut Pixel<C> {
+impl<'a, C: Color> std::ops::Index<Channel> for &'a mut Pixel<C> {
     type Output = f64;
-    fn index(&self, index: usize) -> &f64 {
+    fn index(&self, index: Channel) -> &f64 {
         &self.0[index]
     }
 }
 
-impl<C: Color> std::ops::IndexMut<usize> for Pixel<C> {
-    fn index_mut(&mut self, index: usize) -> &mut f64 {
+impl<C: Color> std::ops::IndexMut<Channel> for Pixel<C> {
+    fn index_mut(&mut self, index: Channel) -> &mut f64 {
         &mut self.0[index]
     }
 }
 
-impl<'a, C: Color> std::ops::IndexMut<usize> for &'a mut Pixel<C> {
-    fn index_mut(&mut self, index: usize) -> &mut f64 {
+impl<'a, C: Color> std::ops::IndexMut<Channel> for &'a mut Pixel<C> {
+    fn index_mut(&mut self, index: Channel) -> &mut f64 {
         &mut self.0[index]
     }
 }
