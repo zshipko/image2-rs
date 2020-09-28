@@ -6,7 +6,9 @@ use std::usize;
 
 use crate::{Color, Image, Rgb, Type};
 
+/// Magick I/O errors
 #[derive(Debug, thiserror::Error)]
+#[allow(missing_docs)]
 pub enum Error {
     #[error("Invalid image shape")]
     InvalidImageShape,
@@ -27,12 +29,13 @@ pub enum Error {
     ErrorWritingImage,
 }
 
+/// Magick command struct
 pub struct Magick {
     identify: &'static [&'static str],
     convert: &'static [&'static str],
 }
 
-pub fn kind<C: Color>() -> String {
+fn kind<C: Color>() -> String {
     format!("{}:-", C::NAME)
 }
 
@@ -46,16 +49,19 @@ fn depth<T: Type, C: Color>(cmd: &mut Command) {
     }
 }
 
+/// ImageMagick
 pub const IM: Magick = Magick {
     identify: &["identify"],
     convert: &["convert"],
 };
 
+/// GraphicsMagick
 pub const GM: Magick = Magick {
     identify: &["gm", "identify"],
     convert: &["gm", "convert"],
 };
 
+/// Default Magick implementation
 pub static mut DEFAULT: Magick = IM;
 
 /// Change default command

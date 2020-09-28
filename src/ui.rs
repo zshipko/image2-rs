@@ -9,9 +9,7 @@ use bevy_asset::AssetLoader;
 use bevy_math::Vec2;
 use bevy_render::{prelude::Texture, texture::TextureFormat};
 
-/// Loader for images that can be read by the `image` crate.
-///
-/// Reads only PNG images for now.
+/// Loader for images that can be read by `image2`.
 #[derive(Clone, Default)]
 pub struct ImageLoader;
 
@@ -27,6 +25,7 @@ impl AssetLoader<Texture> for ImageLoader {
     }
 }
 
+/// Create an Image widget
 pub fn make_image(
     width: usize,
     height: usize,
@@ -56,6 +55,7 @@ impl<T: Type, C: Color> Image<T, C>
 where
     Image<T, C>: Into<Texture>,
 {
+    /// Convert image to bevy `Texture` and build Image widget
     pub fn show(
         self,
         mut assets: ResMut<Assets<Texture>>,
@@ -73,6 +73,7 @@ impl<'a, T: 'a + Type, C: 'a + Color> Image<T, C>
 where
     &'a Image<T, C>: Into<Texture>,
 {
+    /// Clone image data to bevy `Texture` and build Image widget
     pub fn show_clone(
         &'a self,
         mut assets: ResMut<Assets<Texture>>,
@@ -86,6 +87,7 @@ where
         )
     }
 
+    /// Update an existing texture with data from an image
     pub fn update_texture(&'a self, texture: &mut Texture) {
         if texture.data.len()
             == self.width() * self.height() * self.channels() * std::mem::size_of::<T>()
@@ -202,18 +204,28 @@ impl<'a> From<&'a Image<i32, Rgba>> for Texture {
     }
 }
 
+/// Image winwdow
 #[derive(Clone)]
 pub struct ImageView<T: Type, C: crate::Color> {
+    /// Underlying image
     pub image: Box<std::sync::Arc<Image<T, C>>>,
+
+    /// Texture handle
     pub handle: Option<Handle<Texture>>,
+
+    /// ImageComponents
     pub components: Option<ImageComponents>,
     dirty: bool,
 }
+
+unsafe impl<T: Type, C: crate::Color> Send for ImageView<T, C> {}
+unsafe impl<T: Type, C: crate::Color> Sync for ImageView<T, C> {}
 
 impl<'a, T: 'a + Type, C: 'a + crate::Color> ImageView<T, C>
 where
     &'a Image<T, C>: Into<Texture>,
 {
+    /// Create new image view
     pub fn new(image: Image<T, C>) -> ImageView<T, C> {
         ImageView {
             image: Box::new(std::sync::Arc::new(image)),
@@ -223,18 +235,22 @@ where
         }
     }
 
+    /// Mark image as dirty, triggering displayed image to be updated
     pub fn mark_as_dirty(&mut self) {
         self.dirty = true
     }
 
+    /// Get mutable reference to underlying image
     pub fn image_mut(&mut self) -> &mut Image<T, C> {
         std::sync::Arc::make_mut(&mut self.image)
     }
 
+    /// Get reference to underlying image
     pub fn image(&self) -> &Image<T, C> {
         self.image.as_ref()
     }
 
+    /// Redraw the image
     pub fn draw(&'a mut self, mut assets: ResMut<Assets<Texture>>) {
         if let Some(handle) = &self.handle {
             if self.dirty {
@@ -271,6 +287,7 @@ fn update_window(assets: ResMut<Assets<Texture>>, mut window: ResMut<ImageView<f
     window.draw(assets)
 }
 
+/// Initialize UI
 pub fn init(mut commands: Commands) {
     commands.spawn(UiCameraComponents::default());
 }
