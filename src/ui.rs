@@ -1,3 +1,5 @@
+pub use bevy;
+
 use std::path::Path;
 
 use crate::{Color, Image, Rgba, Type};

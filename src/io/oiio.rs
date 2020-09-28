@@ -47,6 +47,7 @@ impl Output {
         &mut self.spec
     }
 
+    /// Get the output path
     pub fn path(&self) -> &std::path::Path {
         &self.path
     }
@@ -320,9 +321,15 @@ impl Input {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// `Attr` is used to include metadata when reading and writing image files
 pub enum Attr<'a> {
+    /// Integer value
     Int(i32),
+
+    /// Float value
     Float(f32),
+
+    /// String value
     String(&'a str),
 }
 
@@ -402,6 +409,7 @@ impl ImageSpec {
         }
     }
 
+    /// Get an attribute
     pub fn get_attr(&self, key: impl AsRef<str>) -> Option<Attr> {
         let key_str = std::ffi::CString::new(key.as_ref().as_bytes().to_vec()).unwrap();
         let key_ptr = key_str.as_ptr();
@@ -419,6 +427,7 @@ impl ImageSpec {
         unsafe { internal::to_attr(&*value) }
     }
 
+    /// Set an attribute
     pub fn set_attr<'a>(&mut self, key: impl AsRef<str>, value: impl Into<Attr<'a>>) {
         let key_str = std::ffi::CString::new(key.as_ref().as_bytes().to_vec()).unwrap();
         let key_ptr = key_str.as_ptr();
@@ -447,6 +456,7 @@ impl ImageSpec {
         }
     }
 
+    /// Get the oiio:Colorspace tag value
     pub fn colorspace(&self) -> Option<&str> {
         match self.get_attr("oiio:ColorSpace") {
             Some(Attr::String(s)) => Some(s),
@@ -454,6 +464,7 @@ impl ImageSpec {
         }
     }
 
+    /// Return the number of subimages, if any
     pub fn subimages(&self) -> Option<i32> {
         match self.get_attr("oiio:ColorSpace") {
             Some(Attr::Int(i)) => Some(i),
@@ -461,6 +472,7 @@ impl ImageSpec {
         }
     }
 
+    /// Get a map with all attributes
     pub fn attrs(&self) -> std::collections::BTreeMap<&str, Attr> {
         let mut len = 0;
         let len_ptr = &mut len;

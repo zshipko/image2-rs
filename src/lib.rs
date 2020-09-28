@@ -1,3 +1,5 @@
+#![deny(missing_docs)]
+
 //! image2 - a high-performance image processing library with wide support for a variety of file
 //! formats and data types
 //!
@@ -29,6 +31,7 @@
 //!
 //! ```
 
+/// 16-bit float
 pub use half::f16;
 
 mod color;
@@ -43,12 +46,20 @@ mod r#type;
 #[cfg(feature = "halide")]
 mod halide_wrapper;
 
+/// Halide bindings
 #[cfg(feature = "halide")]
 pub use halide_runtime as halide;
 
+/// Composable image filters
 pub mod filter;
+
+/// Image input/output
 pub mod io;
+
+/// Convolutions kernels
 pub mod kernel;
+
+/// Image transforms
 pub mod transform;
 
 pub use crate::meta::Meta;
@@ -62,11 +73,9 @@ pub use kernel::Kernel;
 pub use pixel::Pixel;
 pub use r#type::Type;
 
-#[cfg(test)]
-mod tests;
-
+/// User interface
 #[cfg(feature = "ui")]
 pub mod ui;
 
-#[cfg(feature = "ui")]
-pub use bevy;
+#[cfg(test)]
+mod tests;

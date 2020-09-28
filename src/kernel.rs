@@ -118,6 +118,7 @@ impl Kernel {
     }
 }
 
+/// Generate gaussian blur kernel
 pub fn gaussian(n: usize, std: f64) -> Kernel {
     assert!(n % 2 != 0);
     let std2 = std * std;
@@ -130,22 +131,27 @@ pub fn gaussian(n: usize, std: f64) -> Kernel {
     k
 }
 
+/// 3x3 pixel gaussian blur
 pub fn gaussian_3x3() -> Kernel {
     gaussian(3, 1.4)
 }
 
+/// 5x5 pixel gaussian blur
 pub fn gaussian_5x5() -> Kernel {
     gaussian(5, 1.4)
 }
 
+/// 7x7 pixel gaussian blur
 pub fn gaussian_7x7() -> Kernel {
     gaussian(7, 1.4)
 }
 
+/// 9x9 pixel gaussian blur
 pub fn gaussian_9x9() -> Kernel {
     gaussian(9, 1.4)
 }
 
+/// Sobel X
 pub fn sobel_x() -> Kernel {
     Kernel {
         rows: 3,
@@ -158,6 +164,7 @@ pub fn sobel_x() -> Kernel {
     }
 }
 
+/// Sobel Y
 pub fn sobel_y() -> Kernel {
     Kernel {
         rows: 3,
@@ -171,7 +178,8 @@ pub fn sobel_y() -> Kernel {
 }
 
 macro_rules! op {
-    ($name:ident, $fx:ident, $f:expr) => {
+    ($name:ident, $fx:ident, $f:expr, $doc:expr) => {
+        #[doc = $doc]
         pub struct $name {
             a: Kernel,
             b: Kernel,
@@ -212,12 +220,12 @@ macro_rules! op {
     };
 }
 
-op!(Add, add, |a, b| a + b);
-op!(Sub, sub, |a, b| a - b);
-op!(Mul, mul, |a, b| a * b);
-op!(Div, div, |a, b| a / b);
-op!(Rem, rem, |a, b| a % b);
+op!(Add, add, |a, b| a + b, "Add the result of two kernels");
+op!(Sub, sub, |a, b| a - b, "Subtract the result of two kernels");
+op!(Mul, mul, |a, b| a * b, "Multiply the result of two kernels");
+op!(Div, div, |a, b| a / b, "Divide the result of two kernels");
 
+/// Sobel X and Y combined
 pub fn sobel() -> Add {
     sobel_x() + sobel_y()
 }

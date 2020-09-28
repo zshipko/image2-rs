@@ -6,7 +6,7 @@ use crate::*;
 pub type Channel = usize;
 
 /// `Color` trait is used to define color spaces
-pub trait Color: Unpin + PartialEq + Eq + PartialOrd + Ord + Clone + Sync + Send {
+pub trait Color: Unpin + PartialEq + Eq + PartialOrd + Ord + Clone + Sync {
     /// Color name
     const NAME: &'static str;
 
@@ -22,6 +22,7 @@ pub trait Color: Unpin + PartialEq + Eq + PartialOrd + Ord + Clone + Sync + Send
     /// Convert a single channel from Rgb -> Self
     fn from_rgb(c: Channel, pixel: &Pixel<Rgb>) -> f64;
 
+    /// Convert a single channel of a color to another color
     fn convert<ToColor: Color>(c: Channel, pixel: &Pixel<Self>) -> f64 {
         let mut rgb: Pixel<Rgb> = Pixel::new();
         rgb[0] = Self::to_rgb(0, pixel);
@@ -31,18 +32,17 @@ pub trait Color: Unpin + PartialEq + Eq + PartialOrd + Ord + Clone + Sync + Send
     }
 }
 
-#[macro_export]
 macro_rules! color {
-    ($t:ident) => {
+    ($t:ident, $doc:expr) => {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+        #[doc = $doc]
         pub struct $t;
 
         unsafe impl Sync for $t {}
-        unsafe impl Send for $t {}
     };
 }
 
-color!(Gray);
+color!(Gray, "Single-channel grayscale");
 impl Color for Gray {
     const NAME: &'static str = "gray";
     const CHANNELS: Channel = 1;
@@ -56,7 +56,7 @@ impl Color for Gray {
     }
 }
 
-color!(Rgb);
+color!(Rgb, "Three-channel red, green, blue");
 impl Color for Rgb {
     const NAME: &'static str = "rgb";
     const CHANNELS: Channel = 3;
@@ -70,7 +70,7 @@ impl Color for Rgb {
     }
 }
 
-color!(Rgba);
+color!(Rgba, "Four-channel red, green, blue with alpha channel");
 impl Color for Rgba {
     const NAME: &'static str = "rgba";
     const CHANNELS: Channel = 4;
@@ -89,7 +89,7 @@ impl Color for Rgba {
     }
 }
 
-color!(Xyz);
+color!(Xyz, "Three-channel CIE-XYZ");
 impl Color for Xyz {
     const NAME: &'static str = "xyz";
     const CHANNELS: Channel = 3;
@@ -164,7 +164,7 @@ impl Color for Xyz {
     }
 }
 
-color!(Hsv);
+color!(Hsv, "Three-channel hue, saturation and value color");
 impl Color for Hsv {
     const NAME: &'static str = "hsv";
     const CHANNELS: Channel = 3;
@@ -274,7 +274,10 @@ impl Color for Hsv {
     }
 }
 
-color!(Yuv);
+color!(
+    Yuv,
+    "Three-channel, luma, blue projection and red projection"
+);
 impl Color for Yuv {
     const NAME: &'static str = "yuv";
     const CHANNELS: Channel = 3;
@@ -305,7 +308,7 @@ impl Color for Yuv {
     }
 }
 
-color!(Cmyk);
+color!(Cmyk, "Four-channel, cyan, magenta, yellow and black");
 impl Color for Cmyk {
     const NAME: &'static str = "cmyk";
     const CHANNELS: Channel = 4;
@@ -367,10 +370,12 @@ impl Color for Cmyk {
     }
 }
 
+/// Convert between colors
 #[derive(Clone, Copy, Default)]
 pub struct Convert<T: Color>(std::marker::PhantomData<T>);
 
 impl<C: Color> Convert<C> {
+    /// Create new color conversion context
     pub fn new() -> Convert<C> {
         Convert(std::marker::PhantomData)
     }

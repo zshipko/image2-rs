@@ -6,12 +6,14 @@ use std::marker::PhantomData;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq)]
 pub struct Meta<T: Type, C: Color> {
+    /// Image size
     pub size: Size,
     _type: PhantomData<T>,
     _color: PhantomData<C>,
 }
 
 impl<T: Type, C: Color> Meta<T, C> {
+    /// Create a new `Meta`
     pub fn new(size: impl Into<Size>) -> Meta<T, C> {
         Meta {
             size: size.into(),
@@ -26,16 +28,19 @@ impl<T: Type, C: Color> Meta<T, C> {
         self.size.width * C::CHANNELS
     }
 
+    /// Number of pixels
     #[inline]
     pub fn num_pixels(&self) -> usize {
         self.size.width * self.size.height
     }
 
+    /// Number of items
     #[inline]
     pub fn num_values(&self) -> usize {
         self.size.width * self.size.height * C::CHANNELS
     }
 
+    /// Number of bytes
     #[inline]
     pub fn num_bytes(&self) -> usize {
         self.size.width * self.size.height * C::CHANNELS * std::mem::size_of::<T>()

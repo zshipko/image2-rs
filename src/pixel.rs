@@ -1,5 +1,6 @@
 use crate::*;
 
+/// Normalized image data
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Pixel<C: Color>(Box<[f64]>, std::marker::PhantomData<C>);
@@ -17,10 +18,12 @@ impl<C: Color> Default for Pixel<C> {
 }
 
 impl<C: Color> Pixel<C> {
+    /// Convert into a `Vec`
     pub fn into_vec(self) -> Vec<f64> {
         self.0.to_vec()
     }
 
+    /// Create an empty pixel
     pub fn new() -> Pixel<C> {
         Pixel(
             vec![0.0; C::CHANNELS].into_boxed_slice(),
@@ -29,19 +32,23 @@ impl<C: Color> Pixel<C> {
         .with_alpha(1.0)
     }
 
+    /// Fill a pixel with a single value
     pub fn fill<T: Type>(mut self, x: T) -> Self {
         self.0.iter_mut().for_each(|a| *a = x.to_norm());
         self
     }
 
+    /// Pixel channel count
     pub fn len(&self) -> Channel {
         C::CHANNELS
     }
 
+    /// Pixel has no channels
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    /// Returns true when the provided channel index matches the alpha channel index
     pub fn is_alpha(&self, index: Channel) -> bool {
         if let Some(alpha) = C::ALPHA {
             return alpha == index;
@@ -50,6 +57,7 @@ impl<C: Color> Pixel<C> {
         false
     }
 
+    /// Set alpha value
     pub fn with_alpha(mut self, value: f64) -> Self {
         if let Some(alpha) = C::ALPHA {
             self[alpha] = value
@@ -57,6 +65,7 @@ impl<C: Color> Pixel<C> {
         self
     }
 
+    /// Convert pixel color type
     pub fn convert<D: Color>(&self) -> Pixel<D> {
         let mut dest = Pixel::new();
 
@@ -67,6 +76,7 @@ impl<C: Color> Pixel<C> {
         dest
     }
 
+    /// Copy values from an existing slice
     #[inline]
     pub fn copy_from_slice<T: Type>(&mut self, data: &[T]) -> &mut Self {
         for (i, px) in data.iter().enumerate() {
@@ -78,6 +88,7 @@ impl<C: Color> Pixel<C> {
         self
     }
 
+    /// Copy values to an existing slice
     pub fn copy_to_slice<T: Type>(&self, data: &mut [T]) {
         for i in 0..data.len() {
             if i >= C::CHANNELS {
@@ -87,12 +98,14 @@ impl<C: Color> Pixel<C> {
         }
     }
 
+    /// Create from slice
     pub fn from_slice<T: Type>(data: &[T]) -> Pixel<C> {
         let mut px = Pixel::new();
         px.copy_from_slice(data);
         px
     }
 
+    /// Blend alpha value
     pub fn blend_alpha(mut self) -> Self {
         let index = self.len() - 1;
         let alpha = self[index];
@@ -102,6 +115,7 @@ impl<C: Color> Pixel<C> {
         self
     }
 
+    /// Create a new pixel by applying `f` over an existing pixel
     pub fn map(mut self, f: impl Fn(f64) -> f64) -> Pixel<C> {
         for i in 0..self.len() {
             self[i] = f(self[i]);
@@ -109,6 +123,7 @@ impl<C: Color> Pixel<C> {
         self
     }
 
+    /// Zip two pixels, apply `f` and return a new pixel with the results
     pub fn map2(mut self, other: &Pixel<C>, f: impl Fn(f64, f64) -> f64) -> Pixel<C> {
         for i in 0..self.len() {
             self[i] = f(self[i], other[i])
@@ -116,6 +131,7 @@ impl<C: Color> Pixel<C> {
         self
     }
 
+    /// Update pixel with the results of `f`
     pub fn map_in_place(&mut self, f: impl Fn(f64) -> f64) -> &mut Self {
         for i in 0..self.len() {
             (*self)[i] = f(self[i]);
@@ -123,6 +139,7 @@ impl<C: Color> Pixel<C> {
         self
     }
 
+    /// Zip two pixel values and apply `f`
     pub fn map2_in_place(&mut self, other: &Pixel<C>, f: impl Fn(f64, f64) -> f64) -> &mut Self {
         for i in 0..self.len() {
             (*self)[i] = f(self[i], other[i]);
@@ -130,12 +147,14 @@ impl<C: Color> Pixel<C> {
         self
     }
 
+    /// Apply `f` for each channel in a pixel
     pub fn for_each(&self, mut f: impl FnMut(f64)) {
         for i in 0..self.len() {
             f(self[i])
         }
     }
 
+    /// Get iterator over pixel data
     pub fn iter(&self) -> impl Iterator<Item = &f64> {
         let iter = self.0.iter();
 
@@ -144,6 +163,7 @@ impl<C: Color> Pixel<C> {
             .filter_map(move |(idx, item)| if idx != alpha { Some(item) } else { None })
     }
 
+    /// Get a mutable iterator over the pixel data
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut f64> {
         let iter = self.0.iter_mut();
         let alpha = C::ALPHA.unwrap_or(std::usize::MAX);

@@ -71,12 +71,7 @@ fn test_invert_async() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest = image.new_like();
     timer("Invert async", || {
-        smol::block_on(filter::eval_async(
-            &Invert,
-            filter::AsyncMode::Row,
-            &mut dest,
-            &[&image],
-        ))
+        smol::block_on(dest.apply_async(AsyncMode::Row, Invert, &[&image]));
     });
     assert!(dest.save("images/test-invert-async.jpg").is_ok());
 }

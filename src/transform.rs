@@ -1,6 +1,8 @@
 use crate::*;
 
 type EPoint<T> = euclid::Point2D<T, T>;
+
+/// Transform is used to perform pixel-level transformations on an image
 pub struct Transform(pub euclid::Transform2D<f64, f64, f64>);
 
 impl Filter for Transform {
@@ -14,6 +16,7 @@ impl Filter for Transform {
 }
 
 #[inline]
+/// Build rotation `Transform` using the specified degrees and center point
 pub fn rotate(deg: f64, center: (f64, f64)) -> Transform {
     Transform(
         euclid::Transform2D::rotation(euclid::Angle::degrees(-deg))
@@ -23,11 +26,13 @@ pub fn rotate(deg: f64, center: (f64, f64)) -> Transform {
 }
 
 #[inline]
+/// Build scale `Transform`
 pub fn scale(x: f64, y: f64) -> Transform {
     Transform(euclid::Transform2D::scale(1.0 / x, 1.0 / y))
 }
 
 #[inline]
+/// Build resize transform
 pub fn resize(from: Size, to: Size) -> Transform {
     Transform(euclid::Transform2D::scale(
         from.width as f64 / to.width as f64,
@@ -35,18 +40,21 @@ pub fn resize(from: Size, to: Size) -> Transform {
     ))
 }
 
+/// 90 degree rotation
 pub fn rotate90(from: Size, to: Size) -> Transform {
     let dwidth = to.width as f64;
     let height = from.height as f64;
     rotate(90., (dwidth / 2., height / 2.))
 }
 
+/// 180 degree rotation
 pub fn rotate180(src: Size) -> Transform {
     let dwidth = src.width as f64;
     let height = src.height as f64;
     rotate(180., (dwidth / 2., height / 2.))
 }
 
+/// 270 degree rotation
 pub fn rotate270(from: Size, to: Size) -> Transform {
     let width = to.height as f64;
     let dheight = from.width as f64;

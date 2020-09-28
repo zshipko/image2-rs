@@ -605,6 +605,17 @@ impl<T: Type, C: Color> Image<T, C> {
         self
     }
 
+    /// Apply an async filter using an Image as output
+    pub async fn apply_async(
+        &mut self,
+        mode: filter::AsyncMode,
+        filter: impl Filter + Unpin,
+        input: &[&Image<impl Type, impl Color>],
+    ) -> &mut Self {
+        filter::eval_async(&filter, mode, input, self).await;
+        self
+    }
+
     /// Run a filter using an Image as input
     pub fn run<U: Type, D: Color>(
         &self,
@@ -618,6 +629,23 @@ impl<T: Type, C: Color> Image<T, C> {
         };
         let mut dest = Image::new(size);
         dest.apply(filter, &[self]);
+        dest
+    }
+
+    /// Run an async filter using an Image as input
+    pub async fn run_async<U: Type, D: Color>(
+        &self,
+        mode: filter::AsyncMode,
+        filter: impl Filter + Unpin,
+        output: Option<Meta<U, D>>,
+    ) -> Image<U, D> {
+        let size = if let Some(o) = output {
+            o.size
+        } else {
+            self.size()
+        };
+        let mut dest = Image::new(size);
+        dest.apply_async(mode, filter, &[self]).await;
         dest
     }
 
@@ -712,11 +740,13 @@ impl<T: Type, C: Color> Image<T, C> {
         self.gamma(2.2)
     }
 
+    /// Resize an image
     pub fn resize(&self, size: impl Into<Size>) -> Image<T, C> {
         let size = size.into();
         self.run(transform::resize(self.size(), size), Some(Meta::new(size)))
     }
 
+    /// Scale an image
     pub fn scale(&self, width: f64, height: f64) -> Image<T, C> {
         self.run(
             transform::scale(width, height),

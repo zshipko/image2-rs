@@ -126,7 +126,7 @@ impl Magick {
         }
 
         Ok(Image {
-            meta: crate::Meta::new(width, height),
+            meta: crate::Meta::new((width, height)),
             data: unsafe {
                 let mut data: Vec<T> = std::mem::transmute(cmd.stdout);
                 data.set_len(width * height * C::CHANNELS);

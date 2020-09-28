@@ -6,7 +6,8 @@ use rayon::prelude::*;
 
 /// Filters are used to manipulate images in a generic, composable manner
 pub trait Filter: Sized + Sync {
-    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64;
+    /// Compute value of filter at a single point and channel
+    fn compute_at(&self, pt: Point, c: Channel, input: &[&Image<impl Type, impl Color>]) -> f64;
 
     /// Evaluate a filter on part of an image
     fn eval_partial<A: Type, B: Type, C: Color, D: Color>(
@@ -37,6 +38,7 @@ pub trait Filter: Sized + Sync {
         });
     }
 
+    /// Join two filters
     fn join<
         'a,
         E: Color,
@@ -56,6 +58,7 @@ pub trait Filter: Sized + Sync {
         }
     }
 
+    /// Perform one filter then another using the result of the first
     fn and_then<E: Color, F: Fn((Point, usize), f64) -> f64>(&self, f: F) -> AndThen<Self, F> {
         AndThen {
             a: self,
@@ -63,6 +66,7 @@ pub trait Filter: Sized + Sync {
         }
     }
 
+    /// Convert filter to `AsyncFilter`
     fn to_async<'a, T: Type, C: Color, U: Type, D: Color>(
         &'a self,
         mode: AsyncMode,
@@ -118,6 +122,7 @@ impl<
     }
 }
 
+/// Invert an image
 pub struct Invert;
 
 impl Filter for Invert {
@@ -130,6 +135,7 @@ impl Filter for Invert {
     }
 }
 
+/// Blend two images
 pub struct Blend;
 
 impl Filter for Blend {
@@ -138,6 +144,7 @@ impl Filter for Blend {
     }
 }
 
+/// Convert to log gamma
 pub struct GammaLog(pub f64);
 
 impl Filter for GammaLog {
@@ -146,6 +153,7 @@ impl Filter for GammaLog {
     }
 }
 
+/// Convert to linear gamma
 pub struct GammaLin(pub f64);
 
 impl Filter for GammaLin {
@@ -154,8 +162,12 @@ impl Filter for GammaLin {
     }
 }
 
+/// AsyncMode is used to schedule the type of iteration for an `AsyncFilter`
 pub enum AsyncMode {
+    /// Apply to one pixel at a time
     Pixel,
+
+    /// Apply to a row at a time
     Row,
 }
 
@@ -165,9 +177,15 @@ impl Default for AsyncMode {
     }
 }
 
+/// A `Filter` that can be executed using async
 pub struct AsyncFilter<'a, F: Filter, T: 'a + Type, C: Color, U: 'a + Type, D: Color = C> {
+    /// Regular filter
     pub filter: &'a F,
+
+    /// Output image
     pub output: &'a mut Image<U, D>,
+
+    /// Input images
     pub input: &'a [&'a Image<T, C>],
     x: usize,
     y: usize,
@@ -177,6 +195,7 @@ pub struct AsyncFilter<'a, F: Filter, T: 'a + Type, C: Color, U: 'a + Type, D: C
 impl<'a, F: Unpin + Filter, T: 'a + Type, C: Unpin + Color, U: 'a  + Unpin + Type,  D: Unpin + Color>
     AsyncFilter<'a, F, T, C, U, D>
 {
+    /// Evaluate the filter
     pub async fn eval(self) {
         self.await
     }
@@ -232,7 +251,8 @@ impl<'a, F: Unpin + Filter, T: Type, C: Color, U: Unpin + Type,  D: Unpin + Colo
     }
 }
 
-pub async fn eval_async<'a, F: Unpin + Filter, T: Type, U: Type, C: Color, D: Color>(filter: &'a F, mode: AsyncMode, output: &'a mut Image<T, D>, input: &'a [&Image<U, C>]) {
+/// Evaluate a `Filter` as an async filter
+pub async fn eval_async<'a, F: Unpin + Filter, T: Type, U: Type, C: Color, D: Color>(filter: &'a F, mode: AsyncMode, input: &'a [&Image<U, C>], output: &'a mut Image<T, D>) {
     filter.to_async(mode, input, output).await
 }
 
