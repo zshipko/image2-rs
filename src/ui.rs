@@ -1,7 +1,7 @@
 use std::path::Path;
 
-use self::bevy::*;
-pub use bevy::prelude as bevy;
+pub use bevy;
+use bevy::prelude::*;
 
 use crate::{Color, Image, Region, Rgba, Type};
 use anyhow::Result;
@@ -50,7 +50,7 @@ where
     Image<T, C>: Into<Texture>,
 {
     /// Convert image to bevy `Texture` and build Image widget
-    pub fn show(
+    pub fn texture(
         self,
         mut assets: ResMut<Assets<Texture>>,
         materials: ResMut<Assets<ColorMaterial>>,
@@ -68,7 +68,7 @@ where
     &'a Image<T, C>: Into<Texture>,
 {
     /// Clone image data to bevy `Texture` and build Image widget
-    pub fn show_clone(
+    pub fn texture_clone(
         &'a self,
         mut assets: ResMut<Assets<Texture>>,
         materials: ResMut<Assets<ColorMaterial>>,
@@ -168,6 +168,9 @@ impl<'a, T: Type, C: Color> From<&'a Image<T, C>> for Texture {
 /// Image winwdow
 #[derive(Clone)]
 pub struct ImageView<T: Type, C: Color> {
+    /// Window title
+    pub title: String,
+
     /// Underlying image
     pub image: Box<std::sync::Arc<Image<T, C>>>,
 
@@ -188,9 +191,20 @@ unsafe impl<T: Type, C: Color> Sync for ImageView<T, C> {}
 
 impl<'a, T: 'a + Type, C: 'a + Color> ImageView<T, C> {
     /// Create new image view
-    pub fn new(image: Image<T, C>) -> ImageView<T, C> {
+    pub fn new(title: impl Into<String>, image: Image<T, C>) -> ImageView<T, C> {
+        let arc = std::sync::Arc::new(image);
+
+        Self::wrap_arc(title, arc)
+    }
+
+    /// Create new image view from an existing Arc<Image<T, C>>
+    pub fn wrap_arc(
+        title: impl Into<String>,
+        image: std::sync::Arc<Image<T, C>>,
+    ) -> ImageView<T, C> {
         ImageView {
-            image: Box::new(std::sync::Arc::new(image)),
+            title: title.into(),
+            image: Box::new(image),
             handle: None,
             components: None,
             selection: None,
@@ -235,7 +249,13 @@ impl<T: 'static + Type, C: 'static + crate::Color> Plugin for ImageView<T, C> {
     fn build(&self, app: &mut AppBuilder) {
         app.add_resource(self.clone())
             .add_startup_system(startup_window::<T, C>.system())
-            .add_system(update_window::<T, C>.system());
+            .add_system(update_window::<T, C>.system())
+            .add_resource(WindowDescriptor {
+                title: self.title.clone(),
+                vsync: true,
+                ..Default::default()
+            })
+            .add_default_plugins();
     }
 }
 
@@ -245,7 +265,7 @@ fn startup_window<T: 'static + Type, C: 'static + Color>(
     materials: ResMut<Assets<ColorMaterial>>,
     mut window: ResMut<ImageView<T, C>>,
 ) {
-    let (handle, image) = window.image().show_clone(assets, materials);
+    let (handle, image) = window.image().texture_clone(assets, materials);
     window.handle = Some(handle);
     window.components = Some(image.clone());
     commands.spawn(image);
@@ -261,4 +281,22 @@ fn update_window<T: 'static + Type, C: 'static + Color>(
 /// Initialize UI
 pub fn init(mut commands: Commands) {
     commands.spawn(UiCameraComponents::default());
+}
+
+/// Show an image and exit with ESC is pressed
+pub fn show<T: 'static + Type, C: 'static + Color>(title: &str, image: Image<T, C>) -> Image<T, C> {
+    let image = std::sync::Arc::new(image);
+
+    {
+        App::build()
+            .add_startup_system(init.system())
+            .add_plugin(ImageView::<T, C>::wrap_arc(title, image.clone()))
+            .add_system(bevy::input::system::exit_on_esc_system.system())
+            .run();
+    }
+
+    match std::sync::Arc::try_unwrap(image) {
+        Ok(x) => x,
+        Err(_) => panic!("show: unable to get image handle out of Arc"),
+    }
 }

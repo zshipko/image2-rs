@@ -55,7 +55,7 @@ fn button(
     commands
         .spawn(ButtonComponents {
             style: Style {
-                size: ui::bevy::Size::new(Val::Px(100.), Val::Px(65.0)),
+                size: ui::bevy::prelude::Size::new(Val::Px(100.), Val::Px(65.0)),
                 position_type: PositionType::Absolute,
                 margin: Rect::all(Val::Auto),
                 position: Rect {
@@ -103,11 +103,10 @@ fn main() {
     }
 
     App::build()
-        .add_default_plugins()
+        .add_startup_system(button.system())
+        .add_plugin(ui::ImageView::new(arg, image))
         .init_resource::<ButtonMaterials>()
         .add_startup_system(ui::init.system())
-        .add_startup_system(button.system())
-        .add_plugin(ui::ImageView::new(image))
         .add_system(invert.system())
         .run();
 }
