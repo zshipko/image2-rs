@@ -548,29 +548,35 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Iterate over pixels, with a mutable closure
-    pub fn each_pixel<F: Sync + Send + FnMut(Point, &[T])>(&self, mut f: F) {
+    pub fn each_pixel<F: Sync + Send + FnMut(Point, &Pixel<C>)>(&self, mut f: F) {
         let (width, _height, channels) = self.shape();
+        let mut pixel = Pixel::new();
 
         self.data
             .chunks_exact(channels)
             .enumerate()
-            .for_each(|(n, pixel)| {
+            .for_each(|(n, px)| {
                 let y = n / width;
                 let x = n - (y * width);
-                f(Point::new(x, y), pixel)
+                pixel.copy_from_slice(px);
+                f(Point::new(x, y), &pixel)
             })
     }
 
     /// Iterate over mutable pixels, with a mutable closure
-    pub fn each_pixel_mut<F: Sync + Send + FnMut(Point, &mut [T])>(&mut self, mut f: F) {
+    pub fn each_pixel_mut<F: Sync + Send + FnMut(Point, &mut Pixel<C>)>(&mut self, mut f: F) {
         let (width, _height, channels) = self.shape();
+        let mut pixel = Pixel::new();
+
         self.data
             .chunks_exact_mut(channels)
             .enumerate()
-            .for_each(|(n, pixel)| {
+            .for_each(|(n, px)| {
                 let y = n / width;
                 let x = n - (y * width);
-                f(Point::new(x, y), pixel)
+                pixel.copy_from_slice(px);
+                f(Point::new(x, y), &mut pixel);
+                pixel.copy_to_slice(px);
             });
     }
 

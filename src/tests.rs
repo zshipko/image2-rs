@@ -120,7 +120,7 @@ fn test_saturation() {
     let mut image: Image<f32, Hsv> = Image::open("images/A.exr").unwrap();
 
     assert!(image.save("images/test-saturation0.jpg").is_ok());
-    image.each_pixel_mut(|_, px| {
+    image.each_pixel_mut(|_, mut px| {
         px[1] *= 1.25;
     });
 
