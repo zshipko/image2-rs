@@ -1,10 +1,10 @@
-pub use bevy;
-
 use std::path::Path;
 
-use crate::{Color, Image, Rgba, Type};
+use self::bevy::*;
+pub use bevy::prelude as bevy;
+
+use crate::{Color, Image, Region, Rgba, Type};
 use anyhow::Result;
-use bevy::prelude::*;
 use bevy_asset::AssetLoader;
 use bevy_math::Vec2;
 use bevy_render::{prelude::Texture, texture::TextureFormat};
@@ -34,15 +34,9 @@ pub fn make_image(
 ) -> ImageComponents {
     ImageComponents {
         style: Style {
-            size: Size {
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
-                ..Default::default()
-            },
-            position_type: PositionType::Relative,
             margin: Rect::all(Val::Auto),
+            position_type: PositionType::Relative,
             align_content: AlignContent::Center,
-            align_items: AlignItems::Center,
             aspect_ratio: Some(width as f32 / height as f32),
             ..Default::default()
         },
@@ -103,110 +97,77 @@ where
     }
 }
 
-fn into_texture<T: crate::Type, C: crate::Color>(
-    image: Image<T, C>,
-    fmt: TextureFormat,
-) -> Texture {
+fn convert(
+    image: &Image<impl Type, impl Color>,
+) -> (Option<TextureFormat>, Option<Image<impl Type, impl Color>>) {
+    let fmt = match image.meta.color_name() {
+        "rgba" => match image.meta.type_name() {
+            "half" => TextureFormat::Rgba16Float,
+            "float" => TextureFormat::Rgba32Float,
+            "int8" => TextureFormat::Rgba8Sint,
+            "uint8" => TextureFormat::Rgba8Uint,
+            "int16" => TextureFormat::Rgba16Sint,
+            "uint16" => TextureFormat::Rgba16Uint,
+            "int32" => TextureFormat::Rgba32Sint,
+            "uint32" => TextureFormat::Rgba32Uint,
+            _ => return (None, Some(image.convert::<f32, Rgba>())),
+        },
+        "gray" => match image.meta.type_name() {
+            "half" => TextureFormat::R16Float,
+            "float" => TextureFormat::R32Float,
+            "int8" => TextureFormat::R8Sint,
+            "uint8" => TextureFormat::R8Uint,
+            "int16" => TextureFormat::R16Sint,
+            "uint16" => TextureFormat::R16Uint,
+            "int32" => TextureFormat::R32Sint,
+            "uint32" => TextureFormat::R32Uint,
+            _ => return (None, Some(image.convert::<f32, Rgba>())),
+        },
+        _ => return (None, Some(image.convert::<f32, Rgba>())),
+    };
+
+    (Some(fmt), None)
+}
+
+fn into_texture<T: crate::Type, C: crate::Color>(image: Image<T, C>) -> Texture {
+    let fmt = match convert(&image) {
+        (_, Some(im)) => return into_texture(im),
+        (Some(fmt), _) => fmt,
+        _ => unreachable!(),
+    };
+
     let size = Vec2::new(image.width() as f32, image.height() as f32);
-    Texture::new(size, image.into_buffer(), fmt)
+    let buf = image.into_buffer();
+    Texture::new(size, buf, fmt)
 }
 
-fn to_texture<T: crate::Type, C: crate::Color>(image: &Image<T, C>, fmt: TextureFormat) -> Texture {
+fn to_texture<T: crate::Type, C: crate::Color>(image: &Image<T, C>) -> Texture {
+    let fmt = match convert(&image) {
+        (_, Some(im)) => return into_texture(im),
+        (Some(fmt), _) => fmt,
+        _ => unreachable!(),
+    };
+
     let size = Vec2::new(image.width() as f32, image.height() as f32);
-    Texture::new(size, image.to_buffer(), fmt)
+    let buf = image.to_buffer();
+    Texture::new(size, buf, fmt)
 }
 
-impl From<Image<f32, Rgba>> for Texture {
-    fn from(image: Image<f32, Rgba>) -> Texture {
-        into_texture(image, TextureFormat::Rgba32Float)
+impl<T: Type, C: Color> From<Image<T, C>> for Texture {
+    fn from(image: Image<T, C>) -> Texture {
+        into_texture(image)
     }
 }
 
-impl<'a> From<&'a Image<f32, Rgba>> for Texture {
-    fn from(image: &'a Image<f32, Rgba>) -> Texture {
-        to_texture(image, TextureFormat::Rgba32Float)
-    }
-}
-
-impl From<Image<u8, Rgba>> for Texture {
-    fn from(image: Image<u8, Rgba>) -> Texture {
-        let size = Vec2::new(image.width() as f32, image.height() as f32);
-        let format: TextureFormat = TextureFormat::Rgba8Uint;
-        Texture::new(size, image.data.into_vec(), format)
-    }
-}
-
-impl<'a> From<&'a Image<u8, Rgba>> for Texture {
-    fn from(image: &'a Image<u8, Rgba>) -> Texture {
-        let size = Vec2::new(image.width() as f32, image.height() as f32);
-        let format: TextureFormat = TextureFormat::Rgba8Uint;
-        Texture::new(size, image.data.to_vec(), format)
-    }
-}
-
-impl From<Image<crate::f16, Rgba>> for Texture {
-    fn from(image: Image<crate::f16, Rgba>) -> Texture {
-        into_texture(image, TextureFormat::Rgba16Float)
-    }
-}
-
-impl<'a> From<&'a Image<crate::f16, Rgba>> for Texture {
-    fn from(image: &'a Image<crate::f16, Rgba>) -> Texture {
-        to_texture(image, TextureFormat::Rgba16Float)
-    }
-}
-
-impl From<Image<i16, Rgba>> for Texture {
-    fn from(image: Image<i16, Rgba>) -> Texture {
-        into_texture(image, TextureFormat::Rgba16Sint)
-    }
-}
-
-impl<'a> From<&'a Image<i16, Rgba>> for Texture {
-    fn from(image: &'a Image<i16, Rgba>) -> Texture {
-        to_texture(image, TextureFormat::Rgba16Sint)
-    }
-}
-
-impl From<Image<u16, Rgba>> for Texture {
-    fn from(image: Image<u16, Rgba>) -> Texture {
-        into_texture(image, TextureFormat::Rgba16Uint)
-    }
-}
-
-impl<'a> From<&'a Image<u16, Rgba>> for Texture {
-    fn from(image: &'a Image<u16, Rgba>) -> Texture {
-        to_texture(image, TextureFormat::Rgba16Uint)
-    }
-}
-
-impl From<Image<u32, Rgba>> for Texture {
-    fn from(image: Image<u32, Rgba>) -> Texture {
-        into_texture(image, TextureFormat::Rgba32Uint)
-    }
-}
-
-impl<'a> From<&'a Image<u32, Rgba>> for Texture {
-    fn from(image: &'a Image<u32, Rgba>) -> Texture {
-        to_texture(image, TextureFormat::Rgba32Uint)
-    }
-}
-
-impl From<Image<i32, Rgba>> for Texture {
-    fn from(image: Image<i32, Rgba>) -> Texture {
-        into_texture(image, TextureFormat::Rgba32Sint)
-    }
-}
-
-impl<'a> From<&'a Image<i32, Rgba>> for Texture {
-    fn from(image: &'a Image<i32, Rgba>) -> Texture {
-        to_texture(image, TextureFormat::Rgba32Sint)
+impl<'a, T: Type, C: Color> From<&'a Image<T, C>> for Texture {
+    fn from(image: &'a Image<T, C>) -> Texture {
+        to_texture(image)
     }
 }
 
 /// Image winwdow
 #[derive(Clone)]
-pub struct ImageView<T: Type, C: crate::Color> {
+pub struct ImageView<T: Type, C: Color> {
     /// Underlying image
     pub image: Box<std::sync::Arc<Image<T, C>>>,
 
@@ -215,22 +176,24 @@ pub struct ImageView<T: Type, C: crate::Color> {
 
     /// ImageComponents
     pub components: Option<ImageComponents>,
+
+    /// Selection
+    pub selection: Option<Region>,
+
     dirty: bool,
 }
 
-unsafe impl<T: Type, C: crate::Color> Send for ImageView<T, C> {}
-unsafe impl<T: Type, C: crate::Color> Sync for ImageView<T, C> {}
+unsafe impl<T: Type, C: Color> Send for ImageView<T, C> {}
+unsafe impl<T: Type, C: Color> Sync for ImageView<T, C> {}
 
-impl<'a, T: 'a + Type, C: 'a + crate::Color> ImageView<T, C>
-where
-    &'a Image<T, C>: Into<Texture>,
-{
+impl<'a, T: 'a + Type, C: 'a + Color> ImageView<T, C> {
     /// Create new image view
     pub fn new(image: Image<T, C>) -> ImageView<T, C> {
         ImageView {
             image: Box::new(std::sync::Arc::new(image)),
             handle: None,
             components: None,
+            selection: None,
             dirty: true,
         }
     }
@@ -249,7 +212,12 @@ where
     pub fn image(&self) -> &Image<T, C> {
         self.image.as_ref()
     }
+}
 
+impl<'a, T: 'static + Type, C: 'static + Color> ImageView<T, C>
+where
+    &'a Image<T, C>: Into<Texture>,
+{
     /// Redraw the image
     pub fn draw(&'a mut self, mut assets: ResMut<Assets<Texture>>) {
         if let Some(handle) = &self.handle {
@@ -266,16 +234,16 @@ where
 impl<T: 'static + Type, C: 'static + crate::Color> Plugin for ImageView<T, C> {
     fn build(&self, app: &mut AppBuilder) {
         app.add_resource(self.clone())
-            .add_startup_system(startup_window.system())
-            .add_system(update_window.system());
+            .add_startup_system(startup_window::<T, C>.system())
+            .add_system(update_window::<T, C>.system());
     }
 }
 
-fn startup_window(
+fn startup_window<T: 'static + Type, C: 'static + Color>(
     mut commands: Commands,
     assets: ResMut<Assets<Texture>>,
     materials: ResMut<Assets<ColorMaterial>>,
-    mut window: ResMut<ImageView<f32, Rgba>>,
+    mut window: ResMut<ImageView<T, C>>,
 ) {
     let (handle, image) = window.image().show_clone(assets, materials);
     window.handle = Some(handle);
@@ -283,8 +251,11 @@ fn startup_window(
     commands.spawn(image);
 }
 
-fn update_window(assets: ResMut<Assets<Texture>>, mut window: ResMut<ImageView<f32, Rgba>>) {
-    window.draw(assets)
+fn update_window<T: 'static + Type, C: 'static + Color>(
+    assets: ResMut<Assets<Texture>>,
+    mut view: ResMut<ImageView<T, C>>,
+) {
+    view.draw(assets);
 }
 
 /// Initialize UI

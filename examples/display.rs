@@ -55,7 +55,7 @@ fn button(
     commands
         .spawn(ButtonComponents {
             style: Style {
-                size: Size::new(Val::Px(100.), Val::Px(65.0)),
+                size: ui::bevy::Size::new(Val::Px(100.), Val::Px(65.0)),
                 position_type: PositionType::Absolute,
                 margin: Rect::all(Val::Auto),
                 position: Rect {
