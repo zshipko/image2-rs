@@ -61,7 +61,7 @@ kernel_from!(
 );
 
 impl Filter for Kernel {
-    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
+    fn compute_at(&self, pt: Point, c: Channel, input: &[&Image<impl Type, impl Color>]) -> f64 {
         let r2 = (self.rows / 2) as isize;
         let c2 = (self.cols / 2) as isize;
         let mut f = 0.0;
@@ -189,7 +189,7 @@ macro_rules! op {
             fn compute_at(
                 &self,
                 pt: Point,
-                c: usize,
+                c: Channel,
                 input: &[&Image<impl Type, impl Color>],
             ) -> f64 {
                 let r2 = (self.a.rows / 2) as isize;

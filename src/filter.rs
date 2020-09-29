@@ -105,7 +105,7 @@ pub struct AndThen<'a, A: 'a + Filter, F: Fn((Point, usize), f64) -> f64> {
 impl<'a, A: Filter, F: Sync + Fn((Point, usize), f64) -> f64> Filter
     for AndThen<'a, A, F>
 {
-    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
+    fn compute_at(&self, pt: Point, c: Channel, input: &[&Image<impl Type, impl Color>]) -> f64 {
         (self.f)((pt, c), self.a.compute_at(pt, c, input))
     }
 }
@@ -117,7 +117,7 @@ impl<
         F: Sync + Fn((Point, usize), f64, f64) -> f64,
     > Filter for Join<'a, A, B, F>
 {
-    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
+    fn compute_at(&self, pt: Point, c: Channel, input: &[&Image<impl Type, impl Color>]) -> f64 {
         (&self.f)((pt, c), self.a.compute_at(pt, c, input), self.b.compute_at(pt, c, input))
     }
 }
@@ -126,7 +126,7 @@ impl<
 pub struct Invert;
 
 impl Filter for Invert {
-    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
+    fn compute_at(&self, pt: Point, c: Channel, input: &[&Image<impl Type, impl Color>]) -> f64 {
         if input[0].meta.is_alpha_channel(c) {
             return input[0].get_f(pt, c);
         }
@@ -139,7 +139,7 @@ impl Filter for Invert {
 pub struct Blend;
 
 impl Filter for Blend {
-    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
+    fn compute_at(&self, pt: Point, c: Channel, input: &[&Image<impl Type, impl Color>]) -> f64 {
         (input[0].get_f(pt, c) + input[1].get_f(pt, c)) / 2.0
     }
 }
@@ -148,7 +148,7 @@ impl Filter for Blend {
 pub struct GammaLog(pub f64);
 
 impl Filter for GammaLog {
-    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
+    fn compute_at(&self, pt: Point, c: Channel, input: &[&Image<impl Type, impl Color>]) -> f64 {
         input[0].get_f(pt, c).powf(1.0 / self.0)
     }
 }
@@ -157,7 +157,7 @@ impl Filter for GammaLog {
 pub struct GammaLin(pub f64);
 
 impl Filter for GammaLin {
-    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
+    fn compute_at(&self, pt: Point, c: Channel, input: &[&Image<impl Type, impl Color>]) -> f64 {
         input[0].get_f(pt, c).powf(self.0)
     }
 }

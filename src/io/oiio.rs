@@ -392,7 +392,7 @@ impl ImageSpec {
     }
 
     /// Get number of channels
-    pub fn nchannels(&self) -> usize {
+    pub fn nchannels(&self) -> Channel {
         unsafe {
             cpp!([self as "const ImageSpec*"] -> usize as "size_t" {
                 return (size_t)self->nchannels;
