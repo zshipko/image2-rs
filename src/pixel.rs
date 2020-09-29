@@ -65,14 +65,17 @@ impl<C: Color> Pixel<C> {
         self
     }
 
-    /// Convert pixel color type
-    pub fn convert<D: Color>(&self) -> Pixel<D> {
-        let mut dest = Pixel::new();
-
+    /// Convert pixel color type to an existing pixel
+    pub fn convert_to<D: Color>(&self, dest: &mut Pixel<D>) {
         for (i, x) in dest.iter_mut().enumerate() {
             *x = Color::convert::<D>(i, self);
         }
+    }
 
+    /// Convert pixel color type
+    pub fn convert<D: Color>(&self) -> Pixel<D> {
+        let mut dest = Pixel::new();
+        self.convert_to(&mut dest);
         dest
     }
 
