@@ -5,9 +5,9 @@ use bevy::prelude::*;
 
 use crate::{Color, Image, Region, Rgba, Type};
 use anyhow::Result;
-use bevy_asset::AssetLoader;
-use bevy_math::Vec2;
-use bevy_render::{prelude::Texture, texture::TextureFormat};
+use bevy::asset::AssetLoader;
+use bevy::math::Vec2;
+use bevy::render::{prelude::Texture, texture::TextureFormat};
 
 /// Loader for images that can be read by `image2`.
 #[derive(Clone, Default)]
@@ -292,6 +292,54 @@ pub fn show<T: 'static + Type, C: 'static + Color>(title: &str, image: Image<T, 
             .add_startup_system(init.system())
             .add_plugin(ImageView::<T, C>::wrap_arc(title, image.clone()))
             .add_system(bevy::input::system::exit_on_esc_system.system())
+            .run();
+    }
+
+    match std::sync::Arc::try_unwrap(image) {
+        Ok(x) => x,
+        Err(_) => panic!("show: unable to get image handle out of Arc"),
+    }
+}
+
+/// Show an image and exit with ESC is pressed with an additional startup system and system params
+pub fn show_with_system<T: 'static + Type, C: 'static + Color>(
+    title: &str,
+    image: Image<T, C>,
+    startup: impl 'static + System,
+    system: impl 'static + System,
+) -> Image<T, C> {
+    let image = std::sync::Arc::new(image);
+
+    {
+        App::build()
+            .add_startup_system(init.system())
+            .add_startup_system(Box::new(startup))
+            .add_plugin(ImageView::<T, C>::wrap_arc(title, image.clone()))
+            .add_system(bevy::input::system::exit_on_esc_system.system())
+            .add_system(Box::new(system))
+            .run();
+    }
+
+    match std::sync::Arc::try_unwrap(image) {
+        Ok(x) => x,
+        Err(_) => panic!("show: unable to get image handle out of Arc"),
+    }
+}
+
+/// Show an image and exit with ESC is pressed with an additional plugin param
+pub fn show_with_plugin<T: 'static + Type, C: 'static + Color>(
+    title: &str,
+    image: Image<T, C>,
+    plugin: impl 'static + Plugin,
+) -> Image<T, C> {
+    let image = std::sync::Arc::new(image);
+
+    {
+        App::build()
+            .add_startup_system(init.system())
+            .add_plugin(ImageView::<T, C>::wrap_arc(title, image.clone()))
+            .add_system(bevy::input::system::exit_on_esc_system.system())
+            .add_plugin(plugin)
             .run();
     }
 

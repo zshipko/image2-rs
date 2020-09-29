@@ -30,9 +30,6 @@ bevy = {version = "0.2", default-features=false, optional = true, features=[
     "mp3",
     "x11",
 ]}
-bevy_asset = {version = "0.2", optional = true}
-bevy_render = {version = "0.2", optional = true}
-bevy_math = {version = "0.2", optional = true}
 anyhow = {version = "1", optional = true}
 
 [build-dependencies]
@@ -42,8 +39,8 @@ cpp_build = {version = "0.5", optional = true}
 smol = "1"
 
 [features]
-default = ["oiio", "parallel", "ui"]
-ui = ["bevy", "bevy_asset", "bevy_render", "bevy_math", "anyhow"]
+default = ["oiio", "parallel"]
+ui = ["bevy", "anyhow"]
 oiio = ["cpp", "cpp_build"]
 parallel = ["rayon"]
 halide = ["halide-runtime"]
