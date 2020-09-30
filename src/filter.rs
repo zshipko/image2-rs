@@ -27,12 +27,30 @@ pub trait Filter: Sized + Sync {
         });
     }
 
+    /// Evaluate filter on part of an image using the same image for input and output
+    fn eval_partial_in_place<C: Color>(&self, roi: Region, output: &mut Image<impl Type, C>) {
+        let input = output as *mut _ as *const _;
+        let input = unsafe { &[&*input] };
+        output.iter_region_mut(roi).for_each(|(pt, data)| {
+            self.compute_at(pt, input, data);
+        });
+    }
+
     /// Evaluate filter in parallel
     fn eval<C: Color>(
         &self,
         input: &[&Image<impl Type, impl Color>],
         output: &mut Image<impl Type, C>,
     ) {
+        output.for_each(|pt, data| {
+            self.compute_at(pt, input, data);
+        });
+    }
+
+    /// Evaluate filter using the same image for input and output
+    fn eval_in_place<C: Color>(&self, output: &mut Image<impl Type, C>) {
+        let input = output as *mut _ as *const _;
+        let input = unsafe { &[&*input] };
         output.for_each(|pt, data| {
             self.compute_at(pt, input, data);
         });
