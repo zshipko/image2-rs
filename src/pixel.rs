@@ -18,18 +18,27 @@ impl<C: Color> Default for Pixel<C> {
 }
 
 impl<C: Color> Pixel<C> {
-    /// Convert into a `Vec`
-    pub fn into_vec(self) -> Vec<f64> {
-        self.0.to_vec()
-    }
-
     /// Create an empty pixel
     pub fn new() -> Pixel<C> {
-        Pixel(
-            vec![0.0; C::CHANNELS].into_boxed_slice(),
-            std::marker::PhantomData,
-        )
-        .with_alpha(1.0)
+        let data = match C::CHANNELS {
+            1 => Box::new([0.0; 1]) as Box<[f64]>,
+            2 => Box::new([0.0; 2]),
+            3 => Box::new([0.0; 3]),
+            4 => Box::new([0.0; 4]),
+            5 => Box::new([0.0; 5]),
+            _ => vec![0.0; C::CHANNELS].into_boxed_slice(),
+        };
+        Pixel(data, std::marker::PhantomData).with_alpha(1.0)
+    }
+
+    /// Convert into a `Vec`
+    pub fn into_vec(self) -> Vec<f64> {
+        self.0.into_vec()
+    }
+
+    /// Copy and convert to a `Vec`
+    pub fn to_vec(self) -> Vec<f64> {
+        self.0.to_vec()
     }
 
     /// Fill a pixel with a single value

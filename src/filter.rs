@@ -7,7 +7,7 @@ use rayon::prelude::*;
 /// Filters are used to manipulate images in a generic, composable manner
 pub trait Filter: Sized + Sync {
     /// Compute value of filter at a single point and channel
-    fn compute_at(&self, pt: Point, input: &[&Image<impl Type, impl Color>], dest: &mut [impl Type]);
+    fn compute_at(&self, pt: Point, input: &[&Image<impl Type, impl Color>], dest: &mut [impl Type]/*Pixel<impl Color>*/);
 
     /// Evaluate a filter on part of an image
     fn eval_partial<A: Type, B: Type, C: Color, D: Color>(
@@ -19,15 +19,19 @@ pub trait Filter: Sized + Sync {
         let iter =
             output.iter_region_mut(roi);
 
-        iter.for_each(|(pt, pixel)| {
-            self.compute_at(pt, input, pixel);
+        iter.for_each(|(pt, data)| {
+            //let mut pixel = Pixel::<C>::from_slice(data);
+            self.compute_at(pt, input, data);
+            //pixel.copy_to_slice(data);
         });
     }
 
     /// Evaluate filter in parallel
-    fn eval(&self, input: &[&Image<impl Type, impl Color>], output: &mut Image<impl Type, impl Color>) {
-        output.for_each(|pt, pixel| {
-            self.compute_at(pt, input, pixel);
+    fn eval<C: Color>(&self, input: &[&Image<impl Type, impl Color>], output: &mut Image<impl Type, C>) {
+        output.for_each(|pt, data| {
+            //let mut pixel = Pixel::<C>::from_slice(data);
+            self.compute_at(pt, input, data);
+            //pixel.copy_to_slice(data);
         });
     }
 
