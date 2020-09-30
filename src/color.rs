@@ -6,7 +6,7 @@ use crate::*;
 pub type Channel = usize;
 
 /// `Color` trait is used to define color spaces
-pub trait Color: Unpin + PartialEq + Eq + PartialOrd + Ord + Clone + Sync {
+pub trait Color: Unpin + PartialEq + Eq + PartialOrd + Ord + Clone + Sync + Send {
     /// Color name
     const NAME: &'static str;
 
@@ -35,6 +35,7 @@ macro_rules! color {
         pub struct $t;
 
         unsafe impl Sync for $t {}
+        unsafe impl Send for $t {}
     };
 }
 
