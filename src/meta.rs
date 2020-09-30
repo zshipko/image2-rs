@@ -106,4 +106,10 @@ impl<T: Type, C: Color> Meta<T, C> {
         let pt = pt.into();
         self.width_step() * pt.y + pt.x * C::CHANNELS
     }
+
+    /// Get an empty pixel for the image color type
+    #[inline]
+    pub fn new_pixel(&self) -> Pixel<C> {
+        Pixel::new()
+    }
 }

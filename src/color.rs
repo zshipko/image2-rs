@@ -44,7 +44,7 @@ impl Color for Gray {
     const CHANNELS: Channel = 1;
 
     fn to_rgb(src: &Pixel<Self>, pixel: &mut Pixel<Rgb>) {
-        pixel.fill_in_place(src[0]);
+        pixel.fill(src[0]);
     }
 
     fn from_rgb(src: &Pixel<Rgb>, mut dest: &mut Pixel<Self>) {
@@ -203,7 +203,7 @@ impl Color for Hsv {
 
     fn to_rgb(px: &Pixel<Hsv>, mut rgb: &mut Pixel<Rgb>) {
         if px[1] == 0. {
-            rgb.fill_in_place(px[2]);
+            rgb.fill(px[2]);
             return;
         }
 

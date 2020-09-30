@@ -254,6 +254,12 @@ impl<T: Type, C: Color> Image<T, C> {
         true
     }
 
+    /// Get an empty pixel for the image color type
+    #[inline]
+    pub fn new_pixel(&self) -> Pixel<C> {
+        Pixel::new()
+    }
+
     /// Get a normalized pixel from an image
     #[inline]
     pub fn get_pixel(&self, pt: impl Into<Point>) -> Pixel<C> {

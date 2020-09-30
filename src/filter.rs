@@ -3,11 +3,15 @@ use crate::*;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-
 /// Filters are used to manipulate images in a generic, composable manner
 pub trait Filter: Sized + Sync {
     /// Compute value of filter at a single point and channel
-    fn compute_at(&self, pt: Point, input: &[&Image<impl Type, impl Color>], dest: &mut [impl Type]/*Pixel<impl Color>*/);
+    fn compute_at(
+        &self,
+        pt: Point,
+        input: &[&Image<impl Type, impl Color>],
+        dest: &mut [impl Type], /*Pixel<impl Color>*/
+    );
 
     /// Evaluate a filter on part of an image
     fn eval_partial<A: Type, B: Type, C: Color, D: Color>(
@@ -16,40 +20,30 @@ pub trait Filter: Sized + Sync {
         input: &[&Image<B, impl Color>],
         output: &mut Image<A, impl Color>,
     ) {
-        let iter =
-            output.iter_region_mut(roi);
+        let iter = output.iter_region_mut(roi);
 
         iter.for_each(|(pt, data)| {
-            //let mut pixel = Pixel::<C>::from_slice(data);
             self.compute_at(pt, input, data);
-            //pixel.copy_to_slice(data);
         });
     }
 
     /// Evaluate filter in parallel
-    fn eval<C: Color>(&self, input: &[&Image<impl Type, impl Color>], output: &mut Image<impl Type, C>) {
+    fn eval<C: Color>(
+        &self,
+        input: &[&Image<impl Type, impl Color>],
+        output: &mut Image<impl Type, C>,
+    ) {
         output.for_each(|pt, data| {
-            //let mut pixel = Pixel::<C>::from_slice(data);
             self.compute_at(pt, input, data);
-            //pixel.copy_to_slice(data);
         });
     }
 
     /// Perform one filter then another
-    fn and_then<
-        'a,
-        E: Color,
-        Y: Color,
-        A: 'a + Filter,
-        B: 'a + Filter,
-    >(
+    fn and_then<'a, E: Color, Y: Color, A: 'a + Filter, B: 'a + Filter>(
         &'a self,
         other: &'a B,
     ) -> AndThen<'a, Self, B> {
-        AndThen {
-            a: self,
-            b: other,
-        }
+        AndThen { a: self, b: other }
     }
 
     /// Convert filter to `AsyncFilter`
@@ -71,19 +65,18 @@ pub trait Filter: Sized + Sync {
 }
 
 /// Executes `a` then `b` and passes the results to `f`
-pub struct AndThen<
-    'a,
-    A: 'a + Filter,
-    B: 'a + Filter,
-> {
+pub struct AndThen<'a, A: 'a + Filter, B: 'a + Filter> {
     a: &'a A,
     b: &'a B,
 }
 
-impl<'a, A: Filter, B: Filter> Filter
-    for AndThen<'a, A, B>
-{
-    fn compute_at(&self, pt: Point, input: &[&Image<impl Type, impl Color>], dest: &mut [impl Type]) {
+impl<'a, A: Filter, B: Filter> Filter for AndThen<'a, A, B> {
+    fn compute_at(
+        &self,
+        pt: Point,
+        input: &[&Image<impl Type, impl Color>],
+        dest: &mut [impl Type],
+    ) {
         self.a.compute_at(pt, input, dest);
         self.b.compute_at(pt, input, dest);
     }
@@ -93,9 +86,14 @@ impl<'a, A: Filter, B: Filter> Filter
 pub struct Invert;
 
 impl Filter for Invert {
-    fn compute_at(&self, pt: Point, input: &[&Image<impl Type, impl Color>], dest: &mut [impl Type]) {
+    fn compute_at(
+        &self,
+        pt: Point,
+        input: &[&Image<impl Type, impl Color>],
+        dest: &mut [impl Type],
+    ) {
         let mut px = input[0].get_pixel(pt);
-        px.map_in_place(|x| 1.0 - x);
+        px.map(|x| 1.0 - x);
         px.copy_to_slice(dest);
     }
 }
@@ -104,7 +102,12 @@ impl Filter for Invert {
 pub struct Blend;
 
 impl Filter for Blend {
-    fn compute_at(&self, pt: Point, input: &[&Image<impl Type, impl Color>], dest: &mut [impl Type]) {
+    fn compute_at(
+        &self,
+        pt: Point,
+        input: &[&Image<impl Type, impl Color>],
+        dest: &mut [impl Type],
+    ) {
         let a = input[0].get_pixel(pt);
         let b = input[1].get_pixel(pt);
         ((a + b) / 2.).copy_to_slice(dest);
@@ -121,9 +124,14 @@ impl Default for GammaLog {
 }
 
 impl Filter for GammaLog {
-    fn compute_at(&self, pt: Point, input: &[&Image<impl Type, impl Color>], dest: &mut [impl Type]) {
+    fn compute_at(
+        &self,
+        pt: Point,
+        input: &[&Image<impl Type, impl Color>],
+        dest: &mut [impl Type],
+    ) {
         let mut px = input[0].get_pixel(pt);
-        px.map_in_place(|x| x.powf(1.0 / self.0));
+        px.map(|x| x.powf(1.0 / self.0));
         px.copy_to_slice(dest);
     }
 }
@@ -138,9 +146,14 @@ impl Default for GammaLin {
 }
 
 impl Filter for GammaLin {
-    fn compute_at(&self, pt: Point, input: &[&Image<impl Type, impl Color>], dest: &mut [impl Type]) {
+    fn compute_at(
+        &self,
+        pt: Point,
+        input: &[&Image<impl Type, impl Color>],
+        dest: &mut [impl Type],
+    ) {
         let mut px = input[0].get_pixel(pt);
-        px.map_in_place(|x| x.powf(self.0));
+        px.map(|x| x.powf(self.0));
         px.copy_to_slice(dest);
     }
 }
@@ -172,11 +185,17 @@ pub struct AsyncFilter<'a, F: Filter, T: 'a + Type, C: Color, U: 'a + Type, D: C
     pub input: &'a [&'a Image<T, C>],
     x: usize,
     y: usize,
-    mode: AsyncMode
+    mode: AsyncMode,
 }
 
-impl<'a, F: Unpin + Filter, T: 'a + Type, C: Unpin + Color, U: 'a  + Unpin + Type,  D: Unpin + Color>
-    AsyncFilter<'a, F, T, C, U, D>
+impl<
+        'a,
+        F: Unpin + Filter,
+        T: 'a + Type,
+        C: Unpin + Color,
+        U: 'a + Unpin + Type,
+        D: Unpin + Color,
+    > AsyncFilter<'a, F, T, C, U, D>
 {
     /// Evaluate the filter
     pub async fn eval(self) {
@@ -184,7 +203,7 @@ impl<'a, F: Unpin + Filter, T: 'a + Type, C: Unpin + Color, U: 'a  + Unpin + Typ
     }
 }
 
-impl<'a, F: Unpin + Filter, T: Type, C: Color, U: Unpin + Type,  D: Unpin + Color>
+impl<'a, F: Unpin + Filter, T: Type, C: Color, U: Unpin + Type, D: Unpin + Color>
     std::future::Future for AsyncFilter<'a, F, T, C, U, D>
 {
     type Output = ();
@@ -196,10 +215,9 @@ impl<'a, F: Unpin + Filter, T: Type, C: Color, U: Unpin + Type,  D: Unpin + Colo
         let input = &self.input[0];
         let filter = std::pin::Pin::get_mut(self);
 
-
         match filter.mode {
             AsyncMode::Row => {
-                for i in 0 .. input.width() {
+                for i in 0..input.width() {
                     let data = filter.output.get_mut((i, filter.y));
                     filter
                         .filter
@@ -220,7 +238,6 @@ impl<'a, F: Unpin + Filter, T: Type, C: Color, U: Unpin + Type,  D: Unpin + Colo
             }
         }
 
-
         if filter.y < input.height() {
             ctx.waker().wake_by_ref();
             return std::task::Poll::Pending;
@@ -231,7 +248,11 @@ impl<'a, F: Unpin + Filter, T: Type, C: Color, U: Unpin + Type,  D: Unpin + Colo
 }
 
 /// Evaluate a `Filter` as an async filter
-pub async fn eval_async<'a, F: Unpin + Filter, T: Type, U: Type, C: Color, D: Color>(filter: &'a F, mode: AsyncMode, input: &'a [&Image<U, C>], output: &'a mut Image<T, D>) {
+pub async fn eval_async<'a, F: Unpin + Filter, T: Type, U: Type, C: Color, D: Color>(
+    filter: &'a F,
+    mode: AsyncMode,
+    input: &'a [&Image<U, C>],
+    output: &'a mut Image<T, D>,
+) {
     filter.to_async(mode, input, output).await
 }
-
