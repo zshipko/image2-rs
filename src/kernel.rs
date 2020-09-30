@@ -61,21 +61,27 @@ kernel_from!(
 );
 
 impl Filter for Kernel {
-    fn compute_at(&self, pt: Point, c: Channel, input: &[&Image<impl Type, impl Color>]) -> f64 {
+    fn compute_at(
+        &self,
+        pt: Point,
+        input: &[&Image<impl Type, impl Color>],
+        dest: &mut [impl Type],
+    ) {
         let r2 = (self.rows / 2) as isize;
         let c2 = (self.cols / 2) as isize;
-        let mut f = 0.0;
+        let mut f = Pixel::new();
+        let mut x = Pixel::new();
         for ky in -r2..=r2 {
             let kr = &self.data[(ky + r2) as usize];
             for kx in -c2..=c2 {
-                let x = input[0].get_f(
+                input[0].pixel_at(
                     ((pt.x as isize + kx) as usize, (pt.y as isize + ky) as usize),
-                    c,
+                    &mut x,
                 );
-                f += x * kr[(kx + c2) as usize];
+                f += &x * kr[(kx + c2) as usize];
             }
         }
-        f
+        f.copy_to_slice(dest);
     }
 }
 
@@ -189,24 +195,25 @@ macro_rules! op {
             fn compute_at(
                 &self,
                 pt: Point,
-                c: Channel,
                 input: &[&Image<impl Type, impl Color>],
-            ) -> f64 {
+                dest: &mut [impl Type],
+            ) {
                 let r2 = (self.a.rows / 2) as isize;
                 let c2 = (self.a.cols / 2) as isize;
-                let mut f = 0.0;
+                let mut f = Pixel::new();
+                let mut x = Pixel::new();
                 for ky in -r2..=r2 {
                     let kr = &self.a.data[(ky + r2) as usize];
                     let kr1 = &self.b.data[(ky + r2) as usize];
                     for kx in -c2..=c2 {
-                        let x = input[0].get_f(
+                        input[0].pixel_at(
                             ((pt.x as isize + kx) as usize, (pt.y as isize + ky) as usize),
-                            c,
+                            &mut x
                         );
-                        f += $f(x * kr[(kx + c2) as usize], x * kr1[(kx + c2) as usize]);
+                        f += $f(&x * kr[(kx + c2) as usize], &x * kr1[(kx + c2) as usize]);
                     }
                 }
-                f
+                f.copy_to_slice(dest);
             }
         }
 

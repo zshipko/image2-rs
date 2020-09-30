@@ -6,12 +6,13 @@ type EPoint<T> = euclid::Point2D<T, T>;
 pub struct Transform(pub euclid::Transform2D<f64, f64, f64>);
 
 impl Filter for Transform {
-    fn compute_at(&self, pt: Point, c: usize, input: &[&Image<impl Type, impl Color>]) -> f64 {
+    fn compute_at(&self, pt: Point, input: &[&Image<impl Type, impl Color>], px: &mut [impl Type]) {
         let pt = EPoint::new(pt.x as f64, pt.y as f64);
         let dest = self.0.transform_point(pt);
-        (input[0].get_f((dest.x.floor() as usize, dest.y.floor() as usize), c)
-            + input[0].get_f((dest.x.ceil() as usize, dest.y.ceil() as usize), c))
-            / 2.
+        let px1 = input[0].get_pixel((dest.x.floor() as usize, dest.y.floor() as usize));
+        let px2 = input[0].get_pixel((dest.x.ceil() as usize, dest.y.ceil() as usize));
+
+        ((px1 + px2) / 2.).copy_to_slice(px);
     }
 }
 
@@ -71,7 +72,7 @@ mod test {
     #[test]
     fn test_rotate90() {
         let a = Image::<f32, Rgb>::open("images/A.exr").unwrap();
-        let mut dest: Image<f32, Rgb> = a.new_like();
+        let mut dest = Image::<f32, Rgb>::new((a.height(), a.width()));
         rotate90(a.size(), dest.size()).eval(&[&a], &mut dest);
         assert!(dest.save("images/test-rotate90.jpg").is_ok())
     }
@@ -87,7 +88,7 @@ mod test {
     #[test]
     fn test_rotate270() {
         let a = Image::<f32, Rgb>::open("images/A.exr").unwrap();
-        let mut dest: Image<f32, Rgb> = a.new_like();
+        let mut dest = Image::<f32, Rgb>::new((a.height(), a.width()));
         rotate270(a.size(), dest.size()).eval(&[&a], &mut dest);
         assert!(dest.save("images/test-rotate270.jpg").is_ok())
     }

@@ -38,6 +38,11 @@ impl<C: Color> Pixel<C> {
         self
     }
 
+    /// Fill a pixel with a single value
+    pub fn fill_in_place<T: Type>(&mut self, x: T) {
+        self.0.iter_mut().for_each(|a| *a = x.to_norm());
+    }
+
     /// Pixel channel count
     pub fn len(&self) -> Channel {
         C::CHANNELS
@@ -67,9 +72,9 @@ impl<C: Color> Pixel<C> {
 
     /// Convert pixel color type to an existing pixel
     pub fn convert_to<D: Color>(&self, dest: &mut Pixel<D>) {
-        for (i, x) in dest.iter_mut().enumerate() {
-            *x = Color::convert::<D>(i, self);
-        }
+        let mut tmp = Pixel::new();
+        C::to_rgb(self, &mut tmp);
+        D::from_rgb(&tmp, dest);
     }
 
     /// Convert pixel color type
@@ -106,6 +111,11 @@ impl<C: Color> Pixel<C> {
         let mut px = Pixel::new();
         px.copy_from_slice(data);
         px
+    }
+
+    /// Create from another pixel
+    pub fn copy_from(&mut self, other: &Pixel<C>) {
+        self.map2_in_place(other, |_, b| b);
     }
 
     /// Blend alpha value
@@ -249,6 +259,14 @@ impl<T: Type, C: Color> std::ops::Add<T> for Pixel<C> {
     }
 }
 
+impl<'a, T: Type, C: Color> std::ops::Add<T> for &'a Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn add(self, other: T) -> Pixel<C> {
+        self.clone().map(|x| x + other.to_norm())
+    }
+}
+
 impl<C: Color> std::ops::Add<Pixel<C>> for Pixel<C> {
     type Output = Pixel<C>;
 
@@ -262,6 +280,14 @@ impl<T: Type, C: Color> std::ops::Sub<T> for Pixel<C> {
 
     fn sub(self, other: T) -> Pixel<C> {
         self.map(|x| x - other.to_norm())
+    }
+}
+
+impl<'a, T: Type, C: Color> std::ops::Sub<T> for &'a Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn sub(self, other: T) -> Pixel<C> {
+        self.clone().map(|x| x - other.to_norm())
     }
 }
 
@@ -281,6 +307,14 @@ impl<T: Type, C: Color> std::ops::Mul<T> for Pixel<C> {
     }
 }
 
+impl<'a, T: Type, C: Color> std::ops::Mul<T> for &'a Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn mul(self, other: T) -> Pixel<C> {
+        self.clone().map(|x| x * other.to_norm())
+    }
+}
+
 impl<C: Color> std::ops::Mul<Pixel<C>> for Pixel<C> {
     type Output = Pixel<C>;
 
@@ -297,6 +331,14 @@ impl<T: Type, C: Color> std::ops::Div<T> for Pixel<C> {
     }
 }
 
+impl<'a, T: Type, C: Color> std::ops::Div<T> for &'a Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn div(self, other: T) -> Pixel<C> {
+        self.clone().map(|x| x / other.to_norm())
+    }
+}
+
 impl<C: Color> std::ops::Div<Pixel<C>> for Pixel<C> {
     type Output = Pixel<C>;
 
@@ -310,6 +352,14 @@ impl<T: Type, C: Color> std::ops::Rem<T> for Pixel<C> {
 
     fn rem(self, other: T) -> Pixel<C> {
         self.map(|x| x % other.to_norm())
+    }
+}
+
+impl<'a, T: Type, C: Color> std::ops::Rem<T> for &'a Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn rem(self, other: T) -> Pixel<C> {
+        self.clone().map(|x| x % other.to_norm())
     }
 }
 
