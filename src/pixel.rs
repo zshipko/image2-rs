@@ -11,6 +11,12 @@ impl<C: Color> AsRef<[f64]> for Pixel<C> {
     }
 }
 
+impl<C: Color> AsMut<[f64]> for Pixel<C> {
+    fn as_mut(&mut self) -> &mut [f64] {
+        self.0.as_mut()
+    }
+}
+
 impl<C: Color> Default for Pixel<C> {
     fn default() -> Self {
         Pixel::new()

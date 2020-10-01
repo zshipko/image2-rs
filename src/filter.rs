@@ -100,6 +100,41 @@ impl<'a, A: Filter, B: Filter> Filter for AndThen<'a, A, B> {
     }
 }
 
+/// Join two filters using the function `F`
+pub struct Join<
+    'a,
+    A: 'a + Filter,
+    B: 'a + Filter,
+    F: Fn(Point, Pixel<Rgb>, Pixel<Rgb>) -> Pixel<Rgb>,
+> {
+    a: &'a A,
+    b: &'a B,
+    f: F,
+}
+
+impl<
+        'a,
+        A: 'a + Filter,
+        B: 'a + Filter,
+        F: Sync + Fn(Point, Pixel<Rgb>, Pixel<Rgb>) -> Pixel<Rgb>,
+    > Filter for Join<'a, A, B, F>
+{
+    fn compute_at(
+        &self,
+        pt: Point,
+        input: &[&Image<impl Type, impl Color>],
+        dest: &mut [impl Type],
+    ) {
+        let mut a: Pixel<Rgb> = input[0].get_pixel(pt).convert();
+        self.a.compute_at(pt, input, a.as_mut());
+
+        let mut b: Pixel<Rgb> = input[0].get_pixel(pt).convert();
+        self.b.compute_at(pt, input, b.as_mut());
+
+        (self.f)(pt, a, b).copy_to_slice(dest);
+    }
+}
+
 /// Invert an image
 pub struct Invert;
 
