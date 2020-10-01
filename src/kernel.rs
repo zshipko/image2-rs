@@ -65,7 +65,7 @@ impl Filter for Kernel {
         &self,
         pt: Point,
         input: &[&Image<impl Type, impl Color>],
-        dest: &mut [impl Type],
+        dest: &mut DataMut<impl Type, impl Color>,
     ) {
         let r2 = (self.rows / 2) as isize;
         let c2 = (self.cols / 2) as isize;
@@ -197,7 +197,7 @@ macro_rules! op {
                 &self,
                 pt: Point,
                 input: &[&Image<impl Type, impl Color>],
-                dest: &mut [impl Type],
+                dest: &mut DataMut<impl Type, impl Color>,
             ) {
                 let r2 = (self.a.rows / 2) as isize;
                 let c2 = (self.a.cols / 2) as isize;

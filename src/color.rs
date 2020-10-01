@@ -345,7 +345,7 @@ impl<T: Color> Filter for Convert<T> {
         &self,
         pt: Point,
         input: &[&Image<impl Type, impl Color>],
-        dest: &mut [impl Type],
+        dest: &mut DataMut<impl Type, impl Color>,
     ) {
         let mut pixel = Pixel::new();
         Color::convert::<T>(&input[0].get_pixel(pt), &mut pixel);

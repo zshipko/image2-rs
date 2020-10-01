@@ -10,7 +10,7 @@ pub trait Filter: Sized + Sync {
         &self,
         pt: Point,
         input: &[&Image<impl Type, impl Color>],
-        dest: &mut [impl Type], /*Pixel<impl Color>*/
+        dest: &mut DataMut<impl Type, impl Color>,
     );
 
     /// Evaluate a filter on part of an image
@@ -22,8 +22,8 @@ pub trait Filter: Sized + Sync {
     ) {
         let iter = output.iter_region_mut(roi);
 
-        iter.for_each(|(pt, data)| {
-            self.compute_at(pt, input, data);
+        iter.for_each(|(pt, mut data)| {
+            self.compute_at(pt, input, &mut data);
         });
     }
 
@@ -31,8 +31,8 @@ pub trait Filter: Sized + Sync {
     fn eval_partial_in_place<C: Color>(&self, roi: Region, output: &mut Image<impl Type, C>) {
         let input = output as *mut _ as *const _;
         let input = unsafe { &[&*input] };
-        output.iter_region_mut(roi).for_each(|(pt, data)| {
-            self.compute_at(pt, input, data);
+        output.iter_region_mut(roi).for_each(|(pt, mut data)| {
+            self.compute_at(pt, input, &mut data);
         });
     }
 
@@ -42,8 +42,8 @@ pub trait Filter: Sized + Sync {
         input: &[&Image<impl Type, impl Color>],
         output: &mut Image<impl Type, C>,
     ) {
-        output.for_each(|pt, data| {
-            self.compute_at(pt, input, data);
+        output.for_each(|pt, mut data| {
+            self.compute_at(pt, input, &mut data);
         });
     }
 
@@ -51,8 +51,8 @@ pub trait Filter: Sized + Sync {
     fn eval_in_place<C: Color>(&self, output: &mut Image<impl Type, C>) {
         let input = output as *mut _ as *const _;
         let input = unsafe { &[&*input] };
-        output.for_each(|pt, data| {
-            self.compute_at(pt, input, data);
+        output.for_each(|pt, mut data| {
+            self.compute_at(pt, input, &mut data);
         });
     }
 
@@ -93,7 +93,7 @@ impl<'a, A: Filter, B: Filter> Filter for AndThen<'a, A, B> {
         &self,
         pt: Point,
         input: &[&Image<impl Type, impl Color>],
-        dest: &mut [impl Type],
+        dest: &mut DataMut<impl Type, impl Color>,
     ) {
         self.a.compute_at(pt, input, dest);
         self.b.compute_at(pt, input, dest);
@@ -123,13 +123,13 @@ impl<
         &self,
         pt: Point,
         input: &[&Image<impl Type, impl Color>],
-        dest: &mut [impl Type],
+        dest: &mut DataMut<impl Type, impl Color>,
     ) {
         let mut a: Pixel<Rgb> = input[0].get_pixel(pt).convert();
-        self.a.compute_at(pt, input, a.as_mut());
+        self.a.compute_at(pt, input, &mut a.data_mut());
 
         let mut b: Pixel<Rgb> = input[0].get_pixel(pt).convert();
-        self.b.compute_at(pt, input, b.as_mut());
+        self.b.compute_at(pt, input, &mut b.data_mut());
 
         (self.f)(pt, a, b).copy_to_slice(dest);
     }
@@ -143,7 +143,7 @@ impl Filter for Invert {
         &self,
         pt: Point,
         input: &[&Image<impl Type, impl Color>],
-        dest: &mut [impl Type],
+        dest: &mut DataMut<impl Type, impl Color>,
     ) {
         let mut px = input[0].get_pixel(pt);
         px.map(|x| 1.0 - x);
@@ -159,7 +159,7 @@ impl Filter for Blend {
         &self,
         pt: Point,
         input: &[&Image<impl Type, impl Color>],
-        dest: &mut [impl Type],
+        dest: &mut DataMut<impl Type, impl Color>,
     ) {
         let a = input[0].get_pixel(pt);
         let b = input[1].get_pixel(pt);
@@ -181,7 +181,7 @@ impl Filter for GammaLog {
         &self,
         pt: Point,
         input: &[&Image<impl Type, impl Color>],
-        dest: &mut [impl Type],
+        dest: &mut DataMut<impl Type, impl Color>,
     ) {
         let mut px = input[0].get_pixel(pt);
         px.map(|x| x.powf(1.0 / self.0));
@@ -203,7 +203,7 @@ impl Filter for GammaLin {
         &self,
         pt: Point,
         input: &[&Image<impl Type, impl Color>],
-        dest: &mut [impl Type],
+        dest: &mut DataMut<impl Type, impl Color>,
     ) {
         let mut px = input[0].get_pixel(pt);
         px.map(|x| x.powf(self.0));
@@ -271,18 +271,18 @@ impl<'a, F: Unpin + Filter, T: Type, C: Color, U: Unpin + Type, D: Unpin + Color
         match filter.mode {
             AsyncMode::Row => {
                 for i in 0..input.width() {
-                    let data = filter.output.get_mut((i, filter.y));
+                    let mut data = filter.output.get_mut((i, filter.y));
                     filter
                         .filter
-                        .compute_at(Point::new(i, filter.y), &filter.input, data);
+                        .compute_at(Point::new(i, filter.y), &filter.input, &mut data);
                 }
                 filter.y += 1;
             }
             AsyncMode::Pixel => {
-                let data = filter.output.get_mut((filter.x, filter.y));
+                let mut data = filter.output.get_mut((filter.x, filter.y));
                 filter
                     .filter
-                    .compute_at(Point::new(filter.x, filter.y), &filter.input, data);
+                    .compute_at(Point::new(filter.x, filter.y), &filter.input, &mut data);
                 filter.x += 1;
                 if filter.x >= input.width() {
                     filter.x = 0;

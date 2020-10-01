@@ -35,6 +35,7 @@
 pub use half::f16;
 
 mod color;
+mod data;
 mod error;
 mod geom;
 mod hash;
@@ -65,6 +66,7 @@ pub mod transform;
 
 pub use crate::meta::Meta;
 pub use color::{Channel, Cmyk, Color, Convert, Gray, Hsv, Rgb, Rgba, Xyz};
+pub use data::{Data, DataMut};
 pub use error::Error;
 pub use filter::{AndThen, Filter, Join};
 pub use geom::{Point, Region, Size};

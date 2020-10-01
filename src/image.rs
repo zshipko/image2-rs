@@ -14,18 +14,20 @@ pub struct Image<T: Type, C: Color> {
     pub data: Box<[T]>,
 }
 
-
 impl<X: Into<Point>, T: Type, C: Color> std::ops::Index<X> for Image<T, C> {
     type Output = [T];
 
     fn index(&self, pt: X) -> &Self::Output {
-        self.get(pt)
+        let index = self.meta.index(pt);
+        &self.data[index..index + self.channels()]
     }
 }
 
 impl<X: Into<Point>, T: Type, C: Color> std::ops::IndexMut<X> for Image<T, C> {
     fn index_mut(&mut self, pt: X) -> &mut Self::Output {
-        self.get_mut(pt)
+        let index = self.meta.index(pt);
+        let channels = self.channels();
+        &mut self.data[index..index + channels]
     }
 }
 
@@ -147,24 +149,24 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Get data at specified index
     #[inline]
-    pub fn get(&self, pt: impl Into<Point>) -> &[T] {
+    pub fn get(&self, pt: impl Into<Point>) -> Data<T, C> {
         let index = self.meta.index(pt);
-        &self.data[index..index + self.channels()]
+        Data::new(&self.data[index..index + self.channels()])
     }
 
     /// Get mutable data at specified index
     #[inline]
-    pub fn get_mut(&mut self, pt: impl Into<Point>) -> &mut [T] {
+    pub fn get_mut(&mut self, pt: impl Into<Point>) -> DataMut<T, C> {
         let index = self.meta.index(pt);
         let channels = self.channels();
-        &mut self.data[index..index + channels]
+        DataMut::new(&mut self.data[index..index + channels])
     }
 
     /// Set data to specified location
     #[inline]
     pub fn set(&mut self, pt: impl Into<Point>, data: impl AsRef<[T]>) {
-        let image = self.get_mut(pt);
-        image.clone_from_slice(data.as_ref())
+        let mut image = self.get_mut(pt);
+        image.as_mut().clone_from_slice(data.as_ref())
     }
 
     /// Returns true when (x, y) is in bounds for the given image
@@ -175,13 +177,14 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Get image data from an image, reusing an existing data buffer big enough for a single pixel
     #[inline]
-    pub fn at(&self, pt: impl Into<Point>, px: &mut [T]) -> bool {
+    pub fn at(&self, pt: impl Into<Point>, mut px: impl AsMut<[T]>) -> bool {
         let pt = pt.into();
+        let px = px.as_mut();
         if !self.in_bounds(&pt) || px.len() < C::CHANNELS {
             return false;
         }
 
-        px.copy_from_slice(self.get(pt));
+        px.copy_from_slice(self.get(pt).as_ref());
         true
     }
 
@@ -193,7 +196,7 @@ impl<T: Type, C: Color> Image<T, C> {
             return false;
         }
         let data = self.get(pt);
-        px.copy_from_slice(data);
+        px.copy_from_slice(data.as_ref());
         true
     }
 
@@ -235,33 +238,35 @@ impl<T: Type, C: Color> Image<T, C> {
         if !self.in_bounds(&pt) || c >= C::CHANNELS {
             return;
         }
-        let data = self.get_mut(pt);
+        let mut data = self.get_mut(pt);
         data[c] = T::from_norm(f);
     }
 
     /// Get row
     #[inline]
-    pub fn row(&self, y: usize) -> &[T] {
+    pub fn row(&self, y: usize) -> Data<T, C> {
         let index = self.meta.index((0, y));
-        &self.data[index..index + self.channels() * self.width()]
+        Data::new(&self.data[index..index + self.channels() * self.width()])
     }
 
     /// Get mutable row
     #[inline]
-    pub fn row_mut(&mut self, y: usize) -> &mut [T] {
+    pub fn row_mut(&mut self, y: usize) -> DataMut<T, C> {
         let index = self.meta.index((0, y));
         let len = self.channels() * self.width();
-        &mut self.data[index..index + len]
+        DataMut::new(&mut self.data[index..index + len])
     }
 
     /// Iterate over image rows
-    pub fn rows(&self) -> impl Iterator<Item = &[T]> {
-        self.data.chunks(self.meta.width_step())
+    pub fn rows(&self) -> impl Iterator<Item = Data<T, C>> {
+        self.data.chunks(self.meta.width_step()).map(Data::new)
     }
 
     /// Iterate over mutable image rows
-    pub fn rows_mut(&mut self) -> impl Iterator<Item = &mut [T]> {
-        self.data.chunks_mut(self.meta.width_step())
+    pub fn rows_mut(&mut self) -> impl Iterator<Item = DataMut<T, C>> {
+        self.data
+            .chunks_mut(self.meta.width_step())
+            .map(DataMut::new)
     }
 
     /// Open an image from disk
@@ -299,10 +304,11 @@ impl<T: Type, C: Color> Image<T, C> {
     pub fn iter_region_mut<'a>(
         &'a mut self,
         roi: Region,
-    ) -> impl 'a + rayon::iter::ParallelIterator<Item = (Point, &mut [T])> {
+    ) -> impl 'a + rayon::iter::ParallelIterator<Item = (Point, DataMut<T, C>)> {
         let (width, _height, channels) = self.shape();
         self.data
             .par_chunks_mut(channels)
+            .map(DataMut::new)
             .enumerate()
             .filter_map(move |(n, pixel)| {
                 let y = n / width;
@@ -321,10 +327,11 @@ impl<T: Type, C: Color> Image<T, C> {
     pub fn iter_region_mut<'a>(
         &'a mut self,
         roi: Region,
-    ) -> impl 'a + std::iter::Iterator<Item = (Point, &mut [T])> {
+    ) -> impl 'a + std::iter::Iterator<Item = (Point, DataMut<T, C>)> {
         let (width, _height, channels) = self.shape();
         self.data
             .chunks_mut(channels)
+            .map(DataMut::new)
             .enumerate()
             .filter_map(move |(n, pixel)| {
                 let y = n / width;
@@ -343,10 +350,11 @@ impl<T: Type, C: Color> Image<T, C> {
     pub fn iter_region<'a>(
         &'a self,
         roi: Region,
-    ) -> impl 'a + rayon::iter::ParallelIterator<Item = (Point, &[T])> {
+    ) -> impl 'a + rayon::iter::ParallelIterator<Item = (Point, Data<T, C>)> {
         let (width, _height, channels) = self.shape();
         self.data
             .par_chunks(channels)
+            .map(Data::new)
             .enumerate()
             .filter_map(move |(n, pixel)| {
                 let y = n / width;
@@ -365,10 +373,11 @@ impl<T: Type, C: Color> Image<T, C> {
     pub fn iter_region<'a>(
         &'a self,
         roi: Region,
-    ) -> impl 'a + std::iter::Iterator<Item = (Point, &[T])> {
+    ) -> impl 'a + std::iter::Iterator<Item = (Point, Data<T, C>)> {
         let (width, _height, channels) = self.shape();
         self.data
             .chunks(channels)
+            .map(Data::new)
             .enumerate()
             .filter_map(move |(n, pixel)| {
                 let y = n / width;
@@ -384,10 +393,13 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Get pixel iterator
     #[cfg(feature = "parallel")]
-    pub fn iter<'a>(&'a self) -> impl 'a + rayon::iter::ParallelIterator<Item = (Point, &[T])> {
+    pub fn iter<'a>(
+        &'a self,
+    ) -> impl 'a + rayon::iter::ParallelIterator<Item = (Point, Data<T, C>)> {
         let (width, _height, channels) = self.shape();
         self.data
             .par_chunks(channels)
+            .map(Data::new)
             .enumerate()
             .map(move |(n, pixel)| {
                 let y = n / width;
@@ -399,10 +411,11 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Get pixel iterator
     #[cfg(not(feature = "parallel"))]
-    pub fn iter<'a>(&'a self) -> impl 'a + std::iter::Iterator<Item = (Point, &[T])> {
+    pub fn iter<'a>(&'a self) -> impl 'a + std::iter::Iterator<Item = (Point, Data<T, C>)> {
         let (width, _height, channels) = self.shape();
         self.data
             .chunks(channels)
+            .map(Data::new)
             .enumerate()
             .map(move |(n, pixel)| {
                 let y = n / width;
@@ -416,10 +429,11 @@ impl<T: Type, C: Color> Image<T, C> {
     #[cfg(feature = "parallel")]
     pub fn iter_mut<'a>(
         &'a mut self,
-    ) -> impl 'a + rayon::iter::ParallelIterator<Item = (Point, &mut [T])> {
+    ) -> impl 'a + rayon::iter::ParallelIterator<Item = (Point, DataMut<T, C>)> {
         let (width, _height, channels) = self.shape();
         self.data
             .par_chunks_mut(channels)
+            .map(DataMut::new)
             .enumerate()
             .map(move |(n, pixel)| {
                 let y = n / width;
@@ -431,10 +445,13 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Get mutable data iterator
     #[cfg(not(feature = "parallel"))]
-    pub fn iter_mut<'a>(&'a mut self) -> impl 'a + std::iter::Iterator<Item = (Point, &mut [T])> {
+    pub fn iter_mut<'a>(
+        &'a mut self,
+    ) -> impl 'a + std::iter::Iterator<Item = (Point, DataMut<T, C>)> {
         let (width, _height, channels) = self.shape();
         self.data
             .chunks_mut(channels)
+            .map(DataMut::new)
             .enumerate()
             .map(move |(n, pixel)| {
                 let y = n / width;
@@ -445,18 +462,22 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Iterate over each pixel applying `f` to every pixel
-    pub fn for_each<F: Sync + Send + Fn(Point, &mut [T])>(&mut self, f: F) {
+    pub fn for_each<F: Sync + Send + Fn(Point, DataMut<T, C>)>(&mut self, f: F) {
         self.iter_mut().for_each(|(pt, px)| f(pt, px))
     }
 
     /// Iterate over a region of pixels qpplying `f` to every pixel
-    pub fn for_each_region<F: Sync + Send + Fn(Point, &mut [T])>(&mut self, roi: Region, f: F) {
+    pub fn for_each_region<F: Sync + Send + Fn(Point, DataMut<T, C>)>(
+        &mut self,
+        roi: Region,
+        f: F,
+    ) {
         self.iter_region_mut(roi).for_each(|(pt, px)| f(pt, px))
     }
 
     /// Iterate over each pixel of two images at once
     #[cfg(feature = "parallel")]
-    pub fn for_each2<F: Sync + Send + Fn(Point, &mut [T], &[T])>(
+    pub fn for_each2<F: Sync + Send + Fn(Point, DataMut<T, C>, Data<T, C>)>(
         &mut self,
         other: &Image<T, C>,
         f: F,
@@ -471,13 +492,13 @@ impl<T: Type, C: Color> Image<T, C> {
                 let y = n / width;
                 let x = n - (y * width);
                 let pt = Point::new(x, y);
-                f(pt, pixel, pixel1)
+                f(pt, DataMut::new(pixel), Data::new(pixel1))
             });
     }
 
     /// Iterate over each pixel of two images at once
     #[cfg(not(feature = "parallel"))]
-    pub fn for_each2<F: Sync + Send + Fn(Point, &mut [T], &[T])>(
+    pub fn for_each2<F: Sync + Send + Fn(Point, DataMut<T, C>, Data<T, C>)>(
         &mut self,
         other: &Image<T, C>,
         f: F,
@@ -492,7 +513,7 @@ impl<T: Type, C: Color> Image<T, C> {
                 let y = n / width;
                 let x = n - (y * width);
                 let pt = Point::new(x, y);
-                f(pt, pixel, pixel1)
+                f(pt, DataMut::new(pixel), Data::new(pixel1))
             });
     }
 
@@ -523,7 +544,7 @@ impl<T: Type, C: Color> Image<T, C> {
             .for_each(|(n, px)| {
                 let y = n / width;
                 let x = n - (y * width);
-                pixel.copy_from_slice(px);
+                pixel.copy_from_slice(&px);
                 f(Point::new(x, y), &mut pixel);
                 pixel.copy_to_slice(px);
             });
@@ -543,7 +564,7 @@ impl<T: Type, C: Color> Image<T, C> {
     /// Copy into a region from another image starting at the given offset
     pub fn copy_from_region(&mut self, offs: impl Into<Point>, other: &Image<T, C>, roi: Region) {
         let offs = offs.into();
-        self.for_each_region(roi, |pt, px| {
+        self.for_each_region(roi, |pt, mut px| {
             px.copy_from_slice(
                 other.get((pt.x - roi.point.x + offs.x, pt.y - roi.point.y + offs.y)),
             );

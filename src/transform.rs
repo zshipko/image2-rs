@@ -6,7 +6,12 @@ type EPoint<T> = euclid::Point2D<T, T>;
 pub struct Transform(pub euclid::Transform2D<f64, f64, f64>);
 
 impl Filter for Transform {
-    fn compute_at(&self, pt: Point, input: &[&Image<impl Type, impl Color>], px: &mut [impl Type]) {
+    fn compute_at(
+        &self,
+        pt: Point,
+        input: &[&Image<impl Type, impl Color>],
+        px: &mut DataMut<impl Type, impl Color>,
+    ) {
         let pt = EPoint::new(pt.x as f64, pt.y as f64);
         let dest = self.0.transform_point(pt);
         let px1 = input[0].get_pixel((dest.x.floor() as usize, dest.y.floor() as usize));

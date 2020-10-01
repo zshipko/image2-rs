@@ -40,6 +40,16 @@ impl<C: Color> Pixel<C> {
         px
     }
 
+    /// Data
+    pub fn data(&self) -> Data<f64, C> {
+        Data::new(self.as_ref())
+    }
+
+    /// Mutable Data
+    pub fn data_mut(&mut self) -> DataMut<f64, C> {
+        DataMut::new(self.as_mut())
+    }
+
     /// Convert into a `Vec`
     pub fn into_vec(self) -> Vec<f64> {
         self.0.into_vec()
@@ -104,22 +114,30 @@ impl<C: Color> Pixel<C> {
 
     /// Copy values from an existing slice
     #[inline]
-    pub fn copy_from_slice<T: Type>(&mut self, data: &[T]) -> &mut Self {
+    pub fn copy_from_slice<T: Type>(&mut self, data: impl AsRef<[T]>) -> &mut Self {
+        let data = data.as_ref();
         self.0.iter_mut().enumerate().for_each(|(i, x)| {
             *x = data[i].to_norm();
         });
         self
     }
 
+    /// Convert color and copy to slice
+    pub fn convert_to_data<T: Type, D: Color>(&self, data: &mut DataMut<T, D>) {
+        let d = self.convert::<D>();
+        d.copy_to_slice(data)
+    }
+
     /// Copy values to an existing slice
-    pub fn copy_to_slice<T: Type>(&self, data: &mut [T]) {
+    pub fn copy_to_slice<T: Type>(&self, mut data: impl AsMut<[T]>) {
+        let data = data.as_mut();
         self.0.iter().enumerate().for_each(|(i, x)| {
             data[i] = T::from_norm(*x);
         });
     }
 
     /// Create from slice
-    pub fn from_slice<T: Type>(data: &[T]) -> Pixel<C> {
+    pub fn from_slice<T: Type>(data: impl AsRef<[T]>) -> Pixel<C> {
         let mut px = Pixel::new();
         px.copy_from_slice(data);
         px
