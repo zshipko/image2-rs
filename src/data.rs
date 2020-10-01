@@ -1,12 +1,10 @@
-#![allow(missing_docs)]
-
 use crate::*;
 
-/// Wraps slices, tagging them with a Color type
+/// Wraps image data slices, tagging them with a Color type
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Data<'a, T: 'a + Type, C: 'a + Color>(&'a [T], std::marker::PhantomData<C>);
 
-/// Wraps mutable slices, tagging them with a Color type
+/// Wraps mutable image data slices, tagging them with a Color type
 #[derive(Debug, PartialEq, PartialOrd)]
 pub struct DataMut<'a, T: 'a + Type, C: 'a + Color>(&'a mut [T], std::marker::PhantomData<C>);
 
@@ -16,20 +14,43 @@ impl<'a, T: Type, C: Color> Data<'a, T, C> {
         Data(data, std::marker::PhantomData)
     }
 
+    /// Number of elements
+    #[inline]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    /// Returns true when the inner slice is empty
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
+    /// Get the number of pixels available
+    #[inline]
     pub fn num_pixels(&self) -> usize {
         self.len() / C::CHANNELS
     }
 
+    /// Get the number of channels
+    #[inline]
     pub fn channels(&self) -> usize {
         C::CHANNELS
+    }
+
+    /// Get information about data
+    pub fn meta(&self) -> Meta<T, C> {
+        Meta::new((self.num_pixels(), 1))
+    }
+
+    /// Convert to pixel
+    pub fn to_pixel(&self) -> Pixel<C> {
+        Pixel::from_slice(self)
+    }
+
+    /// Get inner slice
+    pub fn as_slice(&self) -> &[T] {
+        self.0
     }
 }
 
@@ -39,24 +60,54 @@ impl<'a, T: Type, C: Color> DataMut<'a, T, C> {
         DataMut(data, std::marker::PhantomData)
     }
 
+    /// Number of elements
+    #[inline]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    /// Returns true when the inner slice is empty
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
+    /// Get the number of pixels availible
+    #[inline]
     pub fn num_pixels(&self) -> usize {
         self.len() / C::CHANNELS
     }
 
+    /// Get the number of channels
+    #[inline]
+    pub fn channels(&self) -> usize {
+        C::CHANNELS
+    }
+
+    /// Copy values from slice
+    #[inline]
     pub fn copy_from_slice(&mut self, slice: impl AsRef<[T]>) {
         self.0.copy_from_slice(slice.as_ref())
     }
 
-    pub fn channels(&self) -> usize {
-        C::CHANNELS
+    /// Get information about data
+    pub fn meta(&self) -> Meta<T, C> {
+        Meta::new((self.num_pixels(), 1))
+    }
+
+    /// Convert to pixel
+    pub fn to_pixel(&self) -> Pixel<C> {
+        Pixel::from_slice(self)
+    }
+
+    /// Get inner slice
+    pub fn as_slice(&self) -> &[T] {
+        self.0
+    }
+
+    /// Get mutable inner slice
+    pub fn as_slice_mut(&mut self) -> &mut [T] {
+        self.0
     }
 }
 
