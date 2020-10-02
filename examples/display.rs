@@ -97,11 +97,7 @@ fn main() {
         "images/A.exr"
     };
 
-    let mut image = Image::<f32, Rgba>::open(arg).unwrap();
-    if args.is_empty() {
-        image.set_gamma_lin();
-    }
-
+    let image = Image::<f32, Rgba>::open(arg).unwrap();
     App::build()
         .add_startup_system(button.system())
         .add_plugin(ui::ImageView::new(arg, image))
