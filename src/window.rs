@@ -33,6 +33,7 @@ pub struct Window<T: Type, C: Color> {
     pub image: Image<T, C>,
     pub framebuffer: GLuint,
     pub size: Size,
+    pub dirty: bool,
 }
 
 pub struct WindowSet<T: Type, C: Color>(std::collections::BTreeMap<WindowId, Window<T, C>>);
@@ -79,6 +80,14 @@ impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
         self.0.remove(window_id)
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = (&WindowId, &Window<T, C>)> {
+        self.0.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&WindowId, &mut Window<T, C>)> {
+        self.0.iter_mut()
+    }
+
     pub fn run<
         X,
         F: 'static
@@ -89,7 +98,7 @@ impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
         mut event_handler: F,
     ) {
         event_loop.run_return(move |event, target, cf| {
-            *cf = ControlFlow::Wait;
+            *cf = ControlFlow::Poll;
 
             match &event {
                 Event::WindowEvent { event, .. } => match event {
@@ -106,7 +115,11 @@ impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
                 _ => (),
             }
 
-            event_handler(self, event, target, cf)
+            event_handler(self, event, target, cf);
+
+            for (_, window) in self.0.iter_mut() {
+                let _ = window.draw();
+            }
         })
     }
 }
@@ -160,6 +173,7 @@ impl<'a, T: Type, C: Color> Window<T, C> {
             texture,
             framebuffer,
             size: Size::new(size.width as usize, size.height as usize),
+            dirty: true,
         })
     }
 
@@ -219,7 +233,15 @@ impl<'a, T: Type, C: Color> Window<T, C> {
         &mut self.image
     }
 
+    pub fn mark_as_dirty(&mut self) {
+        self.dirty = true;
+    }
+
     pub fn draw(&mut self) -> Result<(), Error> {
+        if !self.dirty {
+            return Ok(());
+        }
+
         let meta = self.image.meta().clone();
         let image = self.image.data.as_ptr();
         let texture = self.texture.clone();
@@ -277,7 +299,7 @@ impl<'a, T: Type, C: Color> Window<T, C> {
         })?;
 
         self.size = Size::new(size.width as usize, size.height as usize);
-
+        self.dirty = false;
         Ok(())
     }
 }
