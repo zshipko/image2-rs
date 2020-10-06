@@ -20,8 +20,8 @@ A Rust crate focused on generic image processing for a wide range of image forma
   * Enables I/O using OpenImageIO
 - `parallel`:
   * Enables parallel image iterators
-- `ui`:
-  * Enables [bevy](https://github.com/bevyengine/bevy) integration (see `examples/display.rs`)
+- `window`:
+  * Enable ability to draw images to a graphical window
 
 ## External dependencies
 
