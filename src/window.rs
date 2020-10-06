@@ -6,7 +6,7 @@ use gl::types::*;
 
 pub use glutin::{
     self,
-    event::{Event, WindowEvent},
+    event::{ElementState, Event, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
     window::{WindowBuilder, WindowId},
     ContextCurrentState as CurrentState, NotCurrent, PossiblyCurrent, WindowedContext as Context,
@@ -33,6 +33,8 @@ pub struct Window<T: Type, C: Color> {
     pub image: Image<T, C>,
     pub framebuffer: GLuint,
     pub size: Size,
+    pub position: Point,
+    pub selection: Option<Region>,
 }
 
 pub struct WindowSet<T: Type, C: Color>(std::collections::BTreeMap<WindowId, Window<T, C>>);
@@ -92,9 +94,15 @@ impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
             *cf = ControlFlow::Wait;
 
             match &event {
-                Event::WindowEvent { event, .. } => match event {
+                Event::WindowEvent { event, window_id } => match event {
                     WindowEvent::CloseRequested => {
                         *cf = ControlFlow::Exit;
+                    }
+                    WindowEvent::CursorMoved { position, .. } => {
+                        if let Some(window) = self.get_mut(&window_id) {
+                            window.position =
+                                window.mouse_position((position.x as usize, position.y as usize));
+                        }
                     }
                     _ => (),
                 },
@@ -159,7 +167,9 @@ impl<'a, T: Type, C: Color> Window<T, C> {
             image,
             texture,
             framebuffer,
+            position: Point::default(),
             size: Size::new(size.width as usize, size.height as usize),
+            selection: None,
         })
     }
 
@@ -193,18 +203,40 @@ impl<'a, T: Type, C: Color> Window<T, C> {
     }
 
     pub fn mouse_position(&self, pt: impl Into<Point>) -> Point {
-        let mut pt = pt.into();
+        let pt = pt.into();
         let ratio = (self.size.width as f64 / self.image.meta.width() as f64)
             .min(self.size.height as f64 / self.image.meta.height() as f64);
         let display_width = (self.image.meta.width() as f64 * ratio) as usize;
         let display_height = (self.image.meta.height() as f64 * ratio) as usize;
-        let x = self.size.width.saturating_sub(display_width);
-        let y = self.size.height.saturating_sub(display_height);
+        let x = self.size.width.saturating_sub(display_width) / 2;
+        let y = self.size.height.saturating_sub(display_height) / 2;
+
+        self.scale_mouse_position(pt, x, y, display_width, display_height, ratio)
+    }
+
+    fn scale_mouse_position(
+        &self,
+        pt: impl Into<Point>,
+        x: usize,
+        y: usize,
+        display_width: usize,
+        display_height: usize,
+        ratio: f64,
+    ) -> Point {
+        let mut pt = pt.into();
 
         pt.x = pt.x.saturating_sub(x);
         pt.y = pt.y.saturating_sub(y);
 
-        pt
+        if pt.x >= display_width {
+            pt.x = display_width.saturating_sub(1);
+        }
+
+        if pt.y >= display_height {
+            pt.y = display_height.saturating_sub(1);
+        }
+
+        pt.map(|x, y| ((x as f64 / ratio) as usize, (y as f64 / ratio) as usize))
     }
 
     pub fn into_image(self) -> Image<T, C> {
@@ -382,10 +414,12 @@ to_texture!(f32, Rgb, gl::FLOAT, gl::RGB);
 to_texture!(f32, Rgba, gl::FLOAT, gl::RGBA);
 to_texture!(u16, Rgb, gl::UNSIGNED_SHORT, gl::RGB);
 to_texture!(u16, Rgba, gl::UNSIGNED_SHORT, gl::RGBA);
+to_texture!(i16, Rgb, gl::SHORT, gl::RGB);
+to_texture!(i16, Rgba, gl::SHORT, gl::RGBA);
 to_texture!(u8, Rgb, gl::UNSIGNED_BYTE, gl::RGB);
 to_texture!(u8, Rgba, gl::UNSIGNED_BYTE, gl::RGBA);
 
-/// Show an image and exit with ESC is pressed
+/// Show an image and exit when ESC is pressed
 pub fn show<
     T: 'static + Type,
     C: 'static + Color,
@@ -407,7 +441,7 @@ where
         match &event {
             Event::WindowEvent { event, .. } => match event {
                 WindowEvent::KeyboardInput { input, .. } => {
-                    if input.scancode == 1 {
+                    if input.scancode == 0x01 {
                         *cf = ControlFlow::Exit;
                     }
                 }
