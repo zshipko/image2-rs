@@ -7,17 +7,80 @@ use gl::types::*;
 pub use glutin::{
     self,
     event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
-    window::WindowBuilder,
+    event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
+    window::{WindowBuilder, WindowId},
     ContextCurrentState as CurrentState, NotCurrent, PossiblyCurrent, WindowedContext as Context,
 };
 
+use glutin::platform::desktop::EventLoopExtDesktop;
+
 pub struct Window<T: Type, C: Color> {
+    pub id: WindowId,
     pub context: Option<Context<NotCurrent>>,
     pub texture: Texture,
     pub image: Image<T, C>,
     pub framebuffer: GLuint,
     pub size: Size,
+}
+
+pub struct WindowSet<T: Type, C: Color>(std::collections::BTreeMap<WindowId, Window<T, C>>);
+
+impl<T: Type, C: Color> Default for WindowSet<T, C> {
+    fn default() -> Self {
+        WindowSet(std::collections::BTreeMap::new())
+    }
+}
+
+impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
+    pub fn new() -> WindowSet<T, C> {
+        Default::default()
+    }
+
+    pub fn add(&mut self, window: Window<T, C>) -> Result<WindowId, Error> {
+        let id = window.id;
+        self.0.insert(id, window);
+        Ok(id)
+    }
+
+    pub fn create<X>(
+        &mut self,
+        event_loop: &EventLoop<X>,
+        image: Image<T, C>,
+        window_builder: WindowBuilder,
+    ) -> Result<WindowId, Error>
+    where
+        Image<T, C>: ToTexture<T, C>,
+    {
+        let window = Window::new(event_loop, image, window_builder)?;
+        self.add(window)
+    }
+
+    pub fn get(&self, window_id: &WindowId) -> Option<&Window<T, C>> {
+        self.0.get(window_id)
+    }
+
+    pub fn get_mut(&mut self, window_id: &WindowId) -> Option<&mut Window<T, C>> {
+        self.0.get_mut(window_id)
+    }
+
+    pub fn remove(&mut self, window_id: &WindowId) -> Option<Window<T, C>> {
+        self.0.remove(window_id)
+    }
+
+    pub fn run<
+        X,
+        F: 'static
+            + FnMut(&mut WindowSet<T, C>, Event<'_, X>, &EventLoopWindowTarget<X>, &mut ControlFlow),
+    >(
+        mut self,
+        event_loop: &mut EventLoop<X>,
+        mut event_handler: F,
+    ) {
+        event_loop.run_return(move |event, target, cf| {
+            *cf = ControlFlow::Wait;
+            event_handler(&mut self, event, target, cf)
+        })
+    }
 }
 
 impl<'a, T: Type, C: Color> Window<T, C> {
@@ -60,8 +123,10 @@ impl<'a, T: Type, C: Color> Window<T, C> {
         };
 
         let size = context.window().inner_size();
+        let id = context.window().id();
 
         Ok(Window {
+            id,
             context: Some(context),
             image,
             texture,
