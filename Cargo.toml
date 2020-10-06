@@ -29,7 +29,7 @@ cpp_build = {version = "0.5", optional = true}
 smol = "1"
 
 [features]
-default = ["oiio", "window"]
+default = ["oiio", "parallel", "window"]
 window = ["gl", "glutin"]
 oiio = ["cpp", "cpp_build"]
 parallel = ["rayon"]
@@ -37,7 +37,7 @@ halide = ["halide-runtime"]
 docs-rs = []
 
 [package.metadata.docs.rs]
-features = ["docs-rs", "oiio", "parallel", "halide"]
+features = ["docs-rs", "window", "oiio", "parallel", "halide"]
 
 [[example]]
 name = "window"

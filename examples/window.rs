@@ -9,36 +9,36 @@ fn main() {
         "images/A.exr".to_string()
     };
 
-    let mut event_loop = EventLoop::new();
     let image = Image::<f32, Rgb>::open(&arg).unwrap();
 
-    let mut windows = WindowSet::new();
+    println!("Press 'i' to invert the image");
 
-    windows
-        .create(&event_loop, image, WindowBuilder::new().with_title(arg))
-        .unwrap();
-
-    windows.run(&mut event_loop, move |windows, event, _, _| match event {
-        Event::LoopDestroyed => return,
-        Event::WindowEvent { event, window_id } => {
-            if let Some(window) = windows.get_mut(&window_id) {
-                match event {
-                    WindowEvent::CursorMoved { .. } => {
-                        println!("Mouse: {:?}", window.position);
-                    }
-                    WindowEvent::KeyboardInput { input, .. } => {
-                        if input.state == ElementState::Pressed {
-                            if let Some(VirtualKeyCode::I) = input.virtual_keycode {
-                                window.image.run_in_place(filter::Invert);
+    show_all(
+        vec![("A", image.clone()), ("B", image)],
+        move |windows, event, _, _| match event {
+            Event::LoopDestroyed => return,
+            Event::WindowEvent { event, window_id } => {
+                if let Some(window) = windows.get_mut(&window_id) {
+                    match event {
+                        WindowEvent::CursorMoved { .. } => {
+                            println!("Mouse: {:?}", window.position);
+                        }
+                        WindowEvent::KeyboardInput { input, .. } => {
+                            if input.state == ElementState::Pressed {
+                                if let Some(VirtualKeyCode::I) = input.virtual_keycode {
+                                    window.image.run_in_place(filter::Invert);
+                                    window.mark_as_dirty();
+                                }
                             }
                         }
+                        _ => (),
                     }
-                    _ => (),
                 }
             }
-        }
-        _ => (),
-    });
+            _ => (),
+        },
+    )
+    .unwrap();
 
     println!("DONE");
 }

@@ -36,6 +36,7 @@ pub struct Window<T: Type, C: Color> {
     pub dirty: bool,
     pub position: Point,
     pub selection: Option<Region>,
+    closed: bool,
 }
 
 pub struct WindowSet<T: Type, C: Color>(std::collections::BTreeMap<WindowId, Window<T, C>>);
@@ -90,6 +91,10 @@ impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
         self.0.iter_mut()
     }
 
+    pub fn into_iter(self) -> impl Iterator<Item = Window<T, C>> {
+        self.0.into_iter().map(|(_, v)| v)
+    }
+
     pub fn run<
         X,
         F: 'static
@@ -100,12 +105,14 @@ impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
         mut event_handler: F,
     ) {
         event_loop.run_return(move |event, target, cf| {
-            *cf = ControlFlow::Poll;
+            *cf = ControlFlow::Wait;
 
             match &event {
                 Event::WindowEvent { event, window_id } => match event {
                     WindowEvent::CloseRequested => {
-                        *cf = ControlFlow::Exit;
+                        if let Some(window) = self.get_mut(&window_id) {
+                            window.close();
+                        }
                     }
                     WindowEvent::CursorMoved { position, .. } => {
                         if let Some(window) = self.get_mut(&window_id) {
@@ -125,8 +132,20 @@ impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
 
             event_handler(self, event, target, cf);
 
+            let mut open = 0;
             for (_, window) in self.0.iter_mut() {
-                let _ = window.draw();
+                if window.closed {
+                    continue;
+                }
+
+                open += 1;
+                if window.dirty {
+                    let _ = window.draw();
+                }
+            }
+
+            if open == 0 {
+                *cf = ControlFlow::Exit;
             }
         })
     }
@@ -184,6 +203,7 @@ impl<'a, T: Type, C: Color> Window<T, C> {
             size: Size::new(size.width as usize, size.height as usize),
             dirty: true,
             selection: None,
+            closed: false,
         })
     }
 
@@ -269,11 +289,25 @@ impl<'a, T: Type, C: Color> Window<T, C> {
         self.dirty = true;
     }
 
-    pub fn draw(&mut self) -> Result<(), Error> {
-        if !self.dirty {
-            return Ok(());
-        }
+    pub fn is_closed(&self) -> bool {
+        self.closed
+    }
 
+    pub fn open(&mut self) {
+        if let Some(ctx) = &self.context {
+            ctx.window().set_visible(true)
+        }
+        self.closed = false
+    }
+
+    pub fn close(&mut self) {
+        if let Some(ctx) = &self.context {
+            ctx.window().set_visible(false)
+        }
+        self.closed = true
+    }
+
+    pub fn draw(&mut self) -> Result<(), Error> {
         let meta = self.image.meta().clone();
         let image = self.image.data.as_ptr();
         let texture = self.texture.clone();
@@ -448,7 +482,7 @@ pub fn show<
     F: 'static
         + FnMut(&mut WindowSet<T, C>, Event<'_, ()>, &EventLoopWindowTarget<()>, &mut ControlFlow),
 >(
-    title: &str,
+    title: impl AsRef<str>,
     image: Image<T, C>,
     mut f: F,
 ) -> Result<Image<T, C>, Error>
@@ -457,7 +491,11 @@ where
 {
     let mut event_loop = EventLoop::new();
     let mut windows = WindowSet::new();
-    let id = windows.create(&event_loop, image, WindowBuilder::new().with_title(title))?;
+    let id = windows.create(
+        &event_loop,
+        image,
+        WindowBuilder::new().with_title(title.as_ref()),
+    )?;
 
     windows.run(&mut event_loop, move |windows, event, x, cf| {
         match &event {
@@ -479,4 +517,46 @@ where
     }
 
     Err(Error::Message("Cannot find window".into()))
+}
+
+/// Show multiple images and exit when ESC is pressed
+pub fn show_all<
+    T: 'static + Type,
+    C: 'static + Color,
+    F: 'static
+        + FnMut(&mut WindowSet<T, C>, Event<'_, ()>, &EventLoopWindowTarget<()>, &mut ControlFlow),
+>(
+    images: impl IntoIterator<Item = (impl Into<String>, Image<T, C>)>,
+    mut f: F,
+) -> Result<Vec<Image<T, C>>, Error>
+where
+    Image<T, C>: ToTexture<T, C>,
+{
+    let mut event_loop = EventLoop::new();
+    let mut windows = WindowSet::new();
+
+    for (title, image) in images.into_iter() {
+        windows.create(
+            &event_loop,
+            image,
+            WindowBuilder::new().with_title(title.into()),
+        )?;
+    }
+
+    windows.run(&mut event_loop, move |windows, event, x, cf| {
+        match &event {
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::KeyboardInput { input, .. } => {
+                    if input.scancode == 0x01 {
+                        *cf = ControlFlow::Exit;
+                    }
+                }
+                _ => (),
+            },
+            _ => (),
+        }
+        f(windows, event, x, cf)
+    });
+
+    Ok(windows.into_iter().map(|w| w.into_image()).collect())
 }
