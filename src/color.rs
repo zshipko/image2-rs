@@ -67,6 +67,22 @@ impl Color for Rgb {
     }
 }
 
+color!(Srgb, "Log space, three-channel red, green, blue");
+impl Color for Srgb {
+    const NAME: &'static str = "rgb";
+    const CHANNELS: Channel = 3;
+
+    fn to_rgb(rgb: &Pixel<Self>, pixel: &mut Pixel<Rgb>) {
+        pixel.copy_from_slice(rgb);
+        pixel.gamma_lin();
+    }
+
+    fn from_rgb(rgb: &Pixel<Rgb>, pixel: &mut Pixel<Self>) {
+        pixel.copy_from_slice(rgb);
+        pixel.gamma_log();
+    }
+}
+
 color!(Rgba, "Four-channel red, green, blue with alpha channel");
 impl Color for Rgba {
     const NAME: &'static str = "rgba";
@@ -84,6 +100,31 @@ impl Color for Rgba {
         pixel[1] = rgb[1];
         pixel[2] = rgb[2];
         pixel[3] = 1.0;
+    }
+}
+
+color!(
+    Srgba,
+    "Log space, four-channel red, green, blue with alpha channel"
+);
+impl Color for Srgba {
+    const NAME: &'static str = "rgba";
+    const CHANNELS: Channel = 4;
+    const ALPHA: Option<Channel> = Some(3);
+
+    fn to_rgb(pixel: &Pixel<Self>, mut rgb: &mut Pixel<Rgb>) {
+        rgb[0] = pixel[0] * pixel[3];
+        rgb[1] = pixel[1] * pixel[3];
+        rgb[2] = pixel[2] * pixel[3];
+        rgb.gamma_lin();
+    }
+
+    fn from_rgb(rgb: &Pixel<Rgb>, mut pixel: &mut Pixel<Self>) {
+        pixel[0] = rgb[0];
+        pixel[1] = rgb[1];
+        pixel[2] = rgb[2];
+        pixel[3] = 1.0;
+        pixel.gamma_log();
     }
 }
 

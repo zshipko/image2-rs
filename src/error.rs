@@ -37,4 +37,14 @@ pub enum Error {
     #[cfg(not(feature = "oiio"))]
     #[error("Magick: {0}")]
     Magick(#[from] crate::io::magick::Error),
+
+    /// Window creation error
+    #[cfg(feature = "window")]
+    #[error("Glutin window creation: {0}")]
+    GlutinWindowCreation(#[from] glutin::CreationError),
+
+    /// Glutin context error
+    #[cfg(feature = "window")]
+    #[error("Glutin context: {0}")]
+    GlutinContext(#[from] glutin::ContextError),
 }

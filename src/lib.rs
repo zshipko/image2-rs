@@ -45,6 +45,13 @@ mod meta;
 mod pixel;
 mod r#type;
 
+/// Drawing path and shapes on images
+#[cfg(feature = "draw")]
+pub mod draw;
+
+#[cfg(feature = "window")]
+pub mod window;
+
 #[cfg(feature = "halide")]
 mod halide_wrapper;
 
