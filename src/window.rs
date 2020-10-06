@@ -186,8 +186,8 @@ impl<'a, T: Type, C: Color> Window<T, C> {
                 .min(size.height as f64 / meta.height() as f64);
             let display_width = (meta.width() as f64 * ratio) as usize;
             let display_height = (meta.height() as f64 * ratio) as usize;
-            let x = size.width.saturating_sub(display_width);
-            let y = size.height.saturating_sub(display_height);
+            let x = size.width.saturating_sub(display_width) / 2;
+            let y = size.height.saturating_sub(display_height) / 2;
             unsafe {
                 gl::ClearColor(0.0, 0.0, 0.0, 1.0);
                 gl::Clear(gl::COLOR_BUFFER_BIT);
@@ -221,8 +221,8 @@ impl<'a, T: Type, C: Color> Window<T, C> {
                     0,
                     x as i32,
                     y as i32,
-                    display_width as i32,
-                    display_height as i32,
+                    x as i32 + display_width as i32,
+                    y as i32 + display_height as i32,
                     gl::COLOR_BUFFER_BIT,
                     gl::NEAREST,
                 );
