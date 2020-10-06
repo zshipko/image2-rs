@@ -10,14 +10,7 @@ fn main() {
     };
 
     let mut event_loop = EventLoop::new();
-    let mut image = Image::<f32, Rgb>::open(&arg).unwrap();
-
-    image.draw_line(
-        (10, 10),
-        (400, 250),
-        1,
-        &Pixel::from_slice(&[1.0, 0.0, 0.0]),
-    );
+    let image = Image::<f32, Rgb>::open(&arg).unwrap();
 
     let mut windows = WindowSet::new();
 
@@ -28,10 +21,17 @@ fn main() {
     windows.run(&mut event_loop, move |windows, event, _, _| match event {
         Event::LoopDestroyed => return,
         Event::WindowEvent { event, window_id } => {
-            if let Some(window) = windows.get(&window_id) {
+            if let Some(window) = windows.get_mut(&window_id) {
                 match event {
-                    WindowEvent::CursorMoved { position, .. } => {
-                        println!("Mouse: {:?}", window.mouse_position(position));
+                    WindowEvent::CursorMoved { .. } => {
+                        println!("Mouse: {:?}", window.position);
+                    }
+                    WindowEvent::KeyboardInput { input, .. } => {
+                        if input.state == ElementState::Pressed {
+                            if let Some(VirtualKeyCode::I) = input.virtual_keycode {
+                                window.image.run_in_place(filter::Invert);
+                            }
+                        }
                     }
                     _ => (),
                 }
