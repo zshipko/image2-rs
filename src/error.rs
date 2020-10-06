@@ -33,6 +33,10 @@ pub enum Error {
     #[error("Invalid data type")]
     InvalidType,
 
+    /// Generic error
+    #[error("Message: {0}")]
+    Message(String),
+
     /// Magick I/O error type
     #[cfg(not(feature = "oiio"))]
     #[error("Magick: {0}")]

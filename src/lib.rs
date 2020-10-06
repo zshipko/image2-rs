@@ -45,10 +45,6 @@ mod meta;
 mod pixel;
 mod r#type;
 
-/// Drawing path and shapes on images
-#[cfg(feature = "draw")]
-pub mod draw;
-
 #[cfg(feature = "window")]
 pub mod window;
 
@@ -84,9 +80,8 @@ pub use kernel::Kernel;
 pub use pixel::Pixel;
 pub use r#type::Type;
 
-/// User interface
-#[cfg(feature = "ui")]
-pub mod ui;
-
 #[cfg(test)]
 mod tests;
+
+#[cfg(feature = "parallel")]
+pub use rayon::iter::ParallelIterator;

@@ -533,6 +533,30 @@ impl<T: Type, C: Color> Image<T, C> {
             })
     }
 
+    /// Iterate over pixels in region, with a mutable closure
+    pub fn each_pixel_region<F: Sync + Send + FnMut(Point, &Pixel<C>)>(
+        &self,
+        region: Region,
+        mut f: F,
+    ) {
+        let (width, _height, channels) = self.shape();
+        let mut pixel = Pixel::new();
+
+        self.data
+            .chunks_exact(channels)
+            .enumerate()
+            .map(|(n, px)| {
+                let y = n / width;
+                let x = n - (y * width);
+                (Point::new(x, y), px)
+            })
+            .filter(|(pt, _px)| region.in_bounds(pt))
+            .for_each(|(pt, px)| {
+                pixel.copy_from_slice(px);
+                f(pt, &pixel);
+            })
+    }
+
     /// Iterate over mutable pixels, with a mutable closure
     pub fn each_pixel_mut<F: Sync + Send + FnMut(Point, &mut Pixel<C>)>(&mut self, mut f: F) {
         let (width, _height, channels) = self.shape();
@@ -548,6 +572,32 @@ impl<T: Type, C: Color> Image<T, C> {
                 f(Point::new(x, y), &mut pixel);
                 pixel.copy_to_slice(px);
             });
+    }
+
+    /// Iterate over mutable pixels in region, with a mutable closure
+    pub fn each_pixel_region_mut<F: Sync + Send + FnMut(Point, &mut Pixel<C>)>(
+        &mut self,
+        region: Region,
+        mut f: F,
+    ) {
+        let (width, _height, channels) = self.shape();
+        let mut pixel = Pixel::new();
+
+        self.data
+            .chunks_exact_mut(channels)
+            .enumerate()
+            .map(|(n, px)| {
+                let y = n / width;
+                let x = n - (y * width);
+                (Point::new(x, y), px)
+            })
+            .filter(|(pt, _px)| region.in_bounds(pt))
+            .for_each(|(pt, px)| {
+                pixel.copy_from_slice(&px);
+                f(pt, &mut pixel);
+
+                pixel.copy_to_slice(px);
+            })
     }
 
     /// Copy a region of an image to a new image

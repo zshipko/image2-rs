@@ -12,6 +12,18 @@ pub use glutin::{
     ContextCurrentState as CurrentState, NotCurrent, PossiblyCurrent, WindowedContext as Context,
 };
 
+impl From<glutin::dpi::PhysicalPosition<u32>> for Point {
+    fn from(p: glutin::dpi::PhysicalPosition<u32>) -> Point {
+        Point::new(p.x as usize, p.y as usize)
+    }
+}
+
+impl From<glutin::dpi::PhysicalPosition<f64>> for Point {
+    fn from(p: glutin::dpi::PhysicalPosition<f64>) -> Point {
+        Point::new(p.x as usize, p.y as usize)
+    }
+}
+
 use glutin::platform::desktop::EventLoopExtDesktop;
 
 pub struct Window<T: Type, C: Color> {
@@ -72,13 +84,29 @@ impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
         F: 'static
             + FnMut(&mut WindowSet<T, C>, Event<'_, X>, &EventLoopWindowTarget<X>, &mut ControlFlow),
     >(
-        mut self,
+        &mut self,
         event_loop: &mut EventLoop<X>,
         mut event_handler: F,
     ) {
         event_loop.run_return(move |event, target, cf| {
             *cf = ControlFlow::Wait;
-            event_handler(&mut self, event, target, cf)
+
+            match &event {
+                Event::WindowEvent { event, .. } => match event {
+                    WindowEvent::CloseRequested => {
+                        *cf = ControlFlow::Exit;
+                    }
+                    _ => (),
+                },
+                Event::RedrawRequested(window_id) => {
+                    if let Some(window) = self.get_mut(&window_id) {
+                        window.draw().unwrap();
+                    }
+                }
+                _ => (),
+            }
+
+            event_handler(self, event, target, cf)
         })
     }
 }
@@ -165,14 +193,30 @@ impl<'a, T: Type, C: Color> Window<T, C> {
     }
 
     pub fn mouse_position(&self, pt: impl Into<Point>) -> Point {
-        let pt = pt.into();
+        let mut pt = pt.into();
         let ratio = (self.size.width as f64 / self.image.meta.width() as f64)
             .min(self.size.height as f64 / self.image.meta.height() as f64);
         let display_width = (self.image.meta.width() as f64 * ratio) as usize;
         let display_height = (self.image.meta.height() as f64 * ratio) as usize;
         let x = self.size.width.saturating_sub(display_width);
         let y = self.size.height.saturating_sub(display_height);
-        pt.map(|a, b| (a.saturating_sub(x), b.saturating_sub(y)))
+
+        pt.x = pt.x.saturating_sub(x);
+        pt.y = pt.y.saturating_sub(y);
+
+        pt
+    }
+
+    pub fn into_image(self) -> Image<T, C> {
+        self.image
+    }
+
+    pub fn image(&self) -> &Image<T, C> {
+        &self.image
+    }
+
+    pub fn image_mut(&mut self) -> &mut Image<T, C> {
+        &mut self.image
     }
 
     pub fn draw(&mut self) -> Result<(), Error> {
@@ -340,3 +384,43 @@ to_texture!(u16, Rgb, gl::UNSIGNED_SHORT, gl::RGB);
 to_texture!(u16, Rgba, gl::UNSIGNED_SHORT, gl::RGBA);
 to_texture!(u8, Rgb, gl::UNSIGNED_BYTE, gl::RGB);
 to_texture!(u8, Rgba, gl::UNSIGNED_BYTE, gl::RGBA);
+
+/// Show an image and exit with ESC is pressed
+pub fn show<
+    T: 'static + Type,
+    C: 'static + Color,
+    F: 'static
+        + FnMut(&mut WindowSet<T, C>, Event<'_, ()>, &EventLoopWindowTarget<()>, &mut ControlFlow),
+>(
+    title: &str,
+    image: Image<T, C>,
+    mut f: F,
+) -> Result<Image<T, C>, Error>
+where
+    Image<T, C>: ToTexture<T, C>,
+{
+    let mut event_loop = EventLoop::new();
+    let mut windows = WindowSet::new();
+    let id = windows.create(&event_loop, image, WindowBuilder::new().with_title(title))?;
+
+    windows.run(&mut event_loop, move |windows, event, x, cf| {
+        match &event {
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::KeyboardInput { input, .. } => {
+                    if input.scancode == 1 {
+                        *cf = ControlFlow::Exit;
+                    }
+                }
+                _ => (),
+            },
+            _ => (),
+        }
+        f(windows, event, x, cf)
+    });
+
+    if let Some(window) = windows.remove(&id) {
+        return Ok(window.into_image());
+    }
+
+    Err(Error::Message("Cannot find window".into()))
+}

@@ -19,21 +19,10 @@ cpp = {version = "0.5", optional = true}
 rayon = {version = "1", optional = true}
 serde = {version = "1", optional = true, features = ["derive"]}
 halide-runtime = {version = "0.5", optional = true}
-bevy = {version = "0.2", default-features=false, optional = true, features=[
-    "bevy_audio",
-    "bevy_gilrs",
-    "bevy_gltf",
-    "bevy_wgpu",
-    "bevy_winit",
-    "render",
-    "dynamic_plugins",
-    "mp3",
-    "x11",
-]}
 glutin = {version = "0.25", optional = true}
 gl = {version = "0.14", optional = true}
-anyhow = {version = "1", optional = true}
 footile = {version = "0.6", optional = true}
+pix = {version = "0.13", optional = true}
 
 [build-dependencies]
 cpp_build = {version = "0.5", optional = true}
@@ -42,21 +31,15 @@ cpp_build = {version = "0.5", optional = true}
 smol = "1"
 
 [features]
-default = ["oiio", "parallel", "draw", "window"]
-ui = ["bevy", "anyhow"]
+default = ["oiio", "parallel", "window"]
 window = ["gl", "glutin"]
 oiio = ["cpp", "cpp_build"]
 parallel = ["rayon"]
 halide = ["halide-runtime"]
-draw = ["footile"]
 docs-rs = []
 
 [package.metadata.docs.rs]
 features = ["docs-rs", "oiio", "parallel", "halide"]
-
-[[example]]
-name = "display"
-required-features = ["ui"]
 
 [[example]]
 name = "window"
