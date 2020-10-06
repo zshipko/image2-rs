@@ -24,8 +24,10 @@ fn main() {
                     *cf = ControlFlow::Exit;
                 }
                 WindowEvent::CursorMoved { position, .. } => {
-                    println!("Size: {}x{}", window.size.width, window.size.height);
-                    println!("{}, {}", position.x, position.y);
+                    println!(
+                        "Mouse: {:?}",
+                        window.mouse_position((position.x as usize, position.y as usize))
+                    );
                 }
                 _ => (),
             },

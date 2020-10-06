@@ -99,6 +99,17 @@ impl<'a, T: Type, C: Color> Window<T, C> {
         Err(Error::GlutinContext(glutin::ContextError::ContextLost))
     }
 
+    pub fn mouse_position(&self, pt: impl Into<Point>) -> Point {
+        let pt = pt.into();
+        let ratio = (self.size.width as f64 / self.image.meta.width() as f64)
+            .min(self.size.height as f64 / self.image.meta.height() as f64);
+        let display_width = (self.image.meta.width() as f64 * ratio) as usize;
+        let display_height = (self.image.meta.height() as f64 * ratio) as usize;
+        let x = self.size.width.saturating_sub(display_width);
+        let y = self.size.height.saturating_sub(display_height);
+        pt.map(|a, b| (a.saturating_sub(x), b.saturating_sub(y)))
+    }
+
     pub fn draw(&mut self) -> Result<(), Error> {
         let meta = self.image.meta().clone();
         let image = self.image.data.as_ptr();
@@ -106,6 +117,12 @@ impl<'a, T: Type, C: Color> Window<T, C> {
         let framebuffer = self.framebuffer;
         let size = self.size;
         let size = self.with_current_context(|ctx| {
+            let ratio = (size.width as f64 / meta.width() as f64)
+                .min(size.height as f64 / meta.height() as f64);
+            let display_width = (meta.width() as f64 * ratio) as usize;
+            let display_height = (meta.height() as f64 * ratio) as usize;
+            let x = size.width.saturating_sub(display_width);
+            let y = size.height.saturating_sub(display_height);
             unsafe {
                 gl::ClearColor(0.0, 0.0, 0.0, 1.0);
                 gl::Clear(gl::COLOR_BUFFER_BIT);
@@ -137,10 +154,10 @@ impl<'a, T: Type, C: Color> Window<T, C> {
                     meta.height() as i32,
                     meta.width() as i32,
                     0,
-                    0,
-                    0,
-                    size.width as i32,
-                    size.height as i32,
+                    x as i32,
+                    y as i32,
+                    display_width as i32,
+                    display_height as i32,
                     gl::COLOR_BUFFER_BIT,
                     gl::NEAREST,
                 );
