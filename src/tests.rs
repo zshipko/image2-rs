@@ -116,6 +116,15 @@ fn test_sobel() {
 }
 
 #[test]
+fn test_crop() {
+    let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
+    let mut dest: Image<f32, Rgb> = Image::new((250, 200));
+    let k = filter::Crop(Region::new((100, 200), (250, 200)));
+    timer("Crop", || k.eval(&[&image], &mut dest));
+    assert!(dest.save("images/test-crop.jpg").is_ok());
+}
+
+#[test]
 fn test_saturation() {
     let mut image: Image<f32, Hsv> = Image::open("images/A.exr").unwrap();
 

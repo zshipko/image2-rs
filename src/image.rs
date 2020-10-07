@@ -603,11 +603,7 @@ impl<T: Type, C: Color> Image<T, C> {
     /// Copy a region of an image to a new image
     pub fn crop(&self, roi: Region) -> Image<T, C> {
         let mut dest = Image::new(roi);
-        dest.copy_from_region(
-            roi,
-            self,
-            Region::new(Point::new(0, 0), Size::new(roi.size.width, roi.size.height)),
-        );
+        dest.apply(filter::Crop(roi), &[self]);
         dest
     }
 

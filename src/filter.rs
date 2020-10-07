@@ -135,6 +135,27 @@ impl<
     }
 }
 
+/// Crop an image
+pub struct Crop(pub Region);
+
+impl Filter for Crop {
+    fn compute_at(
+        &self,
+        pt: Point,
+        input: &[&Image<impl Type, impl Color>],
+        dest: &mut DataMut<impl Type, impl Color>,
+    ) {
+        if pt.x > self.0.point.x + self.0.size.width || pt.y > self.0.point.y + self.0.size.height {
+            return;
+        }
+
+        let x = pt.x + self.0.point.x;
+        let y = pt.y + self.0.point.y;
+        let px = input[0].get_pixel((x, y));
+        px.copy_to_slice(dest);
+    }
+}
+
 /// Invert an image
 pub struct Invert;
 
