@@ -71,7 +71,7 @@ pub use crate::meta::Meta;
 pub use color::{Channel, Cmyk, Color, Convert, Gray, Hsv, Rgb, Rgba, Xyz};
 pub use data::{Data, DataMut};
 pub use error::Error;
-pub use filter::{AndThen, Filter, Input, Join};
+pub use filter::{Filter, Input, Join, Then};
 pub use geom::{Point, Region, Size};
 pub use hash::Hash;
 pub use histogram::Histogram;

@@ -323,6 +323,15 @@ impl<'a, C: Color> std::ops::Add<&'a Pixel<C>> for Pixel<C> {
     }
 }
 
+impl<C: Color> std::ops::Add<Pixel<C>> for Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn add(mut self, other: Pixel<C>) -> Pixel<C> {
+        self.map2(&other, |x, y| x + y);
+        self
+    }
+}
+
 impl<C: Color> std::ops::Add<Pixel<C>> for f64 {
     type Output = Pixel<C>;
 
@@ -365,6 +374,15 @@ impl<'a, C: Color> std::ops::Sub<&'a Pixel<C>> for Pixel<C> {
     type Output = Pixel<C>;
 
     fn sub(mut self, other: &'a Pixel<C>) -> Pixel<C> {
+        self.map2(&other, |x, y| x - y);
+        self
+    }
+}
+
+impl<C: Color> std::ops::Sub<Pixel<C>> for Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn sub(mut self, other: Pixel<C>) -> Pixel<C> {
         self.map2(&other, |x, y| x - y);
         self
     }
@@ -416,6 +434,14 @@ impl<'a, C: Color> std::ops::Mul<&'a Pixel<C>> for Pixel<C> {
     }
 }
 
+impl<C: Color> std::ops::Mul<Pixel<C>> for Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn mul(mut self, other: Pixel<C>) -> Pixel<C> {
+        self.map2(&other, |x, y| x * y).clone()
+    }
+}
+
 impl<C: Color> std::ops::Mul<Pixel<C>> for f64 {
     type Output = Pixel<C>;
 
@@ -463,6 +489,15 @@ impl<'a, C: Color> std::ops::Div<&'a Pixel<C>> for Pixel<C> {
     }
 }
 
+impl<C: Color> std::ops::Div<Pixel<C>> for Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn div(mut self, other: Pixel<C>) -> Pixel<C> {
+        self.map2(&other, |x, y| x / y);
+        self
+    }
+}
+
 impl<C: Color> std::ops::Div<Pixel<C>> for f64 {
     type Output = Pixel<C>;
 
@@ -505,6 +540,15 @@ impl<'a, C: Color> std::ops::Rem<&'a Pixel<C>> for Pixel<C> {
     type Output = Pixel<C>;
 
     fn rem(mut self, other: &'a Pixel<C>) -> Pixel<C> {
+        self.map2(&other, |x, y| x % y);
+        self
+    }
+}
+
+impl<C: Color> std::ops::Rem<Pixel<C>> for Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn rem(mut self, other: Pixel<C>) -> Pixel<C> {
         self.map2(&other, |x, y| x % y);
         self
     }

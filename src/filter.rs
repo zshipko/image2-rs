@@ -10,6 +10,8 @@ pub struct Input<'a, T: 'a + Type, C: 'a + Color> {
 
     /// Input pixel
     pub pixel: Option<Pixel<C>>,
+
+    tmp: Option<Image<T, C>>,
 }
 
 impl<'a, T: 'a + Type, C: 'a + Color> Input<'a, T, C> {
@@ -18,6 +20,7 @@ impl<'a, T: 'a + Type, C: 'a + Color> Input<'a, T, C> {
         Input {
             images,
             pixel: None,
+            tmp: None,
         }
     }
 
@@ -54,6 +57,12 @@ impl<'a, T: 'a + Type, C: 'a + Color> Input<'a, T, C> {
     pub fn get_pixel(&self, pt: impl Into<Point>, image_index: Option<usize>) -> Pixel<C> {
         let pt = pt.into();
 
+        if let Some(tmp) = &self.tmp {
+            if image_index.is_none() {
+                return tmp.get_pixel(pt);
+            }
+        }
+
         match (image_index, &self.pixel) {
             (None, Some(data)) => data.clone(),
             (index, _) => self.images[index.unwrap_or_default()].get_pixel(pt),
@@ -63,15 +72,32 @@ impl<'a, T: 'a + Type, C: 'a + Color> Input<'a, T, C> {
     /// Get input float value
     pub fn get_f(&self, pt: impl Into<Point>, c: Channel, image_index: Option<usize>) -> f64 {
         let pt = pt.into();
+
+        if let Some(tmp) = &self.tmp {
+            if image_index.is_none() {
+                return tmp.get_f(pt, c);
+            }
+        }
+
         match (image_index, &self.pixel) {
             (None, Some(data)) => data[c],
             (index, _) => self.images[index.unwrap_or_default()].get_f(pt, c),
         }
     }
+
+    #[doc(hidden)]
+    pub fn compute_intermediate_image(&mut self, size: Size, f: &impl Filter) {
+        let mut dest = Image::<T, C>::new(size);
+        f.eval(self.images(), &mut dest);
+        self.tmp = Some(dest);
+    }
 }
 
 /// Filters are used to manipulate images in a generic, composable manner
 pub trait Filter: Sized + Sync {
+    /// Set to true when the Filter requires an intermediate image buffer
+    const REQUIRES_INTERMEDIATE_IMAGE: bool = false;
+
     /// Compute value of filter at a single point and channel
     fn compute_at(
         &self,
@@ -80,6 +106,28 @@ pub trait Filter: Sized + Sync {
         dest: &mut DataMut<impl Type, impl Color>,
     );
 
+    /// Called before any computation takes place, this is used by `Then` to compute an
+    /// intermediate image for filters wher `REQUIRES_INTERMEDIATE_IMAGE` is set to `true`
+    fn before_compute(
+        &self,
+        _input: &mut Input<impl Type, impl Color>,
+        _output: &mut Image<impl Type, impl Color>,
+    ) {
+    }
+
+    /// Compute value of filter at a single point and channel with another filter pre-applied
+    fn compute_at_with_filter(
+        &self,
+        pt: Point,
+        input: &Input<impl Type, impl Color>,
+        dest: &mut DataMut<impl Type, impl Color>,
+        f: &impl Filter,
+    ) {
+        let mut px = Pixel::new();
+        f.compute_at(pt, input, &mut px.data_mut());
+        self.compute_at(pt, &Input::new(input.images()).with_pixel(px), dest)
+    }
+
     /// Evaluate a filter on part of an image
     fn eval_partial<A: Type, B: Type, C: Color, D: Color>(
         &self,
@@ -87,10 +135,13 @@ pub trait Filter: Sized + Sync {
         input: &[&Image<B, impl Color>],
         output: &mut Image<A, impl Color>,
     ) {
-        let iter = output.iter_region_mut(roi);
+        let mut input = Input::new(input);
 
+        self.before_compute(&mut input, output);
+
+        let iter = output.iter_region_mut(roi);
         iter.for_each(|(pt, mut data)| {
-            self.compute_at(pt, &Input::new(input), &mut data);
+            self.compute_at(pt, &input, &mut data);
         });
     }
 
@@ -98,8 +149,13 @@ pub trait Filter: Sized + Sync {
     fn eval_partial_in_place<C: Color>(&self, roi: Region, output: &mut Image<impl Type, C>) {
         let input = output as *mut _ as *const _;
         let input = unsafe { &[&*input] };
+
+        let mut input = Input::new(input);
+
+        self.before_compute(&mut input, output);
+
         output.iter_region_mut(roi).for_each(|(pt, mut data)| {
-            self.compute_at(pt, &Input::new(input), &mut data);
+            self.compute_at(pt, &input, &mut data);
         });
     }
 
@@ -109,8 +165,11 @@ pub trait Filter: Sized + Sync {
         input: &[&Image<impl Type, impl Color>],
         output: &mut Image<impl Type, C>,
     ) {
+        let mut input = Input::new(input);
+
+        self.before_compute(&mut input, output);
         output.for_each(|pt, mut data| {
-            self.compute_at(pt, &Input::new(input), &mut data);
+            self.compute_at(pt, &input, &mut data);
         });
     }
 
@@ -118,22 +177,27 @@ pub trait Filter: Sized + Sync {
     fn eval_in_place<C: Color>(&self, output: &mut Image<impl Type, C>) {
         let input = output as *mut _ as *const _;
         let input = unsafe { &[&*input] };
+
+        let mut input = Input::new(input);
+
+        self.before_compute(&mut input, output);
+
         output.for_each(|pt, mut data| {
-            self.compute_at(pt, &Input::new(input), &mut data);
+            self.compute_at(pt, &input, &mut data);
         });
     }
 
     /// Perform one filter then another
-    fn and_then<'a, B: 'a + Filter>(&'a self, other: &'a B) -> AndThen<'a, Self, B> {
-        AndThen { a: self, b: other }
+    fn then<B: Filter>(self, other: B) -> Then<Self, B> {
+        Then { a: self, b: other }
     }
 
-    /// Join two filters
-    fn join<'a, B: 'a + Filter, F: Fn(Point, Pixel<Rgb>, Pixel<Rgb>) -> Pixel<Rgb>>(
-        &'a self,
-        other: &'a B,
+    /// Join two filters using a function
+    fn join<B: Filter, F: Fn(Point, Pixel<Rgb>, Pixel<Rgb>) -> Pixel<Rgb>>(
+        self,
+        other: B,
         f: F,
-    ) -> Join<'a, Self, B, F> {
+    ) -> Join<Self, B, F> {
         Join {
             a: self,
             b: other,
@@ -159,46 +223,47 @@ pub trait Filter: Sized + Sync {
     }
 }
 
-/// Executes `a` then `b`
-pub struct AndThen<'a, A: 'a + Filter, B: 'a + Filter> {
-    a: &'a A,
-    b: &'a B,
+/// Executes `a` then `b`, this should not be used with kernels and transforms
+pub struct Then<A: Filter, B: Filter> {
+    a: A,
+    b: B,
 }
 
-impl<'a, A: Filter, B: Filter> Filter for AndThen<'a, A, B> {
+impl<A: Filter, B: Filter> Filter for Then<A, B> {
+    fn before_compute(
+        &self,
+        input: &mut Input<impl Type, impl Color>,
+        output: &mut Image<impl Type, impl Color>,
+    ) {
+        if B::REQUIRES_INTERMEDIATE_IMAGE {
+            input.compute_intermediate_image(output.size(), &self.a)
+        }
+    }
+
     fn compute_at(
         &self,
         pt: Point,
         input: &Input<impl Type, impl Color>,
         dest: &mut DataMut<impl Type, impl Color>,
     ) {
-        let mut tmp = input.new_pixel();
-        let mut data = tmp.data_mut();
-
-        self.a.compute_at(pt, input, &mut data);
-        self.b
-            .compute_at(pt, &Input::new(input.images()).with_pixel(tmp), dest);
+        if B::REQUIRES_INTERMEDIATE_IMAGE {
+            self.b.compute_at(pt, input, dest);
+        } else {
+            self.b
+                .compute_at_with_filter(pt, &Input::new(input.images()), dest, &self.a);
+        }
     }
 }
 
 /// Join two filters using the function `F`
-pub struct Join<
-    'a,
-    A: 'a + Filter,
-    B: 'a + Filter,
-    F: Fn(Point, Pixel<Rgb>, Pixel<Rgb>) -> Pixel<Rgb>,
-> {
-    a: &'a A,
-    b: &'a B,
+pub struct Join<A: Filter, B: Filter, F: Fn(Point, Pixel<Rgb>, Pixel<Rgb>) -> Pixel<Rgb>> {
+    a: A,
+    b: B,
     f: F,
 }
 
-impl<
-        'a,
-        A: 'a + Filter,
-        B: 'a + Filter,
-        F: Sync + Fn(Point, Pixel<Rgb>, Pixel<Rgb>) -> Pixel<Rgb>,
-    > Filter for Join<'a, A, B, F>
+impl<A: Filter, B: Filter, F: Sync + Fn(Point, Pixel<Rgb>, Pixel<Rgb>) -> Pixel<Rgb>> Filter
+    for Join<A, B, F>
 {
     fn compute_at(
         &self,

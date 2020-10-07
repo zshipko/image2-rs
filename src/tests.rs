@@ -116,6 +116,19 @@ fn test_sobel() {
 }
 
 #[test]
+fn test_sobel_rotate180() {
+    let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
+    let mut dest = image.new_like();
+    let k = transform::rotate180(dest.size()).then(kernel::sobel());
+    timer("Sobel rotate", || k.eval(&[&image], &mut dest));
+    assert!(dest.save("images/test-sobel-rotate180-1.jpg").is_ok());
+
+    let k = kernel::sobel().then(transform::rotate180(dest.size()));
+    timer("Sobel rotate 2", || k.eval(&[&image], &mut dest));
+    assert!(dest.save("images/test-sobel-rotate180-2.jpg").is_ok());
+}
+
+#[test]
 fn test_crop() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest: Image<f32, Rgb> = Image::new((250, 200));
@@ -132,11 +145,11 @@ fn test_brightness_contrast() {
     timer("contrast", || f.eval(&[&image], &mut dest));
     assert!(dest.save("images/test-contrast.jpg").is_ok());
 
-    let f = Contrast(1.25).and_then(&Brightness(1.5));
+    let f = Contrast(1.25).then(Brightness(1.5));
     timer("contrast", || f.eval(&[&image], &mut dest));
     assert!(dest.save("images/test-contrast-brightness-1.jpg").is_ok());
 
-    let f = Brightness(1.5).and_then(&Contrast(1.25));
+    let f = Brightness(1.5).then(Contrast(1.25));
     timer("contrast", || f.eval(&[&image], &mut dest));
     assert!(dest.save("images/test-contrast-brightness-2.jpg").is_ok());
 }
