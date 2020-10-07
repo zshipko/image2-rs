@@ -37,6 +37,7 @@ pub struct Window<T: Type, C: Color> {
     pub position: Point,
     pub selection: Option<Region>,
     closed: bool,
+    data: Option<Box<dyn std::any::Any>>,
 }
 
 pub struct WindowSet<T: Type, C: Color>(std::collections::BTreeMap<WindowId, Window<T, C>>);
@@ -204,7 +205,20 @@ impl<'a, T: Type, C: Color> Window<T, C> {
             dirty: true,
             selection: None,
             closed: false,
+            data: None,
         })
+    }
+
+    pub fn set_data<X: std::any::Any>(&mut self, data: X) {
+        self.data = Some(Box::new(data))
+    }
+
+    pub fn data<X: std::any::Any>(&self) -> Option<&X> {
+        self.data.as_deref().map(|x| x.downcast_ref()).flatten()
+    }
+
+    pub fn data_mut<X: std::any::Any>(&mut self) -> Option<&mut X> {
+        self.data.as_deref_mut().map(|x| x.downcast_mut()).flatten()
     }
 
     pub fn with_current_context<X, F: FnOnce(&mut Context<PossiblyCurrent>) -> Result<X, Error>>(
