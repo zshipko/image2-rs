@@ -385,9 +385,9 @@ impl<T: Color> Filter for Convert<T> {
     fn compute_at(
         &self,
         pt: Point,
-        input: &[&Image<impl Type, impl Color>],
+        input: &Input<impl Type, impl Color>,
         dest: &mut DataMut<impl Type, impl Color>,
     ) {
-        input[0].get_pixel(pt).convert_to_data(dest);
+        input.get_pixel(pt, None).convert_to_data(dest);
     }
 }

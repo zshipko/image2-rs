@@ -3,13 +3,47 @@ use crate::*;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+/// Filter input
+pub enum Input<'a, T: 'a + Type, C: 'a + Color> {
+    /// Input images
+    Images(&'a [&'a Image<T, C>]),
+
+    /// Input pixels
+    Data(&'a [&'a DataMut<'a, T, C>]),
+}
+
+impl<'a, T: 'a + Type, C: 'a + Color> Input<'a, T, C> {
+    /// Create a new pixel
+    pub fn new_pixel(&self) -> Pixel<C> {
+        Pixel::new()
+    }
+
+    /// Get input pixel
+    pub fn get_pixel(&self, pt: impl Into<Point>, index: Option<usize>) -> Pixel<C> {
+        let pt = pt.into();
+        match self {
+            Input::Images(input) => input[index.unwrap_or_default()].get_pixel(pt),
+            Input::Data(data) => Pixel::from_data(data[index.unwrap_or_default()]),
+        }
+    }
+
+    /// Get float value
+    pub fn get_f(&self, pt: impl Into<Point>, c: Channel, index: Option<usize>) -> f64 {
+        let pt = pt.into();
+        match self {
+            Input::Images(input) => input[index.unwrap_or_default()].get_f(pt, c),
+            Input::Data(data) => data[index.unwrap_or_default()][c].to_f64(),
+        }
+    }
+}
+
 /// Filters are used to manipulate images in a generic, composable manner
 pub trait Filter: Sized + Sync {
     /// Compute value of filter at a single point and channel
     fn compute_at(
         &self,
         pt: Point,
-        input: &[&Image<impl Type, impl Color>],
+        input: &Input<impl Type, impl Color>,
         dest: &mut DataMut<impl Type, impl Color>,
     );
 
@@ -23,7 +57,7 @@ pub trait Filter: Sized + Sync {
         let iter = output.iter_region_mut(roi);
 
         iter.for_each(|(pt, mut data)| {
-            self.compute_at(pt, input, &mut data);
+            self.compute_at(pt, &Input::Images(input), &mut data);
         });
     }
 
@@ -32,7 +66,7 @@ pub trait Filter: Sized + Sync {
         let input = output as *mut _ as *const _;
         let input = unsafe { &[&*input] };
         output.iter_region_mut(roi).for_each(|(pt, mut data)| {
-            self.compute_at(pt, input, &mut data);
+            self.compute_at(pt, &Input::Images(input), &mut data);
         });
     }
 
@@ -43,7 +77,7 @@ pub trait Filter: Sized + Sync {
         output: &mut Image<impl Type, C>,
     ) {
         output.for_each(|pt, mut data| {
-            self.compute_at(pt, input, &mut data);
+            self.compute_at(pt, &Input::Images(input), &mut data);
         });
     }
 
@@ -52,16 +86,26 @@ pub trait Filter: Sized + Sync {
         let input = output as *mut _ as *const _;
         let input = unsafe { &[&*input] };
         output.for_each(|pt, mut data| {
-            self.compute_at(pt, input, &mut data);
+            self.compute_at(pt, &Input::Images(input), &mut data);
         });
     }
 
     /// Perform one filter then another
-    fn and_then<'a, E: Color, Y: Color, A: 'a + Filter, B: 'a + Filter>(
+    fn and_then<'a, B: 'a + Filter>(&'a self, other: &'a B) -> AndThen<'a, Self, B> {
+        AndThen { a: self, b: other }
+    }
+
+    /// Join two filters
+    fn join<'a, B: 'a + Filter, F: Fn(Point, Pixel<Rgb>, Pixel<Rgb>) -> Pixel<Rgb>>(
         &'a self,
         other: &'a B,
-    ) -> AndThen<'a, Self, B> {
-        AndThen { a: self, b: other }
+        f: F,
+    ) -> Join<'a, Self, B, F> {
+        Join {
+            a: self,
+            b: other,
+            f,
+        }
     }
 
     /// Convert filter to `AsyncFilter`
@@ -82,7 +126,7 @@ pub trait Filter: Sized + Sync {
     }
 }
 
-/// Executes `a` then `b` and passes the results to `f`
+/// Executes `a` then `b`
 pub struct AndThen<'a, A: 'a + Filter, B: 'a + Filter> {
     a: &'a A,
     b: &'a B,
@@ -92,11 +136,14 @@ impl<'a, A: Filter, B: Filter> Filter for AndThen<'a, A, B> {
     fn compute_at(
         &self,
         pt: Point,
-        input: &[&Image<impl Type, impl Color>],
+        input: &Input<impl Type, impl Color>,
         dest: &mut DataMut<impl Type, impl Color>,
     ) {
-        self.a.compute_at(pt, input, dest);
-        self.b.compute_at(pt, input, dest);
+        let mut tmp = input.new_pixel();
+        let mut data = tmp.data_mut();
+
+        self.a.compute_at(pt, input, &mut data);
+        self.b.compute_at(pt, &Input::Data(&[&data]), dest);
     }
 }
 
@@ -122,16 +169,65 @@ impl<
     fn compute_at(
         &self,
         pt: Point,
-        input: &[&Image<impl Type, impl Color>],
+        input: &Input<impl Type, impl Color>,
         dest: &mut DataMut<impl Type, impl Color>,
     ) {
-        let mut a: Pixel<Rgb> = input[0].get_pixel(pt).convert();
+        let mut a: Pixel<Rgb> = input.get_pixel(pt, None).convert();
         self.a.compute_at(pt, input, &mut a.data_mut());
 
-        let mut b: Pixel<Rgb> = input[0].get_pixel(pt).convert();
+        let mut b: Pixel<Rgb> = input.get_pixel(pt, None).convert();
         self.b.compute_at(pt, input, &mut b.data_mut());
 
         (self.f)(pt, a, b).copy_to_slice(dest);
+    }
+}
+
+/// Saturation
+pub struct Saturation(pub f64);
+
+impl Filter for Saturation {
+    fn compute_at(
+        &self,
+        pt: Point,
+        input: &Input<impl Type, impl Color>,
+        data: &mut DataMut<impl Type, impl Color>,
+    ) {
+        let px = input.get_pixel(pt, None);
+        let mut tmp: Pixel<Hsv> = px.convert();
+        tmp[1] *= self.0;
+        tmp.convert_to_data(data);
+    }
+}
+
+/// Adjust image brightness
+pub struct Brightness(pub f64);
+
+impl Filter for Brightness {
+    fn compute_at(
+        &self,
+        pt: Point,
+        input: &Input<impl Type, impl Color>,
+        data: &mut DataMut<impl Type, impl Color>,
+    ) {
+        let mut px = input.get_pixel(pt, None);
+        px *= self.0;
+        px.convert_to_data(data);
+    }
+}
+
+/// Adjust image contrast
+pub struct Contrast(pub f64);
+
+impl Filter for Contrast {
+    fn compute_at(
+        &self,
+        pt: Point,
+        input: &Input<impl Type, impl Color>,
+        data: &mut DataMut<impl Type, impl Color>,
+    ) {
+        let mut px = input.get_pixel(pt, None);
+        px.map(|x| (self.0 * (x - 0.5)) + 0.5);
+        px.convert_to_data(data);
     }
 }
 
@@ -142,7 +238,7 @@ impl Filter for Crop {
     fn compute_at(
         &self,
         pt: Point,
-        input: &[&Image<impl Type, impl Color>],
+        input: &Input<impl Type, impl Color>,
         dest: &mut DataMut<impl Type, impl Color>,
     ) {
         if pt.x > self.0.point.x + self.0.size.width || pt.y > self.0.point.y + self.0.size.height {
@@ -151,7 +247,7 @@ impl Filter for Crop {
 
         let x = pt.x + self.0.point.x;
         let y = pt.y + self.0.point.y;
-        let px = input[0].get_pixel((x, y));
+        let px = input.get_pixel((x, y), None);
         px.copy_to_slice(dest);
     }
 }
@@ -163,10 +259,10 @@ impl Filter for Invert {
     fn compute_at(
         &self,
         pt: Point,
-        input: &[&Image<impl Type, impl Color>],
+        input: &Input<impl Type, impl Color>,
         dest: &mut DataMut<impl Type, impl Color>,
     ) {
-        let mut px = input[0].get_pixel(pt);
+        let mut px = input.get_pixel(pt, None);
         px.map(|x| 1.0 - x);
         px.copy_to_slice(dest);
     }
@@ -179,11 +275,11 @@ impl Filter for Blend {
     fn compute_at(
         &self,
         pt: Point,
-        input: &[&Image<impl Type, impl Color>],
+        input: &Input<impl Type, impl Color>,
         dest: &mut DataMut<impl Type, impl Color>,
     ) {
-        let a = input[0].get_pixel(pt);
-        let b = input[1].get_pixel(pt);
+        let a = input.get_pixel(pt, None);
+        let b = input.get_pixel(pt, Some(1));
         ((a + b) / 2.).copy_to_slice(dest);
     }
 }
@@ -201,10 +297,10 @@ impl Filter for GammaLog {
     fn compute_at(
         &self,
         pt: Point,
-        input: &[&Image<impl Type, impl Color>],
+        input: &Input<impl Type, impl Color>,
         dest: &mut DataMut<impl Type, impl Color>,
     ) {
-        let mut px = input[0].get_pixel(pt);
+        let mut px = input.get_pixel(pt, None);
         px.map(|x| x.powf(1.0 / self.0));
         px.copy_to_slice(dest);
     }
@@ -223,10 +319,10 @@ impl Filter for GammaLin {
     fn compute_at(
         &self,
         pt: Point,
-        input: &[&Image<impl Type, impl Color>],
+        input: &Input<impl Type, impl Color>,
         dest: &mut DataMut<impl Type, impl Color>,
     ) {
-        let mut px = input[0].get_pixel(pt);
+        let mut px = input.get_pixel(pt, None);
         px.map(|x| x.powf(self.0));
         px.copy_to_slice(dest);
     }
@@ -293,17 +389,21 @@ impl<'a, F: Unpin + Filter, T: Type, C: Color, U: Unpin + Type, D: Unpin + Color
             AsyncMode::Row => {
                 for i in 0..input.width() {
                     let mut data = filter.output.get_mut((i, filter.y));
-                    filter
-                        .filter
-                        .compute_at(Point::new(i, filter.y), &filter.input, &mut data);
+                    filter.filter.compute_at(
+                        Point::new(i, filter.y),
+                        &Input::Images(&filter.input),
+                        &mut data,
+                    );
                 }
                 filter.y += 1;
             }
             AsyncMode::Pixel => {
                 let mut data = filter.output.get_mut((filter.x, filter.y));
-                filter
-                    .filter
-                    .compute_at(Point::new(filter.x, filter.y), &filter.input, &mut data);
+                filter.filter.compute_at(
+                    Point::new(filter.x, filter.y),
+                    &Input::Images(&filter.input),
+                    &mut data,
+                );
                 filter.x += 1;
                 if filter.x >= input.width() {
                     filter.x = 0;

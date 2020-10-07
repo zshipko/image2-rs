@@ -125,13 +125,29 @@ fn test_crop() {
 }
 
 #[test]
+fn test_brightness_contrast() {
+    let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
+    let mut dest: Image<f32, Rgb> = image.new_like();
+    let f = Contrast(1.25);
+    timer("contrast", || f.eval(&[&image], &mut dest));
+    assert!(dest.save("images/test-contrast.jpg").is_ok());
+
+    let f = Contrast(1.25).and_then(&Brightness(1.5));
+    timer("contrast", || f.eval(&[&image], &mut dest));
+    assert!(dest.save("images/test-contrast-brightness-1.jpg").is_ok());
+
+    let f = Brightness(1.5).and_then(&Contrast(1.25));
+    timer("contrast", || f.eval(&[&image], &mut dest));
+    assert!(dest.save("images/test-contrast-brightness-2.jpg").is_ok());
+}
+
+#[test]
 fn test_saturation() {
-    let mut image: Image<f32, Hsv> = Image::open("images/A.exr").unwrap();
+    let mut image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
 
     assert!(image.save("images/test-saturation0.jpg").is_ok());
-    image.each_pixel_mut(|_, mut px| {
-        px[1] *= 1.25;
-    });
+
+    image.run_in_place(filter::Saturation(1.25));
 
     assert!(image.save("images/test-saturation1.jpg").is_ok());
 }
@@ -156,16 +172,16 @@ fn test_convert_colorspace() {
 #[cfg(feature = "oiio")]
 #[test]
 fn test_metadata() {
-    let input = Input::open("images/A.exr").unwrap();
+    let input = ImageInput::open("images/A.exr").unwrap();
     let a = input.spec().attrs();
     println!("KEYS: {:?}", a);
 
     let image: Image<f32, Rgb> = input.read().unwrap();
-    let mut output = Output::create("images/test.exr").unwrap();
+    let mut output = ImageOutput::create("images/test.exr").unwrap();
     output.spec_mut().set_attr("testing", "123");
     output.write(&image).unwrap();
 
-    let input2 = Input::open("images/test.exr").unwrap();
+    let input2 = ImageInput::open("images/test.exr").unwrap();
     let b = input2.spec().attrs();
     assert!(b.contains_key(&"testing"));
     assert!(input2.spec().get_attr("testing") == Some(Attr::String("123")));

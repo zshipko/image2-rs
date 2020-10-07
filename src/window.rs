@@ -6,7 +6,7 @@ use gl::types::*;
 
 pub use glutin::{
     self,
-    event::{ElementState, Event, VirtualKeyCode, WindowEvent},
+    event::{ElementState, Event, ModifiersState, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
     window::{WindowBuilder, WindowId},
     ContextCurrentState as CurrentState, NotCurrent, PossiblyCurrent, WindowedContext as Context,

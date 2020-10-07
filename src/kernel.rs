@@ -64,20 +64,20 @@ impl Filter for Kernel {
     fn compute_at(
         &self,
         pt: Point,
-        input: &[&Image<impl Type, impl Color>],
+        input: &Input<impl Type, impl Color>,
         dest: &mut DataMut<impl Type, impl Color>,
     ) {
         let r2 = (self.rows / 2) as isize;
         let c2 = (self.cols / 2) as isize;
-        let mut f = input[0].new_pixel();
+        let mut f = input.new_pixel();
         let mut x: f64;
         for ky in -r2..=r2 {
             let kr = &self.data[(ky + r2) as usize];
             let pty = (pt.y as isize + ky) as usize;
             for kx in -c2..=c2 {
                 let krc = kr[(kx + c2) as usize];
-                for c in 0..input[0].channels() {
-                    x = input[0].get_f(((pt.x as isize + kx) as usize, pty), c);
+                for c in 0..f.len() {
+                    x = input.get_f(((pt.x as isize + kx) as usize, pty), c, None);
                     f[c] += x * krc;
                 }
             }
@@ -196,12 +196,12 @@ macro_rules! op {
             fn compute_at(
                 &self,
                 pt: Point,
-                input: &[&Image<impl Type, impl Color>],
+                input: &Input<impl Type, impl Color>,
                 dest: &mut DataMut<impl Type, impl Color>,
             ) {
                 let r2 = (self.a.rows / 2) as isize;
                 let c2 = (self.a.cols / 2) as isize;
-                let mut f = input[0].new_pixel();
+                let mut f = input.new_pixel();
                 let mut x: f64;
                 for ky in -r2..=r2 {
                     let kr = &self.a.data[(ky + r2) as usize];
@@ -209,9 +209,9 @@ macro_rules! op {
                     for kx in -c2..=c2 {
                         let krc = kr[(kx + c2) as usize];
                         let kr1c = kr1[(kx + c2) as usize];
-                        for c in 0..input[0].channels() {
-                            x = input[0].get_f(
-                                ((pt.x as isize + kx) as usize, (pt.y as isize + ky) as usize), c);
+                        for c in 0..f.len() {
+                            x = input.get_f(
+                                ((pt.x as isize + kx) as usize, (pt.y as isize + ky) as usize), c, None);
                             f[c] += $f((x * krc), (x * kr1c));
 
                         }

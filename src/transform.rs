@@ -9,13 +9,13 @@ impl Filter for Transform {
     fn compute_at(
         &self,
         pt: Point,
-        input: &[&Image<impl Type, impl Color>],
+        input: &Input<impl Type, impl Color>,
         px: &mut DataMut<impl Type, impl Color>,
     ) {
         let pt = EPoint::new(pt.x as f64, pt.y as f64);
         let dest = self.0.transform_point(pt);
-        let px1 = input[0].get_pixel((dest.x.floor() as usize, dest.y.floor() as usize));
-        let px2 = input[0].get_pixel((dest.x.ceil() as usize, dest.y.ceil() as usize));
+        let px1 = input.get_pixel((dest.x.floor() as usize, dest.y.floor() as usize), None);
+        let px2 = input.get_pixel((dest.x.ceil() as usize, dest.y.ceil() as usize), None);
 
         ((px1 + px2) / 2.).copy_to_slice(px);
     }

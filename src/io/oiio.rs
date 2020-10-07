@@ -10,15 +10,15 @@ cpp! {{
     using namespace OIIO;
 }}
 
-/// Output is used to write images to disk
-pub struct Output {
+/// ImageOutput is used to write images to disk
+pub struct ImageOutput {
     spec: ImageSpec,
     path: std::path::PathBuf,
     image_output: *mut u8,
     index: usize,
 }
 
-impl Drop for Output {
+impl Drop for ImageOutput {
     fn drop(&mut self) {
         if self.image_output.is_null() {
             return;
@@ -36,7 +36,7 @@ impl Drop for Output {
     }
 }
 
-impl Output {
+impl ImageOutput {
     /// Get reference to output ImageSpec
     pub fn spec(&self) -> &ImageSpec {
         &self.spec
@@ -53,7 +53,7 @@ impl Output {
     }
 
     /// Create a new output file
-    pub fn create(path: impl AsRef<std::path::Path>) -> Result<Output, Error> {
+    pub fn create(path: impl AsRef<std::path::Path>) -> Result<ImageOutput, Error> {
         let path = path.as_ref();
         let path_str = std::ffi::CString::new(path.to_string_lossy().as_bytes().to_vec()).unwrap();
         let filename = path_str.as_ptr();
@@ -73,7 +73,7 @@ impl Output {
             ));
         }
 
-        Ok(Output {
+        Ok(ImageOutput {
             path: path.to_path_buf(),
             image_output,
             spec: ImageSpec::empty(),
@@ -161,8 +161,8 @@ impl Output {
     }
 }
 
-/// Input is used to load images from disk
-pub struct Input {
+/// ImageInput is used to load images from disk
+pub struct ImageInput {
     path: std::path::PathBuf,
     spec: ImageSpec,
     subimage: usize,
@@ -170,7 +170,7 @@ pub struct Input {
     image_input: *mut u8,
 }
 
-impl Drop for Input {
+impl Drop for ImageInput {
     fn drop(&mut self) {
         if self.image_input.is_null() {
             return;
@@ -188,7 +188,7 @@ impl Drop for Input {
     }
 }
 
-impl Input {
+impl ImageInput {
     /// Build input with subimage set to the provided value
     pub fn with_subimage(mut self, subimage: usize) -> Self {
         self.subimage = subimage;
@@ -218,7 +218,7 @@ impl Input {
     }
 
     /// Open image for reading
-    pub fn open(path: impl AsRef<std::path::Path>) -> Result<Input, Error> {
+    pub fn open(path: impl AsRef<std::path::Path>) -> Result<ImageInput, Error> {
         let mut spec = ImageSpec::empty();
         let tmp = &mut spec;
 
@@ -243,7 +243,7 @@ impl Input {
             return Err(Error::UnableToOpenImage(path.to_string_lossy().to_string()));
         }
 
-        Ok(Input {
+        Ok(ImageInput {
             spec,
             image_input: input,
             subimage: 0,

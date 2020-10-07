@@ -273,7 +273,7 @@ impl<T: Type, C: Color> Image<T, C> {
     pub fn open(path: impl AsRef<std::path::Path>) -> Result<Image<T, C>, Error> {
         #[cfg(feature = "oiio")]
         {
-            let input = io::Input::open(path)?;
+            let input = io::ImageInput::open(path)?;
             input.read()
         }
 
@@ -288,7 +288,7 @@ impl<T: Type, C: Color> Image<T, C> {
     pub fn save(&self, path: impl AsRef<std::path::Path>) -> Result<(), Error> {
         #[cfg(feature = "oiio")]
         {
-            let output = io::Output::create(path)?;
+            let output = io::ImageOutput::create(path)?;
             output.write(self)
         }
 
