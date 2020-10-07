@@ -77,7 +77,7 @@ impl Filter for Kernel {
             for kx in -c2..=c2 {
                 let krc = kr[(kx + c2) as usize];
                 for c in 0..f.len() {
-                    x = input.get_f(((pt.x as isize + kx) as usize, pty), c, None);
+                    x = input.get_f(((pt.x as isize + kx) as usize, pty), c, Some(0));
                     f[c] += x * krc;
                 }
             }
@@ -211,7 +211,7 @@ macro_rules! op {
                         let kr1c = kr1[(kx + c2) as usize];
                         for c in 0..f.len() {
                             x = input.get_f(
-                                ((pt.x as isize + kx) as usize, (pt.y as isize + ky) as usize), c, None);
+                                ((pt.x as isize + kx) as usize, (pt.y as isize + ky) as usize), c, Some(0));
                             f[c] += $f((x * krc), (x * kr1c));
 
                         }

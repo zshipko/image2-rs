@@ -109,6 +109,11 @@ impl<'a, T: Type, C: Color> DataMut<'a, T, C> {
     pub fn as_slice_mut(&mut self) -> &mut [T] {
         self.0
     }
+
+    /// Downcast to `Data` type
+    pub fn as_data(&'a self) -> Data<'a, T, C> {
+        Data::new(self.0)
+    }
 }
 
 impl<'a, T: Type, C: Color> AsRef<[T]> for Data<'a, T, C> {

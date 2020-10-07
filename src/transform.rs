@@ -14,10 +14,10 @@ impl Filter for Transform {
     ) {
         let pt = EPoint::new(pt.x as f64, pt.y as f64);
         let dest = self.0.transform_point(pt);
-        let px1 = input.get_pixel((dest.x.floor() as usize, dest.y.floor() as usize), None);
-        let px2 = input.get_pixel((dest.x.ceil() as usize, dest.y.ceil() as usize), None);
+        let px1 = input.get_pixel((dest.x.floor() as usize, dest.y.floor() as usize), Some(0));
+        let px2 = input.get_pixel((dest.x.ceil() as usize, dest.y.ceil() as usize), Some(0));
 
-        ((px1 + px2) / 2.).copy_to_slice(px);
+        ((px1 + &px2) / 2.).copy_to_slice(px);
     }
 }
 

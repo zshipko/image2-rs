@@ -628,11 +628,11 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Apply an async filter using an Image as output
-    pub async fn apply_async(
+    pub async fn apply_async<'a>(
         &mut self,
         mode: filter::AsyncMode,
         filter: impl Filter + Unpin,
-        input: &[&Image<impl Type, impl Color>],
+        input: Input<'a, impl Type, impl Color>,
     ) -> &mut Self {
         filter::eval_async(&filter, mode, input, self).await;
         self
@@ -661,7 +661,7 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Run an async filter using an Image as input
-    pub async fn run_async<U: Type, D: Color>(
+    pub async fn run_async<'a, U: 'a + Type, D: 'a + Color>(
         &self,
         mode: filter::AsyncMode,
         filter: impl Filter + Unpin,
@@ -673,7 +673,7 @@ impl<T: Type, C: Color> Image<T, C> {
             self.size()
         };
         let mut dest = Image::new(size);
-        dest.apply_async(mode, filter, &[self]).await;
+        dest.apply_async(mode, filter, Input::new(&[self])).await;
         dest
     }
 

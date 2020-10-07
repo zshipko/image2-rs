@@ -4,35 +4,68 @@ use crate::*;
 use rayon::prelude::*;
 
 /// Filter input
-pub enum Input<'a, T: 'a + Type, C: 'a + Color> {
+pub struct Input<'a, T: 'a + Type, C: 'a + Color> {
     /// Input images
-    Images(&'a [&'a Image<T, C>]),
+    pub images: &'a [&'a Image<T, C>],
 
-    /// Input pixels
-    Data(&'a [&'a DataMut<'a, T, C>]),
+    /// Input pixel
+    pub pixel: Option<Pixel<C>>,
 }
 
 impl<'a, T: 'a + Type, C: 'a + Color> Input<'a, T, C> {
+    /// Create new `Input`
+    pub fn new(images: &'a [&'a Image<T, C>]) -> Self {
+        Input {
+            images,
+            pixel: None,
+        }
+    }
+
+    /// Add chained pixel data
+    pub fn with_pixel(mut self, pixel: Pixel<C>) -> Self {
+        self.pixel = Some(pixel);
+        self
+    }
+
     /// Create a new pixel
     pub fn new_pixel(&self) -> Pixel<C> {
         Pixel::new()
     }
 
+    /// Get number of images
+    pub fn len(&self) -> usize {
+        self.images.len()
+    }
+
+    /// Returns true when there are no inputs
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Get input images
+    pub fn images(&self) -> &[&Image<T, C>] {
+        &self.images
+    }
+
     /// Get input pixel
-    pub fn get_pixel(&self, pt: impl Into<Point>, index: Option<usize>) -> Pixel<C> {
+    ///
+    /// The `image_index` parameter is used to force access to an image when data is also
+    /// available. In the case of `Input::Images`, `None` translates to index 0
+    pub fn get_pixel(&self, pt: impl Into<Point>, image_index: Option<usize>) -> Pixel<C> {
         let pt = pt.into();
-        match self {
-            Input::Images(input) => input[index.unwrap_or_default()].get_pixel(pt),
-            Input::Data(data) => Pixel::from_data(data[index.unwrap_or_default()]),
+
+        match (image_index, &self.pixel) {
+            (None, Some(data)) => data.clone(),
+            (index, _) => self.images[index.unwrap_or_default()].get_pixel(pt),
         }
     }
 
-    /// Get float value
-    pub fn get_f(&self, pt: impl Into<Point>, c: Channel, index: Option<usize>) -> f64 {
+    /// Get input float value
+    pub fn get_f(&self, pt: impl Into<Point>, c: Channel, image_index: Option<usize>) -> f64 {
         let pt = pt.into();
-        match self {
-            Input::Images(input) => input[index.unwrap_or_default()].get_f(pt, c),
-            Input::Data(data) => data[index.unwrap_or_default()][c].to_f64(),
+        match (image_index, &self.pixel) {
+            (None, Some(data)) => data[c],
+            (index, _) => self.images[index.unwrap_or_default()].get_f(pt, c),
         }
     }
 }
@@ -57,7 +90,7 @@ pub trait Filter: Sized + Sync {
         let iter = output.iter_region_mut(roi);
 
         iter.for_each(|(pt, mut data)| {
-            self.compute_at(pt, &Input::Images(input), &mut data);
+            self.compute_at(pt, &Input::new(input), &mut data);
         });
     }
 
@@ -66,7 +99,7 @@ pub trait Filter: Sized + Sync {
         let input = output as *mut _ as *const _;
         let input = unsafe { &[&*input] };
         output.iter_region_mut(roi).for_each(|(pt, mut data)| {
-            self.compute_at(pt, &Input::Images(input), &mut data);
+            self.compute_at(pt, &Input::new(input), &mut data);
         });
     }
 
@@ -77,7 +110,7 @@ pub trait Filter: Sized + Sync {
         output: &mut Image<impl Type, C>,
     ) {
         output.for_each(|pt, mut data| {
-            self.compute_at(pt, &Input::Images(input), &mut data);
+            self.compute_at(pt, &Input::new(input), &mut data);
         });
     }
 
@@ -86,7 +119,7 @@ pub trait Filter: Sized + Sync {
         let input = output as *mut _ as *const _;
         let input = unsafe { &[&*input] };
         output.for_each(|pt, mut data| {
-            self.compute_at(pt, &Input::Images(input), &mut data);
+            self.compute_at(pt, &Input::new(input), &mut data);
         });
     }
 
@@ -112,7 +145,7 @@ pub trait Filter: Sized + Sync {
     fn to_async<'a, T: Type, C: Color, U: Type, D: Color>(
         &'a self,
         mode: AsyncMode,
-        input: &'a [&Image<T, C>],
+        input: Input<'a, T, C>,
         output: &'a mut Image<U, D>,
     ) -> AsyncFilter<'a, Self, T, C, U, D> {
         AsyncFilter {
@@ -143,7 +176,8 @@ impl<'a, A: Filter, B: Filter> Filter for AndThen<'a, A, B> {
         let mut data = tmp.data_mut();
 
         self.a.compute_at(pt, input, &mut data);
-        self.b.compute_at(pt, &Input::Data(&[&data]), dest);
+        self.b
+            .compute_at(pt, &Input::new(input.images()).with_pixel(tmp), dest);
     }
 }
 
@@ -280,7 +314,7 @@ impl Filter for Blend {
     ) {
         let a = input.get_pixel(pt, None);
         let b = input.get_pixel(pt, Some(1));
-        ((a + b) / 2.).copy_to_slice(dest);
+        ((a + &b) / 2.).copy_to_slice(dest);
     }
 }
 
@@ -352,7 +386,7 @@ pub struct AsyncFilter<'a, F: Filter, T: 'a + Type, C: Color, U: 'a + Type, D: C
     pub output: &'a mut Image<U, D>,
 
     /// Input images
-    pub input: &'a [&'a Image<T, C>],
+    pub input: Input<'a, T, C>,
     x: usize,
     y: usize,
     mode: AsyncMode,
@@ -382,37 +416,34 @@ impl<'a, F: Unpin + Filter, T: Type, C: Color, U: Unpin + Type, D: Unpin + Color
         self: std::pin::Pin<&mut Self>,
         ctx: &mut std::task::Context,
     ) -> std::task::Poll<Self::Output> {
-        let input = &self.input[0];
         let filter = std::pin::Pin::get_mut(self);
+        let width = filter.output.width();
+        let height = filter.output.height();
 
         match filter.mode {
             AsyncMode::Row => {
-                for i in 0..input.width() {
+                for i in 0..width {
                     let mut data = filter.output.get_mut((i, filter.y));
-                    filter.filter.compute_at(
-                        Point::new(i, filter.y),
-                        &Input::Images(&filter.input),
-                        &mut data,
-                    );
+                    filter
+                        .filter
+                        .compute_at(Point::new(i, filter.y), &filter.input, &mut data);
                 }
                 filter.y += 1;
             }
             AsyncMode::Pixel => {
                 let mut data = filter.output.get_mut((filter.x, filter.y));
-                filter.filter.compute_at(
-                    Point::new(filter.x, filter.y),
-                    &Input::Images(&filter.input),
-                    &mut data,
-                );
+                filter
+                    .filter
+                    .compute_at(Point::new(filter.x, filter.y), &&filter.input, &mut data);
                 filter.x += 1;
-                if filter.x >= input.width() {
+                if filter.x >= width {
                     filter.x = 0;
                     filter.y += 1;
                 }
             }
         }
 
-        if filter.y < input.height() {
+        if filter.y < height {
             ctx.waker().wake_by_ref();
             return std::task::Poll::Pending;
         }
@@ -425,7 +456,7 @@ impl<'a, F: Unpin + Filter, T: Type, C: Color, U: Unpin + Type, D: Unpin + Color
 pub async fn eval_async<'a, F: Unpin + Filter, T: Type, U: Type, C: Color, D: Color>(
     filter: &'a F,
     mode: AsyncMode,
-    input: &'a [&Image<U, C>],
+    input: Input<'a, U, C>,
     output: &'a mut Image<T, D>,
 ) {
     filter.to_async(mode, input, output).await
