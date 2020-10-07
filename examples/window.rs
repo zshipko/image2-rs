@@ -24,11 +24,13 @@ fn main() {
                             println!("Mouse: {:?}", window.position);
                         }
                         WindowEvent::KeyboardInput { input, .. } => {
-                            if input.state == ElementState::Pressed {
-                                if let Some(VirtualKeyCode::I) = input.virtual_keycode {
-                                    window.image.run_in_place(filter::Invert);
-                                    window.mark_as_dirty();
-                                }
+                            if input.state != ElementState::Pressed {
+                                return;
+                            }
+
+                            if let Some(VirtualKeyCode::I) = input.virtual_keycode {
+                                window.image.run_in_place(filter::Invert);
+                                window.mark_as_dirty();
                             }
                         }
                         _ => (),
