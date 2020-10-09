@@ -12,18 +12,6 @@ pub use glutin::{
     ContextCurrentState as CurrentState, NotCurrent, PossiblyCurrent, WindowedContext as Context,
 };
 
-impl From<glutin::dpi::PhysicalPosition<u32>> for Point {
-    fn from(p: glutin::dpi::PhysicalPosition<u32>) -> Point {
-        Point::new(p.x as usize, p.y as usize)
-    }
-}
-
-impl From<glutin::dpi::PhysicalPosition<f64>> for Point {
-    fn from(p: glutin::dpi::PhysicalPosition<f64>) -> Point {
-        Point::new(p.x as usize, p.y as usize)
-    }
-}
-
 use glutin::platform::desktop::EventLoopExtDesktop;
 
 pub struct Window<T: Type, C: Color> {
@@ -284,7 +272,10 @@ impl<'a, T: Type, C: Color> Window<T, C> {
             pt.y = display_height.saturating_sub(1);
         }
 
-        pt.map(|x, y| ((x as f64 / ratio) as usize, (y as f64 / ratio) as usize))
+        Point::new(
+            (pt.x as f64 / ratio) as usize,
+            (pt.y as f64 / ratio) as usize,
+        )
     }
 
     pub fn into_image(self) -> Image<T, C> {

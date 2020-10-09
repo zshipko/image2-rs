@@ -1,10 +1,13 @@
 use crate::*;
 
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
+
 use std::marker::PhantomData;
 
 /// Image metadata
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Debug, Clone, PartialEq, PartialOrd, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Meta<T: Type, C: Color> {
     /// Image size
     pub size: Size,
@@ -111,5 +114,32 @@ impl<T: Type, C: Color> Meta<T, C> {
     #[inline]
     pub fn new_pixel(&self) -> Pixel<C> {
         Pixel::new()
+    }
+
+    /// Convert from index to Point
+    pub fn convert_index_to_point(&self, n: usize) -> Point {
+        let width = self.size.width;
+        let y = n / width;
+        let x = n - (y * width);
+        Point::new(x, y)
+    }
+
+    /// Get pixel iterator
+    #[cfg(not(feature = "parallel"))]
+    pub fn iter<'a>(&'a self) -> impl 'a + std::iter::Iterator<Item = Point> {
+        let width = self.width();
+
+        (0..self.num_pixels())
+            .into_iter()
+            .map(move |n| self.convert_index_to_point(n))
+    }
+
+    /// Get pixel iterator
+    #[cfg(feature = "parallel")]
+    pub fn iter<'a>(&'a self) -> impl 'a + rayon::iter::ParallelIterator<Item = Point> {
+        let width = self.width();
+        (0..self.num_pixels())
+            .into_par_iter()
+            .map(move |n| self.convert_index_to_point(n))
     }
 }

@@ -71,7 +71,7 @@ fn test_invert_async() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest = image.new_like();
     timer("Invert async", || {
-        smol::block_on(dest.apply_async(AsyncMode::Row, Invert, Input::new(&[&image])));
+        smol::block_on(dest.apply_async(AsyncMode::Row, Invert, &[&image]));
     });
     assert!(dest.save("images/test-invert-async.jpg").is_ok());
 }
@@ -119,20 +119,35 @@ fn test_sobel() {
 fn test_sobel_rotate180() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest = image.new_like();
-    let k = transform::rotate180(dest.size()).then(kernel::sobel());
-    timer("Sobel rotate", || k.eval(&[&image], &mut dest));
+    let k = Pipeline::new()
+        .then(transform::rotate180(dest.size()))
+        .then(kernel::sobel());
+    timer("Sobel rotate", || k.execute(&[&image], &mut dest));
     assert!(dest.save("images/test-sobel-rotate180-1.jpg").is_ok());
 
-    let k = kernel::sobel().then(transform::rotate180(dest.size()));
-    timer("Sobel rotate 2", || k.eval(&[&image], &mut dest));
+    let k = Pipeline::new()
+        .then(kernel::sobel())
+        .then(transform::rotate180(dest.size()));
+    timer("Sobel rotate 2", || k.execute(&[&image], &mut dest));
     assert!(dest.save("images/test-sobel-rotate180-2.jpg").is_ok());
+
+    let mut dest = Image::<f32, Rgb>::new((image.width() - 40, image.height() - 40));
+    let k = Pipeline::new()
+        .then(kernel::sobel())
+        .then(transform::rotate180(dest.size()))
+        .then(Crop(Region::new(
+            Point::new(20, 20),
+            Size::new(image.width() - 20, image.height() - 20),
+        )));
+    timer("Sobel rotate crop", || k.execute(&[&image], &mut dest));
+    assert!(dest.save("images/test-sobel-rotate180-crop.jpg").is_ok());
 }
 
 #[test]
 fn test_crop() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest: Image<f32, Rgb> = Image::new((250, 200));
-    let k = filter::Crop(Region::new((100, 200), (250, 200)));
+    let k = filter::Crop(Region::new(Point::new(100, 200), Size::new(250, 200)));
     timer("Crop", || k.eval(&[&image], &mut dest));
     assert!(dest.save("images/test-crop.jpg").is_ok());
 }
@@ -145,12 +160,12 @@ fn test_brightness_contrast() {
     timer("contrast", || f.eval(&[&image], &mut dest));
     assert!(dest.save("images/test-contrast.jpg").is_ok());
 
-    let f = Contrast(1.25).then(Brightness(1.5));
-    timer("contrast", || f.eval(&[&image], &mut dest));
+    let f = Pipeline::new().then(Contrast(1.25)).then(Brightness(1.5));
+    timer("contrast", || f.execute(&[&image], &mut dest));
     assert!(dest.save("images/test-contrast-brightness-1.jpg").is_ok());
 
-    let f = Brightness(1.5).then(Contrast(1.25));
-    timer("contrast", || f.eval(&[&image], &mut dest));
+    let f = Pipeline::new().then(Brightness(1.5)).then(Contrast(1.25));
+    timer("contrast", || f.execute(&[&image], &mut dest));
     assert!(dest.save("images/test-contrast-brightness-2.jpg").is_ok());
 }
 

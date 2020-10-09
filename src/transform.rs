@@ -5,15 +5,12 @@ type EPoint<T> = euclid::Point2D<T, T>;
 /// Transform is used to perform pixel-level transformations on an image
 pub struct Transform(pub euclid::Transform2D<f64, f64, f64>);
 
-impl Filter for Transform {
-    const REQUIRES_INTERMEDIATE_IMAGE: bool = true;
+impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Transform {
+    fn schedule(&self) -> filter::Schedule {
+        filter::Schedule::Image
+    }
 
-    fn compute_at(
-        &self,
-        pt: Point,
-        input: &Input<impl Type, impl Color>,
-        px: &mut DataMut<impl Type, impl Color>,
-    ) {
+    fn compute_at(&self, pt: Point, input: &Input<T, C>, px: &mut DataMut<U, D>) {
         let pt = EPoint::new(pt.x as f64, pt.y as f64);
         let dest = self.0.transform_point(pt);
         let px1 = input.get_pixel((dest.x.floor() as usize, dest.y.floor() as usize), None);

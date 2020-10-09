@@ -60,15 +60,12 @@ kernel_from!(
     28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
 );
 
-impl Filter for Kernel {
-    const REQUIRES_INTERMEDIATE_IMAGE: bool = true;
+impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Kernel {
+    fn schedule(&self) -> filter::Schedule {
+        filter::Schedule::Image
+    }
 
-    fn compute_at(
-        &self,
-        pt: Point,
-        input: &Input<impl Type, impl Color>,
-        dest: &mut DataMut<impl Type, impl Color>,
-    ) {
+    fn compute_at(&self, pt: Point, input: &Input<T, C>, dest: &mut DataMut<U, D>) {
         let r2 = (self.rows / 2) as isize;
         let c2 = (self.cols / 2) as isize;
         let mut f = input.new_pixel();
@@ -79,7 +76,7 @@ impl Filter for Kernel {
             for kx in -c2..=c2 {
                 let krc = kr[(kx + c2) as usize];
                 for c in 0..f.len() {
-                    x = input.get_f(((pt.x as isize + kx) as usize, pty), c, None);
+                    x = input.get_f(((pt.x as isize + kx) as usize, pty), c, Some(0));
                     f[c] += x * krc;
                 }
             }
@@ -194,15 +191,14 @@ macro_rules! op {
             b: Kernel,
         }
 
-        impl Filter for $name {
-            const REQUIRES_INTERMEDIATE_IMAGE: bool = true;
 
-            fn compute_at(
-                &self,
-                pt: Point,
-                input: &Input<impl Type, impl Color>,
-                dest: &mut DataMut<impl Type, impl Color>,
-            ) {
+
+        impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for $name {
+            fn schedule(&self) -> filter::Schedule {
+                filter::Schedule::Image
+            }
+
+            fn compute_at(&self, pt: Point, input: &Input<T, C>, dest: &mut DataMut<U, D>) {
                 let r2 = (self.a.rows / 2) as isize;
                 let c2 = (self.a.cols / 2) as isize;
                 let mut f = input.new_pixel();
@@ -215,7 +211,7 @@ macro_rules! op {
                         let kr1c = kr1[(kx + c2) as usize];
                         for c in 0..f.len() {
                             x = input.get_f(
-                                ((pt.x as isize + kx) as usize, (pt.y as isize + ky) as usize), c, None);
+                                ((pt.x as isize + kx) as usize, (pt.y as isize + ky) as usize), c, Some(0));
                             f[c] += $f((x * krc), (x * kr1c));
 
                         }
