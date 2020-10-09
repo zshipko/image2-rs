@@ -6,7 +6,6 @@ use crate::*;
 use rayon::prelude::*;
 
 mod input;
-mod output;
 
 pub use input::Input;
 
@@ -16,30 +15,6 @@ pub enum Schedule {
     Image,
     //Row,
     //Region,
-}
-
-#[derive(Default)]
-struct PixelPool<C: Color> {
-    q: std::sync::Mutex<std::collections::VecDeque<Pixel<C>>>,
-}
-
-impl<C: Color> PixelPool<C> {
-    fn new(n: usize) -> PixelPool<C> {
-        let q = vec![Pixel::new(); n];
-        PixelPool {
-            q: std::sync::Mutex::new(q.into()),
-        }
-    }
-
-    fn get(&self) -> Pixel<C> {
-        let mut q = self.q.lock().unwrap();
-        q.pop_front().unwrap_or_default()
-    }
-
-    fn done(&self, pixel: Pixel<C>) {
-        let mut q = self.q.lock().unwrap();
-        q.push_back(pixel)
-    }
 }
 
 pub struct Pipeline<T: Type, C: Color, U: Type = T, D: Color = C> {
@@ -72,7 +47,6 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
     pub fn execute(&self, input: &[&Image<T, C>], output: &mut Image<U, D>) {
         let mut input = Input::new(input);
         let mut input_images = std::collections::VecDeque::from(input.images.to_vec());
-        let pixel_pool = PixelPool::<D>::new(32);
         let image_schedule_filters = self.image_schedule_list();
         let mut tmp = if image_schedule_filters.len() == 1 {
             None
@@ -91,7 +65,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
                 .unwrap_or(output)
                 .iter_mut()
                 .for_each(|(pt, mut data)| {
-                    let mut px = pixel_pool.get();
+                    let mut px = Pixel::new();
                     for f in self.filters[if j == 0 {
                         0
                     } else {
@@ -107,12 +81,14 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
 
                                 f.compute_at(pt, &input, &mut data);
                             }
-                            _ => {
+                            Schedule::Pixel => {
+                                f.compute_at(pt, &input, &mut data);
+                            }
+                            Schedule::Image => {
                                 f.compute_at(pt, &input, &mut data);
                             }
                         }
                     }
-                    pixel_pool.done(px);
                 });
 
             if let Some(tmp) = &tmp {
