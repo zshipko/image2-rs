@@ -46,7 +46,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
 
     pub fn execute(&self, input: &[&Image<T, C>], output: &mut Image<U, D>) {
         let mut input = Input::new(input);
-        let mut input_images = std::collections::VecDeque::from(input.images.to_vec());
+        let mut input_images = input.images.to_vec();
         let image_schedule_filters = self.image_schedule_list();
         let mut tmp = if image_schedule_filters.len() == 1 {
             None
@@ -92,14 +92,11 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
                 });
 
             if let Some(tmp) = &tmp {
-                {
-                    let tmpconv_ = tmpconv.as_mut().unwrap();
-                    tmp.convert_to(tmpconv_);
+                let tmpconv_ = tmpconv.as_mut().unwrap();
+                tmp.convert_to(tmpconv_);
 
-                    let _ = input_images.pop_front();
-                    input_images.push_front(unsafe { std::mem::transmute(tmpconv_) });
-                    input.images = unsafe { std::mem::transmute(input_images.make_contiguous()) };
-                }
+                input_images[0] = unsafe { std::mem::transmute(tmpconv_) };
+                input.images = unsafe { std::mem::transmute(input_images.as_slice()) };
             }
         }
 
