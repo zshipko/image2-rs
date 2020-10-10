@@ -1,6 +1,6 @@
 use crate::*;
 
-type EPoint<T> = euclid::Point2D<T, T>;
+type EPoint<T> = euclid::Point2D<T, f64>;
 
 /// Transform is used to perform pixel-level transformations on an image
 pub struct Transform(pub euclid::Transform2D<f64, f64, f64>);
@@ -8,6 +8,14 @@ pub struct Transform(pub euclid::Transform2D<f64, f64, f64>);
 impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Transform {
     fn schedule(&self) -> filter::Schedule {
         filter::Schedule::Image
+    }
+
+    fn output_size(&self, input: &Input<T, C>, _dest: &mut Image<U, D>) -> Size {
+        let rect = self.0.outer_transformed_rect(&euclid::Rect::new(
+            euclid::Point2D::new(0., 0.),
+            input.images()[0].size().to_f64().into(),
+        ));
+        rect.size.to_usize()
     }
 
     fn compute_at(&self, pt: Point, input: &Input<T, C>, px: &mut DataMut<U, D>) {

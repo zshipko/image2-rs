@@ -21,6 +21,11 @@ pub trait Filter<T: Type, C: Color, U: Type = T, D: Color = C>: Sync {
         Schedule::Pixel
     }
 
+    /// Get filter output size
+    fn output_size(&self, _input: &Input<T, C>, dest: &mut Image<U, D>) -> Size {
+        dest.size()
+    }
+
     /// Compute filter at the given point for the provided input
     fn compute_at(&self, pt: Point, input: &Input<T, C>, dest: &mut DataMut<U, D>);
 
@@ -106,6 +111,10 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Contrast {
 pub struct Crop(pub Region);
 
 impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Crop {
+    fn output_size(&self, _input: &Input<T, C>, _dest: &mut Image<U, D>) -> Size {
+        self.0.size
+    }
+
     fn compute_at(&self, pt: Point, input: &Input<T, C>, dest: &mut DataMut<U, D>) {
         if pt.x > self.0.origin.x + self.0.size.width || pt.y > self.0.origin.y + self.0.size.height
         {

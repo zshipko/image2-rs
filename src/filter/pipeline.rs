@@ -56,6 +56,10 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
         image_schedule_filters: &[usize],
         input_images: &mut Vec<&'a Image<T, C>>,
     ) {
+        let output_size = self.filters[index].output_size(input, output);
+        if output_size != tmpconv.size() {
+            *tmpconv = Image::new(output_size);
+        }
         output.iter_mut().for_each(|(pt, mut data)| {
             for f in self.filters[if j == 0 {
                 0
