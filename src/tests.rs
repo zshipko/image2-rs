@@ -101,7 +101,7 @@ fn test_kernel() {
 fn test_gaussian_blur() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest = image.new_like();
-    let k = kernel::gaussian_5x5();
+    let k = Kernel::gaussian_5x5();
     timer("Gaussian blur", || k.eval(&[&image], &mut dest));
     assert!(dest.save("images/test-gaussian-blur.jpg").is_ok());
 }
@@ -110,7 +110,7 @@ fn test_gaussian_blur() {
 fn test_sobel() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest = image.new_like();
-    let k = kernel::sobel();
+    let k = Kernel::sobel();
     timer("Sobel", || k.eval(&[&image], &mut dest));
     assert!(dest.save("images/test-sobel.jpg").is_ok());
 }
@@ -121,19 +121,19 @@ fn test_sobel_rotate180() {
     let mut dest = image.new_like();
     let k = Pipeline::new()
         .then(transform::rotate180(dest.size()))
-        .then(kernel::sobel());
+        .then(Kernel::sobel());
     timer("Sobel rotate", || k.execute(&[&image], &mut dest));
     assert!(dest.save("images/test-sobel-rotate180-1.jpg").is_ok());
 
     let k = Pipeline::new()
-        .then(kernel::sobel())
+        .then(Kernel::sobel())
         .then(transform::rotate180(dest.size()));
     timer("Sobel rotate 2", || k.execute(&[&image], &mut dest));
     assert!(dest.save("images/test-sobel-rotate180-2.jpg").is_ok());
 
     let mut dest = Image::<f32, Rgb>::new((image.width() - 40, image.height() - 40));
     let k = Pipeline::new()
-        .then(kernel::sobel())
+        .then(Kernel::sobel())
         .then(transform::rotate180(dest.size()))
         .then(Crop(Region::new(
             Point::new(20, 20),
@@ -144,7 +144,7 @@ fn test_sobel_rotate180() {
 
     let mut dest = Image::<f32, Rgb>::new((image.width() - 40, image.height() - 40));
     let k = Pipeline::new()
-        .then(kernel::sobel())
+        .then(Kernel::sobel())
         .then(Crop(Region::new(
             Point::new(10, 10),
             Size::new(image.width() - 10, image.height() - 10),

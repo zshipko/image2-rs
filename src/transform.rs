@@ -3,7 +3,7 @@ use crate::*;
 type EPoint<T> = euclid::Point2D<T, f64>;
 
 /// Transform is used to perform pixel-level transformations on an image
-pub struct Transform(pub euclid::Transform2D<f64, f64, f64>);
+pub type Transform = euclid::Transform2D<f64, f64, f64>;
 
 impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Transform {
     fn schedule(&self) -> filter::Schedule {
@@ -11,7 +11,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Transform {
     }
 
     fn output_size(&self, input: &Input<T, C>, _dest: &mut Image<U, D>) -> Size {
-        let rect = self.0.outer_transformed_rect(&euclid::Rect::new(
+        let rect = self.outer_transformed_rect(&euclid::Rect::new(
             euclid::Point2D::new(0., 0.),
             input.images()[0].size().to_f64(),
         ));
@@ -20,7 +20,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Transform {
 
     fn compute_at(&self, pt: Point, input: &Input<T, C>, px: &mut DataMut<U, D>) {
         let pt = EPoint::new(pt.x as f64, pt.y as f64);
-        let dest = self.0.transform_point(pt);
+        let dest = self.transform_point(pt);
         let px1 = input.get_pixel((dest.x.floor() as usize, dest.y.floor() as usize), None);
         let px2 = input.get_pixel((dest.x.ceil() as usize, dest.y.ceil() as usize), None);
 
@@ -31,26 +31,24 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Transform {
 #[inline]
 /// Build rotation `Transform` using the specified degrees and center point
 pub fn rotate(deg: f64, center: (f64, f64)) -> Transform {
-    Transform(
-        euclid::Transform2D::rotation(euclid::Angle::degrees(-deg))
-            .pre_translate(euclid::Vector2D::new(-center.0, -center.1))
-            .then_translate(euclid::Vector2D::new(center.0, center.1)),
-    )
+    Transform::rotation(euclid::Angle::degrees(-deg))
+        .pre_translate(euclid::Vector2D::new(-center.0, -center.1))
+        .then_translate(euclid::Vector2D::new(center.0, center.1))
 }
 
 #[inline]
 /// Build scale `Transform`
 pub fn scale(x: f64, y: f64) -> Transform {
-    Transform(euclid::Transform2D::scale(1.0 / x, 1.0 / y))
+    Transform::scale(1.0 / x, 1.0 / y)
 }
 
 #[inline]
 /// Build resize transform
 pub fn resize(from: Size, to: Size) -> Transform {
-    Transform(euclid::Transform2D::scale(
+    Transform::scale(
         from.width as f64 / to.width as f64,
         from.height as f64 / to.height as f64,
-    ))
+    )
 }
 
 /// 90 degree rotation
