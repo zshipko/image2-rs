@@ -137,3 +137,27 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
         }
     }
 }
+
+impl<T: Type, C: Color> Pipeline<T, C> {
+    /// Execute the pipeline in place
+    pub fn execute_in_place(&self, output: &mut Image<T, C>) {
+        let input = unsafe { &[&*(output as *const _)] };
+        let mut input = Input::new(input);
+        let mut input_images = input.images.to_vec();
+        let image_schedule_filters = self.image_schedule_list();
+
+        let mut tmpconv = Image::<T, C>::new(output.size());
+
+        for (j, index) in image_schedule_filters.iter().enumerate() {
+            self.loop_inner(
+                &mut input,
+                output,
+                &mut tmpconv,
+                j,
+                *index,
+                &image_schedule_filters,
+                &mut input_images,
+            );
+        }
+    }
+}
