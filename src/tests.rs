@@ -141,6 +141,23 @@ fn test_sobel_rotate180() {
         )));
     timer("Sobel rotate crop", || k.execute(&[&image], &mut dest));
     assert!(dest.save("images/test-sobel-rotate180-crop.jpg").is_ok());
+
+    let mut dest = Image::<f32, Rgb>::new((image.width() - 40, image.height() - 40));
+    let k = Pipeline::new()
+        .then(kernel::sobel())
+        .then(Crop(Region::new(
+            Point::new(10, 10),
+            Size::new(image.width() - 10, image.height() - 10),
+        )))
+        .then(transform::rotate180(dest.size()))
+        .then(Crop(Region::new(
+            Point::new(10, 10),
+            Size::new(image.width() - 10, image.height() - 10),
+        )));
+    timer("Sobel crop rotate crop", || k.execute(&[&image], &mut dest));
+    assert!(dest
+        .save("images/test-sobel-crop-rotate180-crop.jpg")
+        .is_ok());
 }
 
 #[test]
