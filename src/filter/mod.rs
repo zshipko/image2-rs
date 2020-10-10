@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use crate::*;
 
 #[cfg(feature = "parallel")]
@@ -17,10 +15,13 @@ pub use r#async::*;
 
 /// Filters are used to manipulate images in a generic, composable manner
 pub trait Filter<T: Type, C: Color, U: Type = T, D: Color = C>: Sync {
+    /// Determines whether an image can accept pixels or full images from the previous filter in a
+    /// pipeline
     fn schedule(&self) -> Schedule {
         Schedule::Pixel
     }
 
+    /// Compute filter at the given point for the provided input
     fn compute_at(&self, pt: Point, input: &Input<T, C>, dest: &mut DataMut<U, D>);
 
     /// Evaluate a filter on part of an image

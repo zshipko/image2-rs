@@ -1,22 +1,35 @@
 use crate::*;
 
+/// Used to determine the type of input accepted from previous filter in pipeline
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Schedule {
+    /// Accepts pixels
     Pixel,
+
+    /// Accept full images
     Image,
 }
 
+/// Pipelines are used to compose several filters
+#[derive(Default)]
 pub struct Pipeline<T: Type, C: Color, U: Type = T, D: Color = C> {
     pub(crate) filters: Vec<Box<dyn Filter<T, C, U, D>>>,
 }
 
 impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
+    /// Create a new, empty pipeline
     pub fn new() -> Self {
         Pipeline {
             filters: Vec::new(),
         }
     }
 
+    /// Add a filter to the pipeline
+    pub fn push(&mut self, filter: impl 'static + Filter<T, C, U, D>) {
+        self.filters.push(Box::new(filter));
+    }
+
+    /// Append a filter to a pipeline
     pub fn then(mut self, filter: impl 'static + Filter<T, C, U, D>) -> Self {
         self.filters.push(Box::new(filter));
         self
@@ -81,6 +94,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
         }
     }
 
+    /// Execute the pipeline
     pub fn execute(&self, input: &[&Image<T, C>], output: &mut Image<U, D>) {
         let mut input = Input::new(input);
         let mut input_images = input.images.to_vec();
@@ -101,6 +115,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
         }
     }
 
+    /// Convert to `AsyncPipeline`
     pub fn to_async<'a>(
         &'a self,
         input: &'a [&'a Image<T, C>],

@@ -15,18 +15,28 @@ impl Default for AsyncMode {
     }
 }
 
+/// async-friendly `Pipeline`
 pub struct AsyncPipeline<'a, T: 'a + Type, C: 'a + Color, U: 'a + Type, D: 'a + Color> {
+    /// Underlying pipeline
     pub pipeline: &'a Pipeline<T, C, U, D>,
+
+    /// Output image
     pub output: &'a mut Image<U, D>,
+
+    /// Filter input
     pub input: Input<'a, T, C>,
+
+    /// Intermediary image
     pub tmpconv: Image<T, C>,
-    pub image_schedule_filters: Vec<usize>,
+
+    pub(crate) image_schedule_filters: Vec<usize>,
     pub(crate) input_images: Vec<&'a Image<T, C>>,
     pub(crate) j: usize,
     pub(crate) index: usize,
 }
 
 impl<'a, T: Type, C: Color, U: Unpin + Type, D: Unpin + Color> AsyncPipeline<'a, T, C, U, D> {
+    /// Execute async pipeline
     pub async fn execute(self) {
         self.await
     }
@@ -104,6 +114,7 @@ impl<
         D: Unpin + Color,
     > AsyncFilter<'a, F, T, C, U, D>
 {
+    /// Evaluate async filter
     pub async fn eval(self) {
         self.await
     }

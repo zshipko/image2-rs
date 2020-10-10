@@ -39,7 +39,9 @@ impl<
 
 impl<T: Type, C: Color, U: Type, D: Color, F: Filter<T, C, U, D>> FilterExt<T, C, U, D> for F {}
 
+/// Filter extension methods
 pub trait FilterExt<T: Type, C: Color, U: Type, D: Color>: Sized + Filter<T, C, U, D> {
+    /// Combine two filters using a function
     fn combine<B: Filter<T, C, U, D>, F: Fn(Point, Pixel<D>, Pixel<D>) -> Pixel<D>>(
         self,
         b: B,

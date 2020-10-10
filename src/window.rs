@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use crate::*;
 
 use gl::types::*;
@@ -14,20 +12,39 @@ pub use glutin::{
 
 use glutin::platform::desktop::EventLoopExtDesktop;
 
+/// Window is used to display images
 pub struct Window<T: Type, C: Color> {
+    /// Window ID
     pub id: WindowId,
+
+    /// OpenGL context
     pub context: Option<Context<NotCurrent>>,
+
+    /// Window texture
     pub texture: Texture,
+
+    /// Window image
     pub image: Image<T, C>,
+
+    /// OpenGL framebuffer
     pub framebuffer: GLuint,
+
+    /// Window's current size
     pub size: Size,
+
+    /// Window dirty state, the window should be redrawn when set to true
     pub dirty: bool,
+
+    /// Current mouse position
     pub position: Point,
+
+    /// Selection region
     pub selection: Option<Region>,
     closed: bool,
     data: Option<Box<dyn std::any::Any>>,
 }
 
+/// `WindowSet` allows for multiple windows to run at once
 pub struct WindowSet<T: Type, C: Color>(std::collections::BTreeMap<WindowId, Window<T, C>>);
 
 impl<T: Type, C: Color> Default for WindowSet<T, C> {
@@ -37,16 +54,19 @@ impl<T: Type, C: Color> Default for WindowSet<T, C> {
 }
 
 impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
+    /// Create new window set
     pub fn new() -> WindowSet<T, C> {
         Default::default()
     }
 
+    /// Add an existing window
     pub fn add(&mut self, window: Window<T, C>) -> Result<WindowId, Error> {
         let id = window.id;
         self.0.insert(id, window);
         Ok(id)
     }
 
+    /// Create a new window and add it
     pub fn create<X>(
         &mut self,
         event_loop: &EventLoop<X>,
@@ -60,30 +80,37 @@ impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
         self.add(window)
     }
 
+    /// Get window by ID
     pub fn get(&self, window_id: &WindowId) -> Option<&Window<T, C>> {
         self.0.get(window_id)
     }
 
+    /// Get mutable window by ID
     pub fn get_mut(&mut self, window_id: &WindowId) -> Option<&mut Window<T, C>> {
         self.0.get_mut(window_id)
     }
 
+    /// Remove a window and return it
     pub fn remove(&mut self, window_id: &WindowId) -> Option<Window<T, C>> {
         self.0.remove(window_id)
     }
 
+    /// Iterate over all windows
     pub fn iter(&self) -> impl Iterator<Item = (&WindowId, &Window<T, C>)> {
         self.0.iter()
     }
 
+    /// Iterate over mutable windows
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&WindowId, &mut Window<T, C>)> {
         self.0.iter_mut()
     }
 
+    /// Convert into an interator over windows
     pub fn into_iter(self) -> impl Iterator<Item = Window<T, C>> {
         self.0.into_iter().map(|(_, v)| v)
     }
 
+    /// Run the event loop until all windows are closed
     pub fn run<
         X,
         F: 'static
@@ -141,6 +168,7 @@ impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
 }
 
 impl<'a, T: Type, C: Color> Window<T, C> {
+    /// Create a new window
     pub fn new<X>(
         event_loop: &EventLoop<X>,
         image: Image<T, C>,
@@ -197,18 +225,22 @@ impl<'a, T: Type, C: Color> Window<T, C> {
         })
     }
 
+    /// Set user data
     pub fn set_data<X: std::any::Any>(&mut self, data: X) {
         self.data = Some(Box::new(data))
     }
 
+    /// Get user data
     pub fn data<X: std::any::Any>(&self) -> Option<&X> {
         self.data.as_deref().map(|x| x.downcast_ref()).flatten()
     }
 
+    /// Get mutable user data
     pub fn data_mut<X: std::any::Any>(&mut self) -> Option<&mut X> {
         self.data.as_deref_mut().map(|x| x.downcast_mut()).flatten()
     }
 
+    /// Execute a callback with a current OpenGL context
     pub fn with_current_context<X, F: FnOnce(&mut Context<PossiblyCurrent>) -> Result<X, Error>>(
         &mut self,
         f: F,
@@ -238,6 +270,7 @@ impl<'a, T: Type, C: Color> Window<T, C> {
         Err(Error::GlutinContext(glutin::ContextError::ContextLost))
     }
 
+    /// Get mouse position  relative to image based on window mouse position
     pub fn mouse_position(&self, pt: impl Into<Point>) -> Point {
         let pt = pt.into();
         let ratio = (self.size.width as f64 / self.image.meta.width() as f64)
@@ -278,26 +311,32 @@ impl<'a, T: Type, C: Color> Window<T, C> {
         )
     }
 
+    /// Convert `Window` into `Image`
     pub fn into_image(self) -> Image<T, C> {
         self.image
     }
 
+    /// Get image
     pub fn image(&self) -> &Image<T, C> {
         &self.image
     }
 
+    /// Get mutable image
     pub fn image_mut(&mut self) -> &mut Image<T, C> {
         &mut self.image
     }
 
+    /// Mark window as dirty - this tells the event handler to call `draw` on the next iteration
     pub fn mark_as_dirty(&mut self) {
         self.dirty = true;
     }
 
+    /// Return true when the window is closed
     pub fn is_closed(&self) -> bool {
         self.closed
     }
 
+    /// Show a window after being closed
     pub fn open(&mut self) {
         if let Some(ctx) = &self.context {
             ctx.window().set_visible(true)
@@ -305,6 +344,7 @@ impl<'a, T: Type, C: Color> Window<T, C> {
         self.closed = false
     }
 
+    /// Close a window
     pub fn close(&mut self) {
         if let Some(ctx) = &self.context {
             ctx.window().set_visible(false)
@@ -312,6 +352,7 @@ impl<'a, T: Type, C: Color> Window<T, C> {
         self.closed = true
     }
 
+    /// Update the texture with data from the window's image
     pub fn draw(&mut self) -> Result<(), Error> {
         let meta = self.image.meta().clone();
         let image = self.image.data.as_ptr();
@@ -375,11 +416,19 @@ impl<'a, T: Type, C: Color> Window<T, C> {
     }
 }
 
+/// Wraps OpenGL textures
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default)]
 pub struct Texture {
+    /// OpenGL texture id
     pub id: GLuint,
+
+    /// OpenGL data type
     pub internal: GLuint,
+
+    /// OpenGL type
     pub kind: GLuint,
+
+    /// OpenGL color
     pub color: GLuint,
 }
 
@@ -394,14 +443,21 @@ impl Texture {
     }
 }
 
+/// ToTexture is defined for image types that can be converted to OpenGL textures
 pub trait ToTexture<T: Type, C: Color> {
+    /// OpenGL color
     const COLOR: GLuint;
+
+    /// OpenGL type
     const KIND: GLuint;
 
+    /// Get metadata
     fn get_meta(&self) -> &Meta<T, C>;
 
+    /// Get data buffer
     fn get_data(&self) -> &[T];
 
+    /// Convert to texture
     fn to_texture(&self) -> Result<Texture, Error> {
         let mut texture_id: GLuint = 0;
 

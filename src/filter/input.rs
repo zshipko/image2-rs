@@ -1,6 +1,6 @@
 use crate::*;
 
-// Filter input
+/// Filter input
 #[derive(Clone)]
 pub struct Input<'a, T: 'a + Type, C: 'a + Color> {
     /// Input images

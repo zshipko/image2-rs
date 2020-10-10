@@ -45,6 +45,7 @@ mod meta;
 mod pixel;
 mod r#type;
 
+/// Display images
 #[cfg(feature = "window")]
 pub mod window;
 
