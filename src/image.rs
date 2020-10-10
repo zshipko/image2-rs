@@ -288,7 +288,7 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Iterate over image rows
     #[cfg(not(feature = "parallel"))]
-    pub fn rows(&self) -> impl Iterator<Item = (usize, &[T])> {
+    pub fn row_range(&self, y: usize, height: usize) -> impl Iterator<Item = (usize, &[T])> {
         self.data
             .chunks(self.meta.width_step())
             .skip(y)
@@ -299,7 +299,11 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Iterate over mutable image rows
     #[cfg(not(feature = "parallel"))]
-    pub fn rows_mut(&mut self) -> impl Iterator<Item = (usize, &mut [T])> {
+    pub fn row_range_mut(
+        &mut self,
+        y: usize,
+        height: usize,
+    ) -> impl Iterator<Item = (usize, &mut [T])> {
         self.data
             .chunks_mut(self.meta.width_step())
             .skip(y)
