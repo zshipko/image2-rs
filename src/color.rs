@@ -141,19 +141,19 @@ impl Color for Xyz {
         if r > 0.04045 {
             r = ((r + 0.055) / 1.055).powf(2.4)
         } else {
-            r = r / 12.92
+            r /= 12.92
         }
 
         if g > 0.04045 {
             g = ((g + 0.055) / 1.055).powf(2.4);
         } else {
-            g = g / 12.92
+            g /= 12.92
         }
 
         if b > 0.04045 {
             b = ((b + 0.055) / 1.055).powf(2.4)
         } else {
-            b = b / 12.92
+            b /= 12.92
         }
 
         r *= 100.;
@@ -320,6 +320,7 @@ impl Color for Cmyk {
     const NAME: &'static str = "cmyk";
     const CHANNELS: Channel = 4;
 
+    #[allow(clippy::many_single_char_names)]
     fn from_rgb(rgb: &Pixel<Rgb>, mut pixel: &mut Pixel<Self>) {
         let r = rgb[0];
         let g = rgb[1];

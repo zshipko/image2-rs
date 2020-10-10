@@ -56,7 +56,7 @@ impl<C: Color> Pixel<C> {
     }
 
     /// Copy and convert to a `Vec`
-    pub fn to_vec(self) -> Vec<f64> {
+    pub fn to_vec(&self) -> Vec<f64> {
         self.0.to_vec()
     }
 

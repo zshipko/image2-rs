@@ -46,6 +46,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
         dest
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn loop_inner<'a>(
         &self,
         input: &mut Input<'a, T, C>,
@@ -146,7 +147,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
 }
 
 impl<T: Type, C: Color> Pipeline<T, C> {
-    /// Execute the pipeline in place
+    /// Execute the pipeline using the same input and output image
     pub fn execute_in_place(&self, output: &mut Image<T, C>) {
         let input = unsafe { &[&*(output as *const _)] };
         let mut input = Input::new(input);

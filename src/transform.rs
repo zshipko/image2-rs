@@ -13,7 +13,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Transform {
     fn output_size(&self, input: &Input<T, C>, _dest: &mut Image<U, D>) -> Size {
         let rect = self.0.outer_transformed_rect(&euclid::Rect::new(
             euclid::Point2D::new(0., 0.),
-            input.images()[0].size().to_f64().into(),
+            input.images()[0].size().to_f64(),
         ));
         rect.size.to_usize()
     }

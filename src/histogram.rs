@@ -37,14 +37,14 @@ impl Histogram {
     }
 
     /// Join data from multiple histograms
-    pub fn join<'a>(h: impl AsRef<[Histogram]>) -> Histogram {
+    pub fn join(h: impl AsRef<[Histogram]>) -> Histogram {
         let h = h.as_ref();
         let mut hist = Histogram::new(h[0].len());
 
         for i in h {
             hist.total += i.total;
             for (index, value) in i.bins() {
-                hist[index] = hist[index] + value
+                hist[index] += value
             }
         }
 

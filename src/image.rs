@@ -33,6 +33,10 @@ impl<X: Into<Point>, T: Type, C: Color> std::ops::IndexMut<X> for Image<T, C> {
 
 impl<T: Type, C: Color> Image<T, C> {
     /// Create a new image with the given size and data
+    ///
+    /// # Safety
+    /// This is marked as unsafe because it does not check to ensure the data passed in matches the
+    /// dimensions
     pub unsafe fn new_with_data(size: impl Into<Size>, data: impl Into<Box<[T]>>) -> Image<T, C> {
         Image {
             meta: Meta::new(size),

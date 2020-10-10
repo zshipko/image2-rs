@@ -80,6 +80,7 @@ pub use image::Image;
 pub use kernel::Kernel;
 pub use pixel::Pixel;
 pub use r#type::Type;
+pub use transform::Transform;
 
 #[cfg(test)]
 mod tests;

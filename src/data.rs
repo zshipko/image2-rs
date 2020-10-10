@@ -159,7 +159,7 @@ impl<'a, T: 'a + Type, C: 'a + Color> IntoIterator for Data<'a, T, C> {
     type IntoIter = std::slice::Iter<'a, T>;
 
     fn into_iter(self) -> std::slice::Iter<'a, T> {
-        self.0.into_iter()
+        self.0.iter()
     }
 }
 
@@ -168,6 +168,6 @@ impl<'a, T: 'a + Type, C: 'a + Color> IntoIterator for DataMut<'a, T, C> {
     type IntoIter = std::slice::IterMut<'a, T>;
 
     fn into_iter(self) -> std::slice::IterMut<'a, T> {
-        self.0.into_iter()
+        self.0.iter_mut()
     }
 }

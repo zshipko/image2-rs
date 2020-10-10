@@ -106,7 +106,7 @@ impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
     }
 
     /// Convert into an interator over windows
-    pub fn into_iter(self) -> impl Iterator<Item = Window<T, C>> {
+    pub fn into_windows(self) -> impl Iterator<Item = Window<T, C>> {
         self.0.into_iter().map(|(_, v)| v)
     }
 
@@ -354,9 +354,9 @@ impl<'a, T: Type, C: Color> Window<T, C> {
 
     /// Update the texture with data from the window's image
     pub fn draw(&mut self) -> Result<(), Error> {
-        let meta = self.image.meta().clone();
+        let meta = self.image.meta();
         let image = self.image.data.as_ptr();
-        let texture = self.texture.clone();
+        let texture = self.texture;
         let framebuffer = self.framebuffer;
         let size = self.size;
         let size = self.with_current_context(|ctx| {
@@ -506,7 +506,7 @@ pub trait ToTexture<T: Type, C: Color> {
             );
             gl::BindTexture(gl::TEXTURE_2D, 0);
         }
-        return Ok(Texture::new(texture_id, internal, Self::KIND, Self::COLOR));
+        Ok(Texture::new(texture_id, internal, Self::KIND, Self::COLOR))
     }
 }
 
@@ -559,16 +559,12 @@ where
     )?;
 
     windows.run(&mut event_loop, move |windows, event, x, cf| {
-        match &event {
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::KeyboardInput { input, .. } => {
-                    if input.scancode == 0x01 {
-                        *cf = ControlFlow::Exit;
-                    }
+        if let Event::WindowEvent { event, .. } = &event {
+            if let WindowEvent::KeyboardInput { input, .. } = &event {
+                if input.scancode == 0x01 {
+                    *cf = ControlFlow::Exit;
                 }
-                _ => (),
-            },
-            _ => (),
+            }
         }
         f(windows, event, x, cf)
     });
@@ -605,19 +601,15 @@ where
     }
 
     windows.run(&mut event_loop, move |windows, event, x, cf| {
-        match &event {
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::KeyboardInput { input, .. } => {
-                    if input.scancode == 0x01 {
-                        *cf = ControlFlow::Exit;
-                    }
+        if let Event::WindowEvent { event, .. } = &event {
+            if let WindowEvent::KeyboardInput { input, .. } = &event {
+                if input.scancode == 0x01 {
+                    *cf = ControlFlow::Exit;
                 }
-                _ => (),
-            },
-            _ => (),
+            }
         }
         f(windows, event, x, cf)
     });
 
-    Ok(windows.into_iter().map(|w| w.into_image()).collect())
+    Ok(windows.into_windows().map(|w| w.into_image()).collect())
 }
