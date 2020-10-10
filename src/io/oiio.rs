@@ -10,15 +10,15 @@ cpp! {{
     using namespace OIIO;
 }}
 
-/// Output is used to write images to disk
-pub struct Output {
+/// ImageOutput is used to write images to disk
+pub struct ImageOutput {
     spec: ImageSpec,
     path: std::path::PathBuf,
     image_output: *mut u8,
     index: usize,
 }
 
-impl Drop for Output {
+impl Drop for ImageOutput {
     fn drop(&mut self) {
         if self.image_output.is_null() {
             return;
@@ -36,7 +36,7 @@ impl Drop for Output {
     }
 }
 
-impl Output {
+impl ImageOutput {
     /// Get reference to output ImageSpec
     pub fn spec(&self) -> &ImageSpec {
         &self.spec
@@ -47,12 +47,13 @@ impl Output {
         &mut self.spec
     }
 
+    /// Get the output path
     pub fn path(&self) -> &std::path::Path {
         &self.path
     }
 
     /// Create a new output file
-    pub fn create(path: impl AsRef<std::path::Path>) -> Result<Output, Error> {
+    pub fn create(path: impl AsRef<std::path::Path>) -> Result<ImageOutput, Error> {
         let path = path.as_ref();
         let path_str = std::ffi::CString::new(path.to_string_lossy().as_bytes().to_vec()).unwrap();
         let filename = path_str.as_ptr();
@@ -72,7 +73,7 @@ impl Output {
             ));
         }
 
-        Ok(Output {
+        Ok(ImageOutput {
             path: path.to_path_buf(),
             image_output,
             spec: ImageSpec::empty(),
@@ -84,6 +85,11 @@ impl Output {
     ///
     /// Note: `image` dimensions and type will take precendence over the ImageSpec
     pub fn write<T: Type, C: Color>(self, image: &Image<T, C>) -> Result<(), Error> {
+        if !["gray", "rgb", "rgba"].contains(&C::NAME) {
+            let image = image.convert::<T, Rgb>();
+            return self.write(&image);
+        }
+
         let base_type = T::BASE;
         let path: &std::path::Path = self.path.as_ref();
         let path_str = std::ffi::CString::new(path.to_string_lossy().as_bytes().to_vec()).unwrap();
@@ -110,6 +116,11 @@ impl Output {
     ///
     /// Note: `image` dimensions and type will take precendence over the ImageSpec
     pub fn append<T: Type, C: Color>(&mut self, image: &Image<T, C>) -> Result<(), Error> {
+        if !["gray", "rgb", "rgba"].contains(&C::NAME) {
+            let image = image.convert::<T, Rgb>();
+            return self.append(&image);
+        }
+
         let base_type = T::BASE;
         let path: &std::path::Path = self.path.as_ref();
         let path_str = std::ffi::CString::new(path.to_string_lossy().as_bytes().to_vec()).unwrap();
@@ -150,8 +161,8 @@ impl Output {
     }
 }
 
-/// Input is used to load images from disk
-pub struct Input {
+/// ImageInput is used to load images from disk
+pub struct ImageInput {
     path: std::path::PathBuf,
     spec: ImageSpec,
     subimage: usize,
@@ -159,7 +170,7 @@ pub struct Input {
     image_input: *mut u8,
 }
 
-impl Drop for Input {
+impl Drop for ImageInput {
     fn drop(&mut self) {
         if self.image_input.is_null() {
             return;
@@ -177,7 +188,7 @@ impl Drop for Input {
     }
 }
 
-impl Input {
+impl ImageInput {
     /// Build input with subimage set to the provided value
     pub fn with_subimage(mut self, subimage: usize) -> Self {
         self.subimage = subimage;
@@ -207,7 +218,7 @@ impl Input {
     }
 
     /// Open image for reading
-    pub fn open(path: impl AsRef<std::path::Path>) -> Result<Input, Error> {
+    pub fn open(path: impl AsRef<std::path::Path>) -> Result<ImageInput, Error> {
         let mut spec = ImageSpec::empty();
         let tmp = &mut spec;
 
@@ -232,7 +243,7 @@ impl Input {
             return Err(Error::UnableToOpenImage(path.to_string_lossy().to_string()));
         }
 
-        Ok(Input {
+        Ok(ImageInput {
             spec,
             image_input: input,
             subimage: 0,
@@ -289,20 +300,20 @@ impl Input {
         // Gray, Rgb, or Rgba
         if C::CHANNELS != nchannels || !["gray", "rgb", "rgba"].contains(&C::NAME) {
             if nchannels == 1 {
-                let mut image = Image::<f32, Gray>::new(self.spec.width(), self.spec.height());
+                let mut image = Image::<f32, Gray>::new((self.spec.width(), self.spec.height()));
                 self.read_into(&mut image)?;
                 Ok(image.convert())
             } else if nchannels == 4 {
-                let mut image = Image::<f32, Rgba>::new(self.spec.width(), self.spec.height());
+                let mut image = Image::<f32, Rgba>::new((self.spec.width(), self.spec.height()));
                 self.read_into(&mut image)?;
                 Ok(image.convert())
             } else {
-                let mut image = Image::<f32, Rgb>::new(self.spec.width(), self.spec.height());
+                let mut image = Image::<f32, Rgb>::new((self.spec.width(), self.spec.height()));
                 self.read_into(&mut image)?;
                 Ok(image.convert())
             }
         } else {
-            let mut image = Image::new(self.spec.width(), self.spec.height());
+            let mut image = Image::new((self.spec.width(), self.spec.height()));
             self.read_into(&mut image)?;
             Ok(image)
         }
@@ -310,9 +321,15 @@ impl Input {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// `Attr` is used to include metadata when reading and writing image files
 pub enum Attr<'a> {
+    /// Integer value
     Int(i32),
+
+    /// Float value
     Float(f32),
+
+    /// String value
     String(&'a str),
 }
 
@@ -375,7 +392,7 @@ impl ImageSpec {
     }
 
     /// Get number of channels
-    pub fn nchannels(&self) -> usize {
+    pub fn nchannels(&self) -> Channel {
         unsafe {
             cpp!([self as "const ImageSpec*"] -> usize as "size_t" {
                 return (size_t)self->nchannels;
@@ -392,6 +409,7 @@ impl ImageSpec {
         }
     }
 
+    /// Get an attribute
     pub fn get_attr(&self, key: impl AsRef<str>) -> Option<Attr> {
         let key_str = std::ffi::CString::new(key.as_ref().as_bytes().to_vec()).unwrap();
         let key_ptr = key_str.as_ptr();
@@ -409,6 +427,7 @@ impl ImageSpec {
         unsafe { internal::to_attr(&*value) }
     }
 
+    /// Set an attribute
     pub fn set_attr<'a>(&mut self, key: impl AsRef<str>, value: impl Into<Attr<'a>>) {
         let key_str = std::ffi::CString::new(key.as_ref().as_bytes().to_vec()).unwrap();
         let key_ptr = key_str.as_ptr();
@@ -437,6 +456,7 @@ impl ImageSpec {
         }
     }
 
+    /// Get the oiio:Colorspace tag value
     pub fn colorspace(&self) -> Option<&str> {
         match self.get_attr("oiio:ColorSpace") {
             Some(Attr::String(s)) => Some(s),
@@ -444,6 +464,7 @@ impl ImageSpec {
         }
     }
 
+    /// Return the number of subimages, if any
     pub fn subimages(&self) -> Option<i32> {
         match self.get_attr("oiio:ColorSpace") {
             Some(Attr::Int(i)) => Some(i),
@@ -451,6 +472,7 @@ impl ImageSpec {
         }
     }
 
+    /// Get a map with all attributes
     pub fn attrs(&self) -> std::collections::BTreeMap<&str, Attr> {
         let mut len = 0;
         let len_ptr = &mut len;

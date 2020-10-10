@@ -1,19 +1,29 @@
 use crate::*;
 
+/// Type is used to represent supported image data types
 pub trait Type: Unpin + Default + Clone + Copy + Sync + Send + PartialEq + PartialOrd {
+    /// Min value
     const MIN: f64;
+
+    /// Max value
     const MAX: f64;
+
+    /// I/O base type
     const BASE: io::BaseType;
 
+    /// Convert to f64
     fn to_f64(&self) -> f64;
 
+    /// Convert from f64
     fn from_f64(f: f64) -> Self;
 
+    /// Returns true when `T` is a floating point type
     fn is_float() -> bool {
         let x = Self::to_f64(&Self::from_f64(0.5));
         x > 0.0 && x < 1.0
     }
 
+    /// Get the type name
     fn type_name() -> &'static str {
         use io::BaseType::*;
         match Self::BASE {
@@ -36,32 +46,40 @@ pub trait Type: Unpin + Default + Clone + Copy + Sync + Send + PartialEq + Parti
         }
     }
 
+    /// Set a value from an f64 value
     fn set_from_f64(&mut self, f: f64) {
         *self = Self::from_f64(f);
     }
 
+    /// Set a value from normalized float
     fn set_from_norm(&mut self, f: f64) {
         *self = Self::from_norm(f);
     }
 
+    /// Convert from `T` to normalized float
     fn to_norm(&self) -> f64 {
         Self::normalize(self.to_f64())
     }
 
+    /// Convert to `T` from normalized float
     fn from_norm(f: f64) -> Self {
         Self::from_f64(Self::denormalize(f))
     }
 
     #[inline]
+    /// Scale a value to fit between 0 and 1.0 based on the min/max values for `T`
     fn normalize(f: f64) -> f64 {
         (f - Self::MIN) / (Self::MAX - Self::MIN)
     }
 
     #[inline]
+    /// Scale an f64 value to fit the range supported by `T`
     fn denormalize(f: f64) -> f64 {
         f * Self::MAX - Self::MIN
     }
 
+    /// Ensure the given value is less than the max allowed and greater than or equal to the
+    /// minimum value
     #[inline]
     fn clamp(f: f64) -> f64 {
         if f > Self::MAX {
@@ -73,11 +91,13 @@ pub trait Type: Unpin + Default + Clone + Copy + Sync + Send + PartialEq + Parti
         }
     }
 
+    /// Convert a value from one type to another
     #[inline]
     fn convert<X: Type>(&self) -> X {
         X::from_f64(X::denormalize(Self::normalize(Self::to_f64(self))))
     }
 
+    /// Get the number of bits for a data type
     fn bits() -> usize {
         std::mem::size_of::<Self>() * 8
     }

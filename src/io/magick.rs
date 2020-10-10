@@ -4,9 +4,11 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::usize;
 
-use crate::{Color, Image, Type};
+use crate::{Color, Image, Rgb, Type};
 
+/// Magick I/O errors
 #[derive(Debug, thiserror::Error)]
+#[allow(missing_docs)]
 pub enum Error {
     #[error("Invalid image shape")]
     InvalidImageShape,
@@ -27,12 +29,13 @@ pub enum Error {
     ErrorWritingImage,
 }
 
+/// Magick command struct
 pub struct Magick {
     identify: &'static [&'static str],
     convert: &'static [&'static str],
 }
 
-pub fn kind<C: Color>() -> String {
+fn kind<C: Color>() -> String {
     format!("{}:-", C::NAME)
 }
 
@@ -46,16 +49,19 @@ fn depth<T: Type, C: Color>(cmd: &mut Command) {
     }
 }
 
+/// ImageMagick
 pub const IM: Magick = Magick {
     identify: &["identify"],
     convert: &["convert"],
 };
 
+/// GraphicsMagick
 pub const GM: Magick = Magick {
     identify: &["gm", "identify"],
     convert: &["gm", "convert"],
 };
 
+/// Default Magick implementation
 pub static mut DEFAULT: Magick = IM;
 
 /// Change default command
@@ -101,6 +107,10 @@ impl Magick {
 
     /// Read image from disk using ImageMagick/GraphicsMagick
     pub fn read<P: AsRef<Path>, T: Type, C: Color>(&self, path: P) -> Result<Image<T, C>, Error> {
+        if !["gray", "rgb", "rgba"].contains(&C::NAME) {
+            return Ok(self.read::<P, f32, Rgb>(path)?.convert());
+        }
+
         let (width, height) = match self.get_image_shape(&path) {
             Ok((width, height)) => (width, height),
             Err(e) => return Err(e),
@@ -122,11 +132,11 @@ impl Magick {
         }
 
         Ok(Image {
-            meta: crate::Meta::new(width, height),
+            meta: crate::Meta::new((width, height)),
             data: unsafe {
                 let mut data: Vec<T> = std::mem::transmute(cmd.stdout);
                 data.set_len(width * height * C::CHANNELS);
-                data
+                data.into()
             },
         })
     }
@@ -137,6 +147,10 @@ impl Magick {
         path: P,
         image: &Image<T, C>,
     ) -> Result<(), Error> {
+        if !["gray", "rgb", "rgba"].contains(&C::NAME) {
+            let image = image.convert::<T, Rgb>();
+            return self.write(path, &image);
+        }
         let kind = kind::<C>();
         let (width, height, _) = image.shape();
         let size = format!("{}x{}", width, height);
