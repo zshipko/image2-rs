@@ -259,15 +259,79 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Iterate over image rows
-    pub fn rows(&self) -> impl Iterator<Item = Data<T, C>> {
-        self.data.chunks(self.meta.width_step()).map(Data::new)
+    #[cfg(not(feature = "parallel"))]
+    pub fn rows(&self) -> impl Iterator<Item = (usize, &[T])> {
+        self.data.chunks(self.meta.width_step()).enumerate()
     }
 
     /// Iterate over mutable image rows
-    pub fn rows_mut(&mut self) -> impl Iterator<Item = DataMut<T, C>> {
+    #[cfg(not(feature = "parallel"))]
+    pub fn rows_mut(&mut self) -> impl Iterator<Item = (usize, &mut [T])> {
+        self.data.chunks_mut(self.meta.width_step()).enumerate()
+    }
+
+    /// Iterate over image rows
+    #[cfg(feature = "parallel")]
+    pub fn rows(&self) -> impl ParallelIterator<Item = (usize, &[T])> {
+        self.data.par_chunks(self.meta.width_step()).enumerate()
+    }
+
+    /// Iterate over mutable image rows
+    #[cfg(feature = "parallel")]
+    pub fn rows_mut(&mut self) -> impl ParallelIterator<Item = (usize, &mut [T])> {
+        self.data.par_chunks_mut(self.meta.width_step()).enumerate()
+    }
+
+    /// Iterate over image rows
+    #[cfg(not(feature = "parallel"))]
+    pub fn rows(&self) -> impl Iterator<Item = (usize, &[T])> {
+        self.data
+            .chunks(self.meta.width_step())
+            .skip(y)
+            .take(height)
+            .enumerate()
+            .map(move |(i, d)| (i + y, d))
+    }
+
+    /// Iterate over mutable image rows
+    #[cfg(not(feature = "parallel"))]
+    pub fn rows_mut(&mut self) -> impl Iterator<Item = (usize, &mut [T])> {
         self.data
             .chunks_mut(self.meta.width_step())
-            .map(DataMut::new)
+            .skip(y)
+            .take(height)
+            .enumerate()
+            .map(move |(i, d)| (i + y, d))
+    }
+
+    /// Iterate over image rows
+    #[cfg(feature = "parallel")]
+    pub fn row_range(
+        &self,
+        y: usize,
+        height: usize,
+    ) -> impl ParallelIterator<Item = (usize, &[T])> {
+        self.data
+            .par_chunks(self.meta.width_step())
+            .skip(y)
+            .take(height)
+            .enumerate()
+            .map(move |(i, d)| (i + y, d))
+    }
+
+    /// Iterate over mutable image rows
+    #[cfg(feature = "parallel")]
+    pub fn row_range_mut(
+        &mut self,
+        y: usize,
+        height: usize,
+    ) -> impl ParallelIterator<Item = (usize, &mut [T])> {
+        self.data
+            .par_chunks_mut(self.meta.width_step())
+            .skip(y)
+            .take(height)
+            .enumerate()
+            .map(move |(i, d)| (i + y, d))
     }
 
     /// Open an image from disk
@@ -306,18 +370,14 @@ impl<T: Type, C: Color> Image<T, C> {
         &'a mut self,
         roi: Region,
     ) -> impl 'a + rayon::iter::ParallelIterator<Item = (Point, DataMut<T, C>)> {
-        let meta = self.meta();
-        self.data
-            .par_chunks_mut(C::CHANNELS)
-            .map(DataMut::new)
-            .enumerate()
-            .filter_map(move |(n, pixel)| {
-                let pt = meta.convert_index_to_point(n);
-                if roi.contains(pt) {
-                    return Some((pt, pixel));
-                }
-
-                None
+        self.row_range_mut(roi.origin.y, roi.height())
+            .flat_map(move |(y, row)| {
+                row.par_chunks_mut(C::CHANNELS)
+                    .skip(roi.origin.x)
+                    .take(roi.width())
+                    .map(DataMut::new)
+                    .enumerate()
+                    .map(move |(x, d)| (Point::new(x, y), d))
             })
     }
 
@@ -327,18 +387,14 @@ impl<T: Type, C: Color> Image<T, C> {
         &'a mut self,
         roi: Region,
     ) -> impl 'a + std::iter::Iterator<Item = (Point, DataMut<T, C>)> {
-        let meta = self.meta();
-        self.data
-            .chunks_mut(C::CHANNELS)
-            .map(DataMut::new)
-            .enumerate()
-            .filter_map(move |(n, pixel)| {
-                let pt = meta.convert_index_to_point(n);
-                if roi.contains(pt) {
-                    return Some((pt, pixel));
-                }
-
-                None
+        self.row_range_mut(roi.origin.y, roi.height())
+            .flat_map(move |(y, row)| {
+                row.chunks_mut(C::CHANNELS)
+                    .skip(roi.origin.x)
+                    .take(roi.width())
+                    .map(DataMut::new)
+                    .enumerate()
+                    .map(move |(x, d)| (Point::new(x, y), d))
             })
     }
 
@@ -348,18 +404,14 @@ impl<T: Type, C: Color> Image<T, C> {
         &'a self,
         roi: Region,
     ) -> impl 'a + rayon::iter::ParallelIterator<Item = (Point, Data<T, C>)> {
-        let meta = self.meta();
-        self.data
-            .par_chunks(C::CHANNELS)
-            .map(Data::new)
-            .enumerate()
-            .filter_map(move |(n, pixel)| {
-                let pt = meta.convert_index_to_point(n);
-                if roi.contains(pt) {
-                    return Some((pt, pixel));
-                }
-
-                None
+        self.row_range(roi.origin.y, roi.height())
+            .flat_map(move |(y, row)| {
+                row.par_chunks(C::CHANNELS)
+                    .skip(roi.origin.x)
+                    .take(roi.width())
+                    .map(Data::new)
+                    .enumerate()
+                    .map(move |(x, d)| (Point::new(x, y), d))
             })
     }
 
@@ -369,18 +421,14 @@ impl<T: Type, C: Color> Image<T, C> {
         &'a self,
         roi: Region,
     ) -> impl 'a + std::iter::Iterator<Item = (Point, Data<T, C>)> {
-        let meta = self.meta();
-        self.data
-            .chunks(C::CHANNELS)
-            .map(Data::new)
-            .enumerate()
-            .filter_map(move |(n, pixel)| {
-                let pt = meta.convert_index_to_point(n);
-                if roi.contains(pt) {
-                    return Some((pt, pixel));
-                }
-
-                None
+        self.row_range(roi.origin.y, roi.height())
+            .flat_map(move |(y, row)| {
+                row.chunks(C::CHANNELS)
+                    .skip(roi.origin.x)
+                    .take(roi.width())
+                    .map(Data::new)
+                    .enumerate()
+                    .map(move |(x, d)| (Point::new(x, y), d))
             })
     }
 
@@ -389,29 +437,23 @@ impl<T: Type, C: Color> Image<T, C> {
     pub fn iter<'a>(
         &'a self,
     ) -> impl 'a + rayon::iter::ParallelIterator<Item = (Point, Data<T, C>)> {
-        let meta = self.meta();
-        self.data
-            .par_chunks(C::CHANNELS)
-            .map(Data::new)
-            .enumerate()
-            .map(move |(n, pixel)| {
-                let pt = meta.convert_index_to_point(n);
-                (pt, pixel)
-            })
+        self.rows().flat_map(move |(y, row)| {
+            row.par_chunks(C::CHANNELS)
+                .map(Data::new)
+                .enumerate()
+                .map(move |(x, d)| (Point::new(x, y), d))
+        })
     }
 
     /// Get pixel iterator
     #[cfg(not(feature = "parallel"))]
     pub fn iter<'a>(&'a self) -> impl 'a + std::iter::Iterator<Item = (Point, Data<T, C>)> {
-        let meta = self.meta();
-        self.data
-            .chunks(C::CHANNELS)
-            .map(Data::new)
-            .enumerate()
-            .map(move |(n, pixel)| {
-                let pt = meta.convert_index_to_point(n);
-                (pt, pixel)
-            })
+        self.rows().flat_map(move |(y, row)| {
+            row.chunks(C::CHANNELS)
+                .map(Data::new)
+                .enumerate()
+                .map(move |(x, d)| (Point::new(x, y), d))
+        })
     }
 
     /// Get mutable pixel iterator
@@ -419,15 +461,12 @@ impl<T: Type, C: Color> Image<T, C> {
     pub fn iter_mut<'a>(
         &'a mut self,
     ) -> impl 'a + rayon::iter::ParallelIterator<Item = (Point, DataMut<T, C>)> {
-        let meta = self.meta();
-        self.data
-            .par_chunks_mut(C::CHANNELS)
-            .map(DataMut::new)
-            .enumerate()
-            .map(move |(n, pixel)| {
-                let pt = meta.convert_index_to_point(n);
-                (pt, pixel)
-            })
+        self.rows_mut().flat_map(move |(y, row)| {
+            row.par_chunks_mut(C::CHANNELS)
+                .map(DataMut::new)
+                .enumerate()
+                .map(move |(x, d)| (Point::new(x, y), d))
+        })
     }
 
     /// Get mutable data iterator
@@ -435,20 +474,22 @@ impl<T: Type, C: Color> Image<T, C> {
     pub fn iter_mut<'a>(
         &'a mut self,
     ) -> impl 'a + std::iter::Iterator<Item = (Point, DataMut<T, C>)> {
-        let meta = self.meta();
-        self.data
-            .chunks_mut(C::CHANNELS)
-            .map(DataMut::new)
-            .enumerate()
-            .map(move |(n, pixel)| {
-                let pt = meta.convert_index_to_point(n);
-                (pt, pixel)
-            })
+        self.rows_mut().flat_map(move |(y, row)| {
+            row.chunks_mut(C::CHANNELS)
+                .map(DataMut::new)
+                .enumerate()
+                .map(move |(x, d)| (Point::new(x, y), d))
+        })
     }
 
     /// Iterate over each pixel applying `f` to every pixel
     pub fn for_each<F: Sync + Send + Fn(Point, DataMut<T, C>)>(&mut self, f: F) {
-        self.iter_mut().for_each(|(pt, px)| f(pt, px))
+        self.rows_mut().for_each(|(y, row)| {
+            row.chunks_mut(C::CHANNELS)
+                .map(DataMut::new)
+                .enumerate()
+                .for_each(|(x, px)| f(Point::new(x, y), px))
+        })
     }
 
     /// Iterate over a region of pixels qpplying `f` to every pixel

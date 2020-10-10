@@ -51,7 +51,7 @@ pub trait Filter<T: Type, C: Color, U: Type = T, D: Color = C>: Sync {
         });
     }
 
-    /// Evaluate filter in parallel
+    /// Evaluate filter
     fn eval(&self, input: &[&Image<T, C>], output: &mut Image<U, D>) {
         let input = Input::new(input);
 
