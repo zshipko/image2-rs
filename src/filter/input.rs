@@ -40,7 +40,9 @@ impl<'a, T: 'a + Type, C: 'a + Color> Input<'a, T, C> {
         &self.images
     }
 
-    /// Get input pixel
+    /// Get input pixel at `pt` - if `pt` matches the stored pixel from a preview computation then
+    /// that pixel will be returned instead of the actual input pixel. If `image_index` is not
+    /// `None` then input from the image with that index will be used.
     pub fn get_pixel(&self, pt: impl Into<Point>, image_index: Option<usize>) -> Pixel<C> {
         let pt = pt.into();
 
@@ -50,7 +52,9 @@ impl<'a, T: 'a + Type, C: 'a + Color> Input<'a, T, C> {
         }
     }
 
-    /// Get input float value
+    /// Get input float value - if `pt` matches the stored pixel from a preview computation then
+    /// that pixel will be returned instead of the actual input pixel. If `image_index` is not
+    /// `None` then input from the image with that index will be used.
     pub fn get_f(&self, pt: impl Into<Point>, c: Channel, image_index: Option<usize>) -> f64 {
         let pt = pt.into();
 

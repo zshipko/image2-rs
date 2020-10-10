@@ -1,12 +1,13 @@
 use crate::*;
 
-/// Used to determine the type of input accepted from previous filter in pipeline
+/// Used to determine if a filter can be executed and interleaved at the pixel level or if the
+/// whole filter needs to be evaulated before moving to the next filter
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Schedule {
-    /// Accepts pixels
+    /// Allows pixel level composition
     Pixel,
 
-    /// Accept full images
+    /// Only allows image level composition
     Image,
 }
 

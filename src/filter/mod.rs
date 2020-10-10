@@ -15,18 +15,22 @@ pub use r#async::*;
 
 /// Filters are used to manipulate images in a generic, composable manner
 pub trait Filter<T: Type, C: Color, U: Type = T, D: Color = C>: Sync {
-    /// Determines whether an image can accept pixels or full images from the previous filter in a
-    /// pipeline
+    /// Determines whether a filter should be executed one pixel at a time, or a whole image at a time
     fn schedule(&self) -> Schedule {
         Schedule::Pixel
     }
 
-    /// Get filter output size
+    /// Get filter output size, this is typically the destination image size, however when used as
+    /// part of a pipeline a single filter might have a different output size
     fn output_size(&self, _input: &Input<T, C>, dest: &mut Image<U, D>) -> Size {
         dest.size()
     }
 
     /// Compute filter at the given point for the provided input
+    ///
+    /// - `pt`: Current output point
+    /// - `input`: Input images, input pixel from previous filters in chain
+    /// - `dest`: Single pixel output buffer
     fn compute_at(&self, pt: Point, input: &Input<T, C>, dest: &mut DataMut<U, D>);
 
     /// Evaluate a filter on part of an image
