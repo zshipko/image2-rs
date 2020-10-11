@@ -30,7 +30,6 @@ pub struct AsyncPipeline<'a, T: 'a + Type, C: 'a + Color, U: 'a + Type, D: 'a + 
     pub tmpconv: Image<T, C>,
 
     pub(crate) image_schedule_filters: Vec<usize>,
-    pub(crate) input_images: Vec<&'a Image<T, C>>,
     pub(crate) j: usize,
     pub(crate) index: usize,
 }
@@ -59,17 +58,8 @@ impl<'a, T: Type, C: Color, U: Unpin + Type, D: Unpin + Color> std::future::Futu
         let input = &mut p.input;
         let output = &mut p.output;
         let tmpconv = &mut p.tmpconv;
-        let input_images = &mut p.input_images;
 
-        pipeline.loop_inner(
-            input,
-            output,
-            tmpconv,
-            j,
-            index,
-            &image_schedule_filters,
-            input_images,
-        );
+        pipeline.loop_inner(input, output, tmpconv, j, index, &image_schedule_filters);
 
         if p.index != p.pipeline.filters.len() - 1 {
             p.j += 1;

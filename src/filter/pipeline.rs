@@ -56,7 +56,6 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
         j: usize,
         index: usize,
         image_schedule_filters: &[usize],
-        input_images: &mut Vec<&'a Image<T, C>>,
     ) {
         let current_filter = &self.filters[index];
         if current_filter.schedule() == Schedule::Image {
@@ -92,21 +91,18 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
             }
         });
 
-        // Sketchy code in this block to allow re-use of some resources
-        // - tmpconv
-        // - input_images
+        // Sketchy code in this block to allow re-use of `tmpconv`
         if index != self.filters.len() - 1 {
-            let tmp = tmpconv as *const _;
             output.convert_to(tmpconv);
-            input_images[0] = unsafe { &*tmp };
-            input.images = unsafe { &*(input_images.as_slice() as *const _) };
+
+            let tmp = tmpconv as *const _;
+            input.images[0] = unsafe { &*tmp };
         }
     }
 
     /// Execute the pipeline
     pub fn execute(&self, input: &[&Image<T, C>], output: &mut Image<U, D>) {
         let mut input = Input::new(input);
-        let mut input_images = input.images.to_vec();
         let image_schedule_filters = self.image_schedule_list();
 
         let mut tmpconv = Image::<T, C>::new(output.size());
@@ -119,7 +115,6 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
                 j,
                 *index,
                 &image_schedule_filters,
-                &mut input_images,
             );
         }
     }
@@ -139,7 +134,6 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
             image_schedule_filters,
             j: 0,
             index,
-            input_images: input.images.to_vec(),
             input,
             output,
             tmpconv: Image::<T, C>::new(size),
@@ -152,7 +146,6 @@ impl<T: Type, C: Color> Pipeline<T, C> {
     pub fn execute_in_place(&self, output: &mut Image<T, C>) {
         let input = unsafe { &[&*(output as *const _)] };
         let mut input = Input::new(input);
-        let mut input_images = input.images.to_vec();
         let image_schedule_filters = self.image_schedule_list();
 
         let mut tmpconv = Image::<T, C>::new(output.size());
@@ -165,7 +158,6 @@ impl<T: Type, C: Color> Pipeline<T, C> {
                 j,
                 *index,
                 &image_schedule_filters,
-                &mut input_images,
             );
         }
     }

@@ -146,6 +146,11 @@ impl<C: Color> Pixel<C> {
     }
 
     /// Convert color and copy to slice
+    pub fn convert_from_data<T: Type, D: Color>(&mut self, data: &Data<T, D>) {
+        Pixel::from_data(data).convert_to(self)
+    }
+
+    /// Convert color and copy to slice
     pub fn convert_to_data<T: Type, D: Color>(&self, data: &mut DataMut<T, D>) {
         let d = self.convert::<D>();
         d.copy_to_slice(data)

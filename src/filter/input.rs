@@ -4,7 +4,7 @@ use crate::*;
 #[derive(Clone)]
 pub struct Input<'a, T: 'a + Type, C: 'a + Color> {
     /// Input images
-    pub images: &'a [&'a Image<T, C>],
+    pub images: Vec<&'a Image<T, C>>,
 
     /// Input pixel
     pub pixel: Option<(Point, Pixel<C>)>,
@@ -14,7 +14,7 @@ impl<'a, T: 'a + Type, C: 'a + Color> Input<'a, T, C> {
     /// Create new `Input`
     pub fn new(images: &'a [&'a Image<T, C>]) -> Self {
         Input {
-            images,
+            images: images.to_vec(),
             pixel: None,
         }
     }
@@ -23,6 +23,17 @@ impl<'a, T: 'a + Type, C: 'a + Color> Input<'a, T, C> {
     pub fn with_pixel(mut self, point: Point, pixel: Pixel<C>) -> Self {
         self.pixel = Some((point, pixel));
         self
+    }
+
+    /// Remove chained pixel data
+    pub fn without_pixel(mut self) -> Self {
+        self.pixel = None;
+        self
+    }
+
+    /// Returns optional pixel value
+    pub fn pixel(&self) -> Option<&(Point, Pixel<C>)> {
+        self.pixel.as_ref()
     }
 
     /// Get number of images

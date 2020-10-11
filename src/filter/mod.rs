@@ -80,6 +80,13 @@ pub trait Filter<T: Type, C: Color, U: Type = T, D: Color = C>: Sync {
 /// Saturation
 pub struct Saturation(pub f64);
 
+impl Saturation {
+    /// Create new saturation filter
+    pub fn new(amt: f64) -> Self {
+        Saturation(amt)
+    }
+}
+
 impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Saturation {
     fn compute_at(&self, pt: Point, input: &Input<T, C>, data: &mut DataMut<U, D>) {
         let px = input.get_pixel(pt, None);
@@ -92,6 +99,13 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Saturation {
 /// Adjust image brightness
 pub struct Brightness(pub f64);
 
+impl Brightness {
+    /// Create new brightness filter
+    pub fn new(amt: f64) -> Self {
+        Brightness(amt)
+    }
+}
+
 impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Brightness {
     fn compute_at(&self, pt: Point, input: &Input<T, C>, data: &mut DataMut<U, D>) {
         let mut px = input.get_pixel(pt, None);
@@ -103,6 +117,13 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Brightness {
 /// Adjust image contrast
 pub struct Contrast(pub f64);
 
+impl Contrast {
+    /// Create new contrast filter
+    pub fn new(amt: f64) -> Self {
+        Contrast(amt)
+    }
+}
+
 impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Contrast {
     fn compute_at(&self, pt: Point, input: &Input<T, C>, data: &mut DataMut<U, D>) {
         let mut px = input.get_pixel(pt, None);
@@ -113,6 +134,13 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Contrast {
 
 /// Crop an image
 pub struct Crop(pub Region);
+
+impl Crop {
+    /// Create new crop filter
+    pub fn new(r: Region) -> Self {
+        Crop(r)
+    }
+}
 
 impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Crop {
     fn output_size(&self, _input: &Input<T, C>, _dest: &mut Image<U, D>) -> Size {
@@ -157,6 +185,13 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Blend {
 /// Convert to log gamma
 pub struct GammaLog(pub f64);
 
+impl GammaLog {
+    /// Create new log gamma filter
+    pub fn new(amt: f64) -> Self {
+        GammaLog(amt)
+    }
+}
+
 impl Default for GammaLog {
     fn default() -> GammaLog {
         GammaLog(2.2)
@@ -174,6 +209,13 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for GammaLog {
 /// Convert to linear gamma
 pub struct GammaLin(pub f64);
 
+impl GammaLin {
+    /// Create new linear gamma filter
+    pub fn new(amt: f64) -> Self {
+        GammaLin(amt)
+    }
+}
+
 impl Default for GammaLin {
     fn default() -> GammaLin {
         GammaLin(2.2)
@@ -186,4 +228,75 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for GammaLin {
         px.map(|x| x.powf(self.0));
         px.copy_to_slice(dest);
     }
+}
+
+/// Conditional filter
+pub struct If<
+    F: Fn(Point, &Input<T, C>) -> bool,
+    G: Filter<T, C, U, D>,
+    H: Filter<T, C, U, D>,
+    T: Type,
+    C: Color,
+    U: Type,
+    D: Color,
+> {
+    cond: F,
+    then: G,
+    else_: H,
+    _t: std::marker::PhantomData<(T, C, U, D)>,
+}
+
+impl<
+        F: Fn(Point, &Input<T, C>) -> bool,
+        G: Filter<T, C, U, D>,
+        H: Filter<T, C, U, D>,
+        T: Type,
+        C: Color,
+        U: Type,
+        D: Color,
+    > If<F, G, H, T, C, U, D>
+{
+    /// Create new conditional filter
+    pub fn new(cond: F, then: G, else_: H) -> Self {
+        If {
+            cond,
+            then,
+            else_,
+            _t: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<
+        F: Sync + Fn(Point, &Input<T, C>) -> bool,
+        G: Filter<T, C, U, D>,
+        H: Filter<T, C, U, D>,
+        T: Type,
+        C: Color,
+        U: Type,
+        D: Color,
+    > Filter<T, C, U, D> for If<F, G, H, T, C, U, D>
+{
+    fn schedule(&self) -> Schedule {
+        if self.then.schedule() == Schedule::Image || self.else_.schedule() == Schedule::Image {
+            return Schedule::Image;
+        }
+
+        Schedule::Pixel
+    }
+
+    fn compute_at(&self, pt: Point, input: &Input<T, C>, dest: &mut DataMut<U, D>) {
+        if (self.cond)(pt, input) {
+            self.then.compute_at(pt, input, dest)
+        } else {
+            self.else_.compute_at(pt, input, dest)
+        }
+    }
+}
+
+/// Filter that does nothing
+pub struct Noop;
+
+impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Noop {
+    fn compute_at(&self, _pt: Point, _input: &Input<T, C>, _dest: &mut DataMut<U, D>) {}
 }

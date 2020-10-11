@@ -71,4 +71,12 @@ pub trait FilterExt<T: Type, C: Color, U: Type, D: Color>: Sized + Filter<T, C, 
             y: 0,
         }
     }
+
+    /// Create a new pipeline
+    fn then(self, other: impl 'static + Filter<T, C, U, D>) -> Pipeline<T, C, U, D>
+    where
+        Self: 'static,
+    {
+        Pipeline::new().then(self).then(other)
+    }
 }
