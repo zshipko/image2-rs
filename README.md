@@ -21,7 +21,9 @@ A Rust crate focused on generic image processing for a wide range of image forma
 - `parallel`:
   * Enables parallel image iterators
 - `window`:
-  * Enable ability to draw images to a graphical window
+  * Enables ability to draw images to a graphical window
+- `halide`:
+  * [halide-runtime](https://github.com/zshipko/halide-runtime) interop
 
 ## External dependencies
 

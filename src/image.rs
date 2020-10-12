@@ -629,7 +629,7 @@ impl<T: Type, C: Color> Image<T, C> {
     /// Copy a region of an image to a new image
     pub fn crop(&self, roi: Region) -> Image<T, C> {
         let mut dest = Image::new(roi.size);
-        dest.apply(filter::Crop(roi), &[self]);
+        dest.apply(filter::crop(roi), &[self]);
         dest
     }
 
@@ -656,11 +656,11 @@ impl<T: Type, C: Color> Image<T, C> {
     /// Apply an async filter using an Image as output
     pub async fn apply_async<'a, U: Type, D: Color>(
         &mut self,
-        mode: filter::AsyncMode,
+        mode: AsyncMode,
         filter: impl Filter<U, D, T, C> + Unpin,
         input: &[&Image<U, D>],
     ) -> &mut Self {
-        filter::eval_async(&filter, mode, Input::new(input), self).await;
+        filters::eval_async(&filter, mode, Input::new(input), self).await;
         self
     }
 
@@ -689,7 +689,7 @@ impl<T: Type, C: Color> Image<T, C> {
     /// Run an async filter using an Image as input
     pub async fn run_async<'a, U: 'a + Type, D: 'a + Color>(
         &self,
-        mode: filter::AsyncMode,
+        mode: AsyncMode,
         filter: impl Filter<T, C, U, D> + Unpin,
         output: Option<Meta<U, D>>,
     ) -> Image<U, D> {
@@ -705,12 +705,12 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Convert image type/color
     pub fn convert<U: Type, D: Color>(&self) -> Image<U, D> {
-        self.run(Convert::<D>::new(), None)
+        self.run(filter::convert(), None)
     }
 
     /// Convert image type/color
     pub fn convert_to<U: Type, D: Color>(&self, dest: &mut Image<U, D>) {
-        dest.apply(Convert::<D>::new(), &[self]);
+        dest.apply(filter::convert(), &[self]);
     }
 
     /// Convert to `ImageBuf`
@@ -802,13 +802,13 @@ impl<T: Type, C: Color> Image<T, C> {
     /// Resize an image
     pub fn resize(&self, size: impl Into<Size>) -> Image<T, C> {
         let size = size.into();
-        self.run(transform::resize(self.size(), size), Some(Meta::new(size)))
+        self.run(filter::resize(self.size(), size), Some(Meta::new(size)))
     }
 
     /// Scale an image
     pub fn scale(&self, width: f64, height: f64) -> Image<T, C> {
         self.run(
-            transform::scale(width, height),
+            filter::scale(width, height),
             Some(Meta::new((
                 (self.width() as f64 * width) as usize,
                 (self.height() as f64 * height) as usize,

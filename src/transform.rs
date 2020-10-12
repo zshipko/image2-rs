@@ -6,8 +6,8 @@ type EPoint<T> = euclid::Point2D<T, f64>;
 pub type Transform = euclid::Transform2D<f64, f64, f64>;
 
 impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Transform {
-    fn schedule(&self) -> filter::Schedule {
-        filter::Schedule::Image
+    fn schedule(&self) -> Schedule {
+        Schedule::Image
     }
 
     fn output_size(&self, input: &Input<T, C>, _dest: &mut Image<U, D>) -> Size {
@@ -28,56 +28,9 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Transform {
     }
 }
 
-#[inline]
-/// Build rotation `Transform` using the specified degrees and center point
-pub fn rotate(deg: f64, center: (f64, f64)) -> Transform {
-    Transform::rotation(euclid::Angle::degrees(-deg))
-        .pre_translate(euclid::Vector2D::new(-center.0, -center.1))
-        .then_translate(euclid::Vector2D::new(center.0, center.1))
-}
-
-#[inline]
-/// Build scale `Transform`
-pub fn scale(x: f64, y: f64) -> Transform {
-    Transform::scale(1.0 / x, 1.0 / y)
-}
-
-#[inline]
-/// Build resize transform
-pub fn resize(from: Size, to: Size) -> Transform {
-    Transform::scale(
-        from.width as f64 / to.width as f64,
-        from.height as f64 / to.height as f64,
-    )
-}
-
-/// 90 degree rotation
-pub fn rotate90(from: Size, to: Size) -> Transform {
-    let dwidth = to.width as f64;
-    let height = from.height as f64;
-    rotate(90., (dwidth / 2., height / 2.))
-}
-
-/// 180 degree rotation
-pub fn rotate180(src: Size) -> Transform {
-    let dwidth = src.width as f64;
-    let height = src.height as f64;
-    rotate(180., (dwidth / 2., height / 2.))
-}
-
-/// 270 degree rotation
-pub fn rotate270(from: Size, to: Size) -> Transform {
-    let width = to.height as f64;
-    let dheight = from.width as f64;
-    rotate(270., (width / 2., dheight / 2.))
-}
-
 #[cfg(test)]
 mod test {
-    use crate::{
-        transform::{resize, rotate180, rotate270, rotate90, scale},
-        Filter, Image, Rgb,
-    };
+    use crate::{filter::*, Filter, Image, Rgb};
 
     #[test]
     fn test_rotate90() {

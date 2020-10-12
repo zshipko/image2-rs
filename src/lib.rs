@@ -15,12 +15,12 @@
 //!
 //!     // Apply a `Filter`, in this case using the `Convert` filter to
 //!     // convert from `Rgb` to `Gray`
-//!     let conv = Convert::<Gray>::new();
+//!     let conv = convert::<f32, Rgb, f32, Gray>::();
 //!     let mut dest = image.new_like_with_color::<Gray>();
-//!     dest.apply(conv, &[&image]);
+//!     convert.apply(conv, &[&image]);
 //!
 //!     // This is equivalent to:
-//!     let conv = Convert::<Gray>::new();
+//!     let conv = convert();
 //!     let dest: Image<f32, Gray> = image.run(conv, None);
 //!
 //!     // Save an image to disk
@@ -37,6 +37,7 @@ pub use half::f16;
 mod color;
 mod data;
 mod error;
+mod filters;
 mod geom;
 mod hash;
 mod histogram;
@@ -56,9 +57,6 @@ mod halide_wrapper;
 #[cfg(feature = "halide")]
 pub use halide_runtime as halide;
 
-/// Composable image filters
-pub mod filter;
-
 /// Image input/output
 pub mod io;
 
@@ -69,10 +67,12 @@ pub mod kernel;
 pub mod transform;
 
 pub use crate::meta::Meta;
-pub use color::{Channel, Cmyk, Color, Convert, Gray, Hsv, Rgb, Rgba, Xyz};
+pub use color::{Channel, Cmyk, Color, Gray, Hsv, Rgb, Rgba, Xyz};
 pub use data::{Data, DataMut};
 pub use error::Error;
-pub use filter::{AsyncFilter, AsyncPipeline, Filter, FilterExt, Input, Pipeline};
+pub use filters::{
+    filter, AsyncFilter, AsyncMode, AsyncPipeline, Filter, FilterExt, Input, Pipeline, Schedule,
+};
 pub use geom::{Point, Region, Size};
 pub use hash::Hash;
 pub use histogram::Histogram;

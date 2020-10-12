@@ -29,7 +29,7 @@ fn main() {
                             }
 
                             if let Some(VirtualKeyCode::I) = input.virtual_keycode {
-                                window.image.run_in_place(filter::Invert);
+                                window.image.run_in_place(filters::invert())
                                 window.mark_as_dirty();
                             }
                         }

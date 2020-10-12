@@ -25,7 +25,7 @@ fn test_image_buffer_new() {
 
     let index = image.meta.index((3, 15));
     assert_eq!(image.data[index], 255);
-    Invert.eval(&[&image], &mut dest);
+    invert().eval(&[&image], &mut dest);
 }
 
 #[test]
@@ -52,9 +52,7 @@ fn test_read_write_rgba() {
 fn test_to_grayscale() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest: Image<f32, Gray> = image.new_like_with_type_and_color::<f32, Gray>();
-    timer("ToGrayscale", || {
-        Convert::<Gray>::new().eval(&[&image], &mut dest)
-    });
+    timer("ToGrayscale", || convert().eval(&[&image], &mut dest));
     assert!(dest.save("images/test-grayscale.jpg").is_ok());
 }
 
@@ -62,7 +60,7 @@ fn test_to_grayscale() {
 fn test_invert() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest = image.new_like();
-    timer("Invert", || Invert.eval(&[&image], &mut dest));
+    timer("Invert", || invert().eval(&[&image], &mut dest));
     assert!(dest.save("images/test-invert.jpg").is_ok());
 }
 
@@ -71,7 +69,7 @@ fn test_invert_async() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest = image.new_like();
     timer("Invert async", || {
-        smol::block_on(dest.apply_async(AsyncMode::Row, Invert, &[&image]));
+        smol::block_on(dest.apply_async(AsyncMode::Row, invert(), &[&image]));
     });
     assert!(dest.save("images/test-invert-async.jpg").is_ok());
 }
@@ -83,7 +81,7 @@ fn test_hash() {
     timer("Hash", || assert!(a.hash() == b.hash()));
     assert!(a.hash().diff(&b.hash()) == 0);
     let mut c = a.new_like();
-    Invert.eval(&[&a], &mut c);
+    invert().eval(&[&a], &mut c);
     assert!(c.hash() != a.hash());
     assert!(c.hash().diff(&a.hash()) != 0);
 }
@@ -120,22 +118,22 @@ fn test_sobel_rotate180() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest = image.new_like();
     let k = Pipeline::new()
-        .then(transform::rotate180(dest.size()))
+        .then(rotate180(dest.size()))
         .then(Kernel::sobel());
     timer("Sobel rotate", || k.execute(&[&image], &mut dest));
     assert!(dest.save("images/test-sobel-rotate180-1.jpg").is_ok());
 
     let k = Pipeline::new()
         .then(Kernel::sobel())
-        .then(transform::rotate180(dest.size()));
+        .then(rotate180(dest.size()));
     timer("Sobel rotate 2", || k.execute(&[&image], &mut dest));
     assert!(dest.save("images/test-sobel-rotate180-2.jpg").is_ok());
 
     let mut dest = Image::<f32, Rgb>::new((image.width() - 40, image.height() - 40));
     let k = Pipeline::new()
         .then(Kernel::sobel())
-        .then(transform::rotate180(dest.size()))
-        .then(Crop(Region::new(
+        .then(rotate180(dest.size()))
+        .then(crop(Region::new(
             Point::new(20, 20),
             Size::new(image.width() - 20, image.height() - 20),
         )));
@@ -145,12 +143,12 @@ fn test_sobel_rotate180() {
     let mut dest = Image::<f32, Rgb>::new((image.width() - 40, image.height() - 40));
     let k = Pipeline::new()
         .then(Kernel::sobel())
-        .then(Crop(Region::new(
+        .then(crop(Region::new(
             Point::new(10, 10),
             Size::new(image.width() - 10, image.height() - 10),
         )))
-        .then(transform::rotate180(dest.size()))
-        .then(Crop(Region::new(
+        .then(rotate180(dest.size()))
+        .then(crop(Region::new(
             Point::new(10, 10),
             Size::new(image.width() - 10, image.height() - 10),
         )));
@@ -164,7 +162,7 @@ fn test_sobel_rotate180() {
 fn test_crop() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest: Image<f32, Rgb> = Image::new((250, 200));
-    let k = filter::Crop(Region::new(Point::new(100, 200), Size::new(250, 200)));
+    let k = crop(Region::new(Point::new(100, 200), Size::new(250, 200)));
     timer("Crop", || k.eval(&[&image], &mut dest));
     assert!(dest.save("images/test-crop.jpg").is_ok());
 }
@@ -173,15 +171,15 @@ fn test_crop() {
 fn test_brightness_contrast() {
     let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let mut dest: Image<f32, Rgb> = image.new_like();
-    let f = Contrast(1.25);
+    let f = contrast(1.25);
     timer("contrast", || f.eval(&[&image], &mut dest));
     assert!(dest.save("images/test-contrast.jpg").is_ok());
 
-    let f = Pipeline::new().then(Contrast(1.25)).then(Brightness(1.5));
+    let f = Pipeline::new().then(contrast(1.25)).then(brightness(1.5));
     timer("contrast", || f.execute(&[&image], &mut dest));
     assert!(dest.save("images/test-contrast-brightness-1.jpg").is_ok());
 
-    let f = Pipeline::new().then(Brightness(1.5)).then(Contrast(1.25));
+    let f = Pipeline::new().then(brightness(1.5)).then(contrast(1.25));
     timer("contrast", || f.execute(&[&image], &mut dest));
     assert!(dest.save("images/test-contrast-brightness-2.jpg").is_ok());
 }
@@ -192,7 +190,7 @@ fn test_saturation() {
 
     assert!(image.save("images/test-saturation0.jpg").is_ok());
 
-    image.run_in_place(filter::Saturation(1.25));
+    image.run_in_place(saturation(1.25));
 
     assert!(image.save("images/test-saturation1.jpg").is_ok());
 }

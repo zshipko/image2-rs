@@ -3,7 +3,7 @@ use std::ops;
 
 use crate::*;
 
-/// Kernels defines a 2-dimensional convolution filter
+/// 2-dimensional convolution kernel
 #[derive(Debug, Clone, PartialEq)]
 pub struct Kernel {
     rows: usize,
@@ -61,8 +61,8 @@ kernel_from!(
 );
 
 impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Kernel {
-    fn schedule(&self) -> filter::Schedule {
-        filter::Schedule::Image
+    fn schedule(&self) -> Schedule {
+        Schedule::Image
     }
 
     fn compute_at(&self, pt: Point, input: &Input<T, C>, dest: &mut DataMut<U, D>) {

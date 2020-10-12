@@ -38,8 +38,7 @@ impl From<Hash> for u128 {
 impl<T: Type, C: Color> Image<T, C> {
     /// Get image hash
     pub fn hash(&self) -> Hash {
-        let mut small: Image<T, C> = Image::new((16, 8));
-        transform::resize(self.size(), Size::new(16, 8)).eval(&[self], &mut small);
+        let small: Image<T, C> = self.resize((16, 8));
         let mut hash = 0u128;
         let mut index = 0;
         let mut px = Pixel::new();

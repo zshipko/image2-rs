@@ -6,7 +6,9 @@ use crate::*;
 pub type Channel = usize;
 
 /// `Color` trait is used to define color spaces
-pub trait Color: Unpin + PartialEq + Eq + PartialOrd + Ord + Clone + Sync + Send + Debug {
+pub trait Color:
+    Unpin + PartialEq + Eq + PartialOrd + Ord + Clone + Sync + Send + std::fmt::Debug
+{
     /// Color name
     const NAME: &'static str;
 
@@ -368,22 +370,5 @@ impl Color for Cmyk {
         rgb[0] = 1.0 - c;
         rgb[1] = 1.0 - m;
         rgb[2] = 1.0 - y;
-    }
-}
-
-/// Convert between colors
-#[derive(Clone, Copy, Default)]
-pub struct Convert<T: Color>(std::marker::PhantomData<T>);
-
-impl<C: Color> Convert<C> {
-    /// Create new color conversion context
-    pub fn new() -> Convert<C> {
-        Convert(std::marker::PhantomData)
-    }
-}
-
-impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Convert<D> {
-    fn compute_at(&self, pt: Point, input: &Input<T, C>, dest: &mut DataMut<U, D>) {
-        input.get_pixel(pt, None).convert_to_data(dest);
     }
 }

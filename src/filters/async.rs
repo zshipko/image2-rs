@@ -155,8 +155,14 @@ impl<'a, F: Unpin + Filter<T, C, U, D>, T: Type, C: Color, U: Unpin + Type, D: U
     }
 }
 
-/// Evaluate a `Filter` as an async filter
-pub async fn eval_async<'a, F: Unpin + Filter<T, C, U, D>, T: Type, C: Color, U: Type, D: Color>(
+pub(crate) async fn eval_async<
+    'a,
+    F: Unpin + Filter<T, C, U, D>,
+    T: Type,
+    C: Color,
+    U: Type,
+    D: Color,
+>(
     filter: &'a F,
     mode: AsyncMode,
     input: Input<'a, T, C>,
