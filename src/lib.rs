@@ -15,7 +15,7 @@
 //!
 //!     // Apply a `Filter`, in this case using the `Convert` filter to
 //!     // convert from `Rgb` to `Gray`
-//!     let conv = convert::<f32, Rgb, f32, Gray>::();
+//!     let conv = convert::<f32, Rgb, f32, Gray>();
 //!     let mut dest = image.new_like_with_color::<Gray>();
 //!     convert.apply(conv, &[&image]);
 //!
