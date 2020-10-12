@@ -6,7 +6,7 @@ use crate::*;
 pub type Channel = usize;
 
 /// `Color` trait is used to define color spaces
-pub trait Color: Unpin + PartialEq + Eq + PartialOrd + Ord + Clone + Sync + Send {
+pub trait Color: Unpin + PartialEq + Eq + PartialOrd + Ord + Clone + Sync + Send + Debug {
     /// Color name
     const NAME: &'static str;
 

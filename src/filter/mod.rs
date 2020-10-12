@@ -14,7 +14,7 @@ pub use pipeline::*;
 pub use r#async::*;
 
 /// Filters are used to manipulate images in a generic, composable manner
-pub trait Filter<T: Type, C: Color, U: Type = T, D: Color = C>: Sync {
+pub trait Filter<T: Type, C: Color, U: Type = T, D: Color = C>: std::fmt::Debug + Sync {
     /// Determines whether a filter should be executed one pixel at a time, or a whole image at a time
     fn schedule(&self) -> Schedule {
         Schedule::Pixel
@@ -78,7 +78,8 @@ pub trait Filter<T: Type, C: Color, U: Type = T, D: Color = C>: Sync {
 }
 
 /// Saturation
-pub struct Saturation(pub f64);
+#[derive(Debug, Default)]
+pub struct Saturation(f64);
 
 impl Saturation {
     /// Create new saturation filter
@@ -97,7 +98,8 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Saturation {
 }
 
 /// Adjust image brightness
-pub struct Brightness(pub f64);
+#[derive(Debug, Default)]
+pub struct Brightness(f64);
 
 impl Brightness {
     /// Create new brightness filter
@@ -115,7 +117,8 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Brightness {
 }
 
 /// Adjust image contrast
-pub struct Contrast(pub f64);
+#[derive(Debug, Default)]
+pub struct Contrast(f64);
 
 impl Contrast {
     /// Create new contrast filter
@@ -133,7 +136,8 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Contrast {
 }
 
 /// Crop an image
-pub struct Crop(pub Region);
+#[derive(Debug, Default)]
+pub struct Crop(Region);
 
 impl Crop {
     /// Create new crop filter
@@ -161,6 +165,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Crop {
 }
 
 /// Invert an image
+#[derive(Debug, Default)]
 pub struct Invert;
 
 impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Invert {
@@ -171,8 +176,23 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Invert {
     }
 }
 
+impl Invert {
+    /// Invert image colors
+    fn new() -> Self {
+        Default::default()
+    }
+}
+
 /// Blend two images
+#[derive(Debug, Default)]
 pub struct Blend;
+
+impl Blend {
+    /// Blend two images
+    fn new() -> Self {
+        Default::default()
+    }
+}
 
 impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Blend {
     fn compute_at(&self, pt: Point, input: &Input<T, C>, dest: &mut DataMut<U, D>) {
@@ -183,7 +203,8 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Blend {
 }
 
 /// Convert to log gamma
-pub struct GammaLog(pub f64);
+#[derive(Debug)]
+pub struct GammaLog(f64);
 
 impl GammaLog {
     /// Create new log gamma filter
@@ -207,7 +228,8 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for GammaLog {
 }
 
 /// Convert to linear gamma
-pub struct GammaLin(pub f64);
+#[derive(Debug)]
+pub struct GammaLin(f64);
 
 impl GammaLin {
     /// Create new linear gamma filter
@@ -231,6 +253,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for GammaLin {
 }
 
 /// Conditional filter
+#[derive(Debug)]
 pub struct If<
     F: Fn(Point, &Input<T, C>) -> bool,
     G: Filter<T, C, U, D>,
@@ -295,7 +318,15 @@ impl<
 }
 
 /// Filter that does nothing
+#[derive(Debug, Default)]
 pub struct Noop;
+
+impl Noop {
+    /// Create new no-op filter
+    fn new() -> Self {
+        Default::default()
+    }
+}
 
 impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Noop {
     fn compute_at(&self, _pt: Point, _input: &Input<T, C>, _dest: &mut DataMut<U, D>) {}
