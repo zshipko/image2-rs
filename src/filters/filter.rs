@@ -251,7 +251,9 @@ pub fn noop<T: Type, C: Color, U: Type, D: Color>() -> impl Filter<T, C, U, D> {
 }
 
 impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Noop {
-    fn compute_at(&self, _pt: Point, _input: &Input<T, C>, _dest: &mut DataMut<U, D>) {}
+    fn compute_at(&self, pt: Point, input: &Input<T, C>, dest: &mut DataMut<U, D>) {
+        input.get_pixel(pt, None).copy_to_slice(dest)
+    }
 }
 
 #[inline]
