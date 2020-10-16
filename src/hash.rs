@@ -70,12 +70,10 @@ impl<T: Type, C: Color> Image<T, C> {
         let mut hash = vec![false; HASH_SIZE * HASH_SIZE];
         let mut index = 0;
         let mut px = Pixel::new();
-        let mut hsv = Pixel::<Hsv>::new();
         for j in 0..HASH_SIZE {
             for i in 0..HASH_SIZE {
                 small.pixel_at((i, j), &mut px);
-                px.convert_to(&mut hsv);
-                if hsv[2] > 0.5 {
+                if px.iter().sum::<f64>() / C::CHANNELS as f64 > 0.5 {
                     hash[index] = true;
                 }
                 index += 1
