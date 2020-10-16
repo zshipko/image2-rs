@@ -69,7 +69,7 @@ impl Histogram {
     }
 
     /// Returns an iterator over all bins
-    pub fn bins<'a>(&'a self) -> impl 'a + Iterator<Item = (usize, usize)> {
+    pub fn bins(&self) -> impl '_ + Iterator<Item = (usize, usize)> {
         self.bins.iter().enumerate().map(|(a, b)| (a, *b))
     }
 
