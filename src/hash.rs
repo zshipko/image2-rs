@@ -32,11 +32,6 @@ impl std::fmt::LowerHex for Hash {
 }
 
 impl Hash {
-    /// Convert hash to hex representation
-    pub fn to_string(&self) -> String {
-        format!("{}", self)
-    }
-
     /// Compute difference between two hashes
     pub fn diff(&self, other: &Hash) -> usize {
         let mut diff = 0;

@@ -126,7 +126,7 @@ impl<T: Type, C: Color> Meta<T, C> {
 
     /// Get pixel iterator
     #[cfg(not(feature = "parallel"))]
-    pub fn iter<'a>(&'a self) -> impl 'a + std::iter::Iterator<Item = Point> {
+    pub fn iter(&self) -> impl '_ + std::iter::Iterator<Item = Point> {
         (0..self.num_pixels())
             .into_iter()
             .map(move |n| self.convert_index_to_point(n))
@@ -134,7 +134,7 @@ impl<T: Type, C: Color> Meta<T, C> {
 
     /// Get pixel iterator
     #[cfg(feature = "parallel")]
-    pub fn iter<'a>(&'a self) -> impl 'a + rayon::iter::ParallelIterator<Item = Point> {
+    pub fn iter(&self) -> impl '_ + rayon::iter::ParallelIterator<Item = Point> {
         (0..self.num_pixels())
             .into_par_iter()
             .map(move |n| self.convert_index_to_point(n))
