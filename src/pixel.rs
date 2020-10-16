@@ -210,9 +210,9 @@ impl<C: Color> Pixel<C> {
     }
 
     /// Apply `f` for each channel in a pixel
-    pub fn for_each(&self, mut f: impl FnMut(f64)) {
+    pub fn for_each(&self, mut f: impl FnMut(usize, f64)) {
         for i in 0..self.len() {
-            f(self[i])
+            f(i, self[i])
         }
     }
 
