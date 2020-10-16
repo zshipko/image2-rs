@@ -1,20 +1,48 @@
 use crate::*;
 
-/// Hash is used for content-based hashing
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
-pub struct Hash(u128);
+const HASH_SIZE: usize = 16;
 
-fn check_bit(number: u128, n: usize) -> bool {
-    (number >> n) & 1 == 0
+/// Hash is used for content-based hashing
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
+pub struct Hash(Vec<bool>);
+
+impl std::fmt::Display for Hash {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(fmt, "{:x}", self)
+    }
+}
+
+fn to_byte(b: &[bool]) -> u8 {
+    let mut dest = 0;
+    for (i, x) in b.iter().enumerate() {
+        if *x {
+            dest |= 1 << i;
+        }
+    }
+    dest
+}
+
+impl std::fmt::LowerHex for Hash {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        for c in self.0.chunks(8).map(to_byte) {
+            write!(fmt, "{:x}", c)?
+        }
+        Ok(())
+    }
 }
 
 impl Hash {
+    /// Convert hash to hex representation
+    pub fn to_string(&self) -> String {
+        format!("{}", self)
+    }
+
     /// Compute difference between two hashes
-    pub fn diff(&self, other: &Hash) -> u128 {
+    pub fn diff(&self, other: &Hash) -> usize {
         let mut diff = 0;
 
-        for i in 0..128 {
-            if check_bit(self.0, i) != check_bit(other.0, i) {
+        for (i, x) in self.0.iter().enumerate() {
+            if other.0[i] != *x {
                 diff += 1;
             }
         }
@@ -25,12 +53,12 @@ impl Hash {
 
 impl From<Hash> for String {
     fn from(hash: Hash) -> String {
-        format!("{:016x}", hash.0)
+        format!("{}", hash)
     }
 }
 
-impl From<Hash> for u128 {
-    fn from(hash: Hash) -> u128 {
+impl From<Hash> for Vec<bool> {
+    fn from(hash: Hash) -> Vec<bool> {
         hash.0
     }
 }
@@ -38,19 +66,15 @@ impl From<Hash> for u128 {
 impl<T: Type, C: Color> Image<T, C> {
     /// Get image hash
     pub fn hash(&self) -> Hash {
-        let small: Image<T, C> = self.resize((16, 8));
-        let mut hash = 0u128;
+        let small: Image<T, C> = self.resize((HASH_SIZE, HASH_SIZE));
+        let mut hash = vec![false; HASH_SIZE * HASH_SIZE];
         let mut index = 0;
         let mut px = Pixel::new();
-        for j in 0..8 {
-            for i in 0..16 {
+        for j in 0..HASH_SIZE {
+            for i in 0..HASH_SIZE {
                 small.pixel_at((i, j), &mut px);
-                let avg: f64 = px.iter().sum();
-                let f = avg / C::CHANNELS as f64;
-                if f > 0.5 {
-                    hash |= 1 << index
-                } else {
-                    hash &= !(1 << index)
+                if px.iter().sum::<f64>() / C::CHANNELS as f64 > 0.5 {
+                    hash[index] = true;
                 }
                 index += 1
             }

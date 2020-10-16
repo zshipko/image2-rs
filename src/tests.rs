@@ -78,10 +78,13 @@ fn test_invert_async() {
 fn test_hash() {
     let a: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let b: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
+    println!("Hash: {}", a.hash());
     timer("Hash", || assert!(a.hash() == b.hash()));
     assert!(a.hash().diff(&b.hash()) == 0);
     let mut c = a.new_like();
     invert().eval(&[&a], &mut c);
+
+    println!("Hash: {}", c.hash());
     assert!(c.hash() != a.hash());
     assert!(c.hash().diff(&a.hash()) != 0);
 }
