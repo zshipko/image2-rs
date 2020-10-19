@@ -25,7 +25,7 @@ fn to_byte(b: &[bool]) -> u8 {
 impl std::fmt::LowerHex for Hash {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
         for c in self.0.chunks(8).map(to_byte) {
-            write!(fmt, "{:x}", c)?
+            write!(fmt, "{:02x}", c)?
         }
         Ok(())
     }
@@ -70,10 +70,22 @@ impl<T: Type, C: Color> Image<T, C> {
             c -= 1;
         }
 
+        let mut sum: f64 = 0.;
+
+        for j in 0..HASH_SIZE {
+            for i in 0..HASH_SIZE {
+                for c in 0..c {
+                    sum += small.get_f((i, j), c);
+                }
+            }
+        }
+
+        let avg = sum / (HASH_SIZE * HASH_SIZE * c) as f64;
+
         for j in 0..HASH_SIZE {
             for i in 0..HASH_SIZE {
                 small.pixel_at((i, j), &mut px);
-                if px.iter().sum::<f64>() / c as f64 > 0.5 {
+                if px.iter().sum::<f64>() / c as f64 > avg {
                     hash[index] = true;
                 }
                 index += 1

@@ -76,7 +76,7 @@ fn test_invert_async() {
 
 #[test]
 fn test_hash() {
-    let a: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
+    let mut a: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     let b: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
     println!("Hash: {}", a.hash());
     timer("Hash", || assert!(a.hash() == b.hash()));
@@ -87,6 +87,17 @@ fn test_hash() {
     println!("Hash: {}", c.hash());
     assert!(c.hash() != a.hash());
     assert!(c.hash().diff(&a.hash()) != 0);
+
+    let mut tmp = Pixel::<Rgb>::new();
+    tmp.fill(1.0);
+    a.iter_region_mut(Region::new(Point::new(50, 50), Size::new(100, 200)))
+        .for_each(|(_pt, mut px)| {
+            tmp.convert_to_data(&mut px);
+        });
+
+    println!("Hash: {}", a.hash());
+    println!("Hash: {}", b.hash());
+    println!("{}", a.hash().diff(&b.hash()));
 }
 
 #[test]
