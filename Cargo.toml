@@ -19,7 +19,7 @@ cpp = {version = "0.5", optional = true}
 rayon = {version = "1", optional = true}
 serde = {version = "1", optional = true, features = ["derive"]}
 halide-runtime = {version = "0.5", optional = true}
-glutin = {version = "0.25", optional = true}
+glutin = {version = "0.26", optional = true}
 gl = {version = "0.14", optional = true}
 
 [build-dependencies]
