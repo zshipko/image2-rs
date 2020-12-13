@@ -10,7 +10,7 @@ pub use glutin::{
     ContextCurrentState as CurrentState, NotCurrent, PossiblyCurrent, WindowedContext as Context,
 };
 
-use glutin::platform::desktop::EventLoopExtDesktop;
+use glutin::platform::run_return::EventLoopExtRunReturn;
 
 /// Window is used to display images
 pub struct Window<T: Type, C: Color> {
