@@ -3,6 +3,7 @@ use crate::*;
 
 use cpp::{cpp, cpp_class};
 
+#[cfg(not(feature = "docs-rs"))]
 cpp! {{
     #include <OpenImageIO/imageio.h>
     #include <OpenImageIO/imagebuf.h>
