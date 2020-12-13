@@ -1,6 +1,6 @@
 [package]
 name = "image2"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 authors = ["Zach Shipko <zachshipko@gmail.com>"]
 license = "ISC"
 keywords = ["image", "image-processing"]
@@ -34,11 +34,11 @@ window = ["gl", "glutin"]
 oiio = ["cpp", "cpp_build"]
 parallel = ["rayon"]
 halide = ["halide-runtime"]
-docs-rs = []
+docs-rs = ["window", "parallel", "halide"]
 
 [package.metadata.docs.rs]
 default-features = false
-features = ["docs-rs", "window", "parallel", "halide"]
+features = ["docs-rs"]
 
 [[example]]
 name = "window"
