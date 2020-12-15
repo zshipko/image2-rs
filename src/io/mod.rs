@@ -57,8 +57,8 @@ pub enum BaseType {
     Last,
 }
 
-#[cfg(feature = "oiio")]
+#[cfg(all(feature = "oiio", not(feature = "docs-rs")))]
 mod oiio;
 
-#[cfg(feature = "oiio")]
+#[cfg(all(feature = "oiio", not(feature = "docs-rs")))]
 pub use oiio::*;
