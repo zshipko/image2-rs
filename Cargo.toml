@@ -1,6 +1,6 @@
 [package]
 name = "image2"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 authors = ["Zach Shipko <zachshipko@gmail.com>"]
 license = "ISC"
 keywords = ["image", "image-processing"]
@@ -37,7 +37,7 @@ halide = ["halide-runtime"]
 docs-rs = ["window", "parallel", "halide"]
 
 [package.metadata.docs.rs]
-default-features = false
+no-default-features = true
 features = ["docs-rs"]
 
 [[example]]
