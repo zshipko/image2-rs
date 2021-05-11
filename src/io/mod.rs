@@ -1,5 +1,8 @@
 #[cfg(not(feature = "oiio"))]
 /// ImageMagick/GraphicsMagick based I/O
+///
+/// Note: This is enabled when OpenImageIO is disabled, to use OpenImageIO make sure the `oiio` feature is enabled at
+/// compile time
 pub mod magick;
 
 /// `BaseType` is compatible with OpenImageIO's `TypeDesc::BASETYPE`
