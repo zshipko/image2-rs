@@ -228,11 +228,16 @@ impl Magick {
 }
 
 /// Read image from disk
-pub fn read<P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<Image<T, C>, Error> {
-    unsafe { DEFAULT.read(path) }
+pub fn read<P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<Image<T, C>, crate::Error> {
+    let x = unsafe { DEFAULT.read(path)? };
+    Ok(x)
 }
 
 /// Write image to disk
-pub fn write<P: AsRef<Path>, T: Type, C: Color>(path: P, image: &Image<T, C>) -> Result<(), Error> {
-    unsafe { DEFAULT.write(path, image) }
+pub fn write<P: AsRef<Path>, T: Type, C: Color>(
+    path: P,
+    image: &Image<T, C>,
+) -> Result<(), crate::Error> {
+    let x = unsafe { DEFAULT.write(path, image)? };
+    Ok(x)
 }
