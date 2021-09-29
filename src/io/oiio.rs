@@ -621,3 +621,16 @@ pub(crate) mod internal {
         }
     }
 }
+
+/// Read image from disk
+pub fn read<P: AsRef<std::path::Path>, T: Type, C: Color>(path: P) -> Result<Image<T, C>, Error> {
+    ImageInput::open(path)?.read()
+}
+
+/// Write image to disk
+pub fn write<P: AsRef<std::path::Path>, T: Type, C: Color>(
+    path: P,
+    image: &Image<T, C>,
+) -> Result<(), Error> {
+    ImageOutput::create(path)?.write(image)
+}

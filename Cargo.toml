@@ -1,6 +1,6 @@
 [package]
 name = "image2"
-version = "1.0.0"
+version = "1.1.0"
 authors = ["Zach Shipko <zachshipko@gmail.com>"]
 license = "ISC"
 keywords = ["image", "image-processing"]
@@ -34,11 +34,11 @@ window = ["gl", "glutin"]
 oiio = ["cpp", "cpp_build"]
 parallel = ["rayon"]
 halide = ["halide-runtime"]
-docs-rs = ["window", "parallel", "halide"]
+serialize = ["serde", "euclid/serde"]
 
 [package.metadata.docs.rs]
 no-default-features = true
-features = ["docs-rs"]
+features = ["window", "parallel", "halide", "serialize"]
 
 [[example]]
 name = "window"

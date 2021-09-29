@@ -227,12 +227,12 @@ impl Magick {
     }
 }
 
-/// Read image from disk using default command-line tool
+/// Read image from disk
 pub fn read<P: AsRef<Path>, T: Type, C: Color>(path: P) -> Result<Image<T, C>, Error> {
     unsafe { DEFAULT.read(path) }
 }
 
-/// Write image to disk using default command-line tool
+/// Write image to disk
 pub fn write<P: AsRef<Path>, T: Type, C: Color>(path: P, image: &Image<T, C>) -> Result<(), Error> {
     unsafe { DEFAULT.write(path, image) }
 }

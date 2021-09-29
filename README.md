@@ -55,6 +55,8 @@ This is not a pure Rust crate, if that's important to you then [image](https://g
   * Enables ability to draw images to a graphical window
 - `halide`:
   * [halide-runtime](https://github.com/zshipko/halide-runtime) interop
+- `serialize`:
+  * Enables serde support for several data structures
 
 ## External dependencies
 
@@ -62,5 +64,7 @@ This is not a pure Rust crate, if that's important to you then [image](https://g
     * `oiio` feature
     * Version >= 2.0
     * Debian-based distros: `apt install libopenimageio-dev`
+- `ImageMagick` (optional)
+    * Only required if `oiio` is not being used
 
 

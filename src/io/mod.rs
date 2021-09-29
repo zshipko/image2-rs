@@ -3,6 +3,9 @@
 ///
 /// Note: This is enabled when OpenImageIO is disabled, to use OpenImageIO make sure the `oiio` feature is enabled at
 /// compile time
+///
+/// See [oiio.rs](https://github.com/zshipko/image2-rs/blob/master/src/io/oiio.rs) for more
+/// information about the OpenImageIO bindings
 pub mod magick;
 
 /// `BaseType` is compatible with OpenImageIO's `TypeDesc::BASETYPE`
@@ -61,7 +64,11 @@ pub enum BaseType {
 }
 
 #[cfg(all(feature = "oiio", not(feature = "docs-rs")))]
-mod oiio;
+/// OpenImageIO bindings
+pub mod oiio;
 
 #[cfg(all(feature = "oiio", not(feature = "docs-rs")))]
-pub use oiio::*;
+pub use oiio::{read, write};
+
+#[cfg(not(feature = "oiio"))]
+pub use magick::{read, write};

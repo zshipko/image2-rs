@@ -342,34 +342,14 @@ impl<T: Type, C: Color> Image<T, C> {
             .map(move |(i, d)| (i + y, d))
     }
 
-    /// Open an image from disk
+    /// Read an image from disk
     pub fn open(path: impl AsRef<std::path::Path>) -> Result<Image<T, C>, Error> {
-        #[cfg(feature = "oiio")]
-        {
-            let input = io::ImageInput::open(path)?;
-            input.read()
-        }
-
-        #[cfg(not(feature = "oiio"))]
-        {
-            let x = io::magick::read(path)?;
-            Ok(x)
-        }
+        io::read(path)
     }
 
-    /// Save an image to disk
+    /// Write an image to disk
     pub fn save(&self, path: impl AsRef<std::path::Path>) -> Result<(), Error> {
-        #[cfg(feature = "oiio")]
-        {
-            let output = io::ImageOutput::create(path)?;
-            output.write(self)
-        }
-
-        #[cfg(not(feature = "oiio"))]
-        {
-            io::magick::write(path, self)?;
-            Ok(())
-        }
+        io::write(path, self)
     }
 
     /// Iterate over part of an image with mutable data access
@@ -715,8 +695,8 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Convert to `ImageBuf`
     #[cfg(feature = "oiio")]
-    pub(crate) fn image_buf(&mut self) -> io::internal::ImageBuf {
-        io::internal::ImageBuf::new_with_data(
+    pub(crate) fn image_buf(&mut self) -> io::oiio::internal::ImageBuf {
+        io::oiio::internal::ImageBuf::new_with_data(
             self.width(),
             self.height(),
             self.channels(),
@@ -726,8 +706,8 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Convert to `ImageBuf`
     #[cfg(feature = "oiio")]
-    pub(crate) fn const_image_buf(&self) -> io::internal::ImageBuf {
-        io::internal::ImageBuf::const_new_with_data(
+    pub(crate) fn const_image_buf(&self) -> io::oiio::internal::ImageBuf {
+        io::oiio::internal::ImageBuf::const_new_with_data(
             self.width(),
             self.height(),
             self.channels(),

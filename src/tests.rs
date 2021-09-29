@@ -2,7 +2,7 @@ use crate::*;
 use filter::*;
 
 #[cfg(feature = "oiio")]
-use io::*;
+use io::oiio::*;
 
 use std::time::Instant;
 
