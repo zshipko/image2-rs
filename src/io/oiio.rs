@@ -534,7 +534,7 @@ pub(crate) mod internal {
             let param = self as *const _;
             unsafe {
                 cpp!([param as "const ParamValue*"] -> i32 as "int32_t" {
-                    #if OPENIMAGEIO_VERSION_MAJOR == 2 && OPENIMAGEIO_VERSION_MINOR > 2
+                    #if OIIO_VERSION_MAJOR >= 2 && OIIO_VERSION_MINOR > 2
                     return param->get_int_attribute();
                     #else
                     return param->get_int();
@@ -547,7 +547,7 @@ pub(crate) mod internal {
             let param = self as *const _;
             unsafe {
                 cpp!([param as "const ParamValue*"] -> f32 as "float" {
-                    #if OPENIMAGEIO_VERSION_MAJOR == 2 && OPENIMAGEIO_VERSION_MINOR > 2
+                    #if OIIO_VERSION_MAJOR >= 2 && OIIO_VERSION_MINOR > 2
                     return param->get_float_attribute();
                     #else
                     return param->get_float();
@@ -562,7 +562,7 @@ pub(crate) mod internal {
             let len_ptr = &mut len;
             let x = unsafe {
                 cpp!([param as "const ParamValue*", len_ptr as "size_t*"] -> *const u8 as "const char*" {
-                    #if OPENIMAGEIO_VERSION_MAJOR == 2 && OPENIMAGEIO_VERSION_MINOR > 2
+                    #if OIIO_VERSION_MAJOR >= 2 && OIIO_VERSION_MINOR > 2
                     auto s = param->get_ustring_attribute();
                     #else
                     auto s = param->get_ustring();
