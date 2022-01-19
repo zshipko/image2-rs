@@ -119,8 +119,8 @@ impl<T: Type, C: Color> Meta<T, C> {
     /// Convert from index to Point
     pub fn convert_index_to_point(&self, n: usize) -> Point {
         let width = self.size.width;
-        let y = n / width;
-        let x = n - (y * width);
+        let y = n / width / C::CHANNELS;
+        let x = (n - (y * width * C::CHANNELS)) / C::CHANNELS;
         Point::new(x, y)
     }
 
