@@ -5,6 +5,8 @@ use cpp::{cpp, cpp_class};
 
 #[cfg(not(feature = "docs-rs"))]
 cpp! {{
+    #include <OpenImageIO/paramlist.h>
+    #include <OpenImageIO/typedesc.h>
     #include <OpenImageIO/imageio.h>
     #include <OpenImageIO/imagebuf.h>
     #include <OpenImageIO/imagebufalgo.h>
@@ -105,7 +107,7 @@ impl ImageOutput {
                 outspec.width = width;
                 outspec.height = height;
                 outspec.nchannels = channels;
-                outspec.format = TypeDesc(base_type);
+                outspec.set_format(TypeDesc(base_type));
                 out->open (filename, outspec);
                 out->write_image (base_type, pixels);
             })
@@ -142,7 +144,7 @@ impl ImageOutput {
                     spec->width = width;
                     spec->height = height;
                     spec->nchannels = channels;
-                    spec->format = TypeDesc(base_type);
+                    spec->set_format(TypeDesc(base_type));
                     out->open (filename, *spec);
                 } else {
                     mode = ImageOutput::AppendSubimage;
@@ -229,7 +231,8 @@ impl ImageInput {
 
         let input = unsafe {
             cpp!([filename as "const char *", tmp as "ImageSpec*"] ->  *mut u8 as "std::unique_ptr<ImageInput>" {
-                auto input = ImageInput::open(filename);
+                std::string s(filename);
+                auto input = ImageInput::open(s);
                 if (!input) {
                     return nullptr;
                 }
@@ -579,7 +582,8 @@ pub(crate) mod internal {
             let data = data.as_mut_ptr();
             unsafe {
                 cpp!([width as "size_t", height as "size_t", channels as "size_t", base_type as "TypeDesc::BASETYPE", data as "void *"] -> ImageBuf as "ImageBuf" {
-                    return ImageBuf(ImageSpec(width, height, channels, base_type), data);
+                    auto spec = ImageSpec(width, height, channels, base_type);
+                    return ImageBuf(spec, data);
                 })
             }
         }
@@ -594,7 +598,8 @@ pub(crate) mod internal {
             let data = data.as_ptr();
             unsafe {
                 cpp!([width as "size_t", height as "size_t", channels as "size_t", base_type as "TypeDesc::BASETYPE", data as "void *"] -> ImageBuf as "ImageBuf" {
-                    return ImageBuf(ImageSpec(width, height, channels, base_type), data);
+                    auto spec = ImageSpec(width, height, channels, base_type);
+                    return ImageBuf(spec, data);
                 })
             }
         }
