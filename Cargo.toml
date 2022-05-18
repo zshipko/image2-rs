@@ -1,6 +1,6 @@
 [package]
 name = "image2"
-version = "1.1.1"
+version = "1.2.0"
 authors = ["Zach Shipko <zachshipko@gmail.com>"]
 license = "ISC"
 keywords = ["image", "image-processing"]
@@ -18,7 +18,7 @@ euclid = "0.22"
 cpp = {version = "0.5", optional = true}
 rayon = {version = "1", optional = true}
 serde = {version = "1", optional = true, features = ["derive"]}
-halide-runtime = {version = "0.5", optional = true}
+halide-runtime = {version = "0.6", optional = true}
 glutin = {version = "0.28", optional = true}
 gl = {version = "0.14", optional = true}
 

@@ -126,12 +126,12 @@ impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
             match &event {
                 Event::WindowEvent { event, window_id } => match event {
                     WindowEvent::CloseRequested => {
-                        if let Some(window) = self.get_mut(&window_id) {
+                        if let Some(window) = self.get_mut(window_id) {
                             window.close();
                         }
                     }
                     WindowEvent::CursorMoved { position, .. } => {
-                        if let Some(window) = self.get_mut(&window_id) {
+                        if let Some(window) = self.get_mut(window_id) {
                             window.position =
                                 window.mouse_position((position.x as usize, position.y as usize));
                         }
@@ -139,7 +139,7 @@ impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
                     _ => (),
                 },
                 Event::RedrawRequested(window_id) => {
-                    if let Some(window) = self.get_mut(&window_id) {
+                    if let Some(window) = self.get_mut(window_id) {
                         window.draw().unwrap();
                     }
                 }
@@ -232,12 +232,12 @@ impl<'a, T: Type, C: Color> Window<T, C> {
 
     /// Get user data
     pub fn data<X: std::any::Any>(&self) -> Option<&X> {
-        self.data.as_deref().map(|x| x.downcast_ref()).flatten()
+        self.data.as_deref().and_then(|x| x.downcast_ref())
     }
 
     /// Get mutable user data
     pub fn data_mut<X: std::any::Any>(&mut self) -> Option<&mut X> {
-        self.data.as_deref_mut().map(|x| x.downcast_mut()).flatten()
+        self.data.as_deref_mut().and_then(|x| x.downcast_mut())
     }
 
     /// Execute a callback with a current OpenGL context
@@ -264,7 +264,7 @@ impl<'a, T: Type, C: Color> Window<T, C> {
                 Err((_, e)) => return Err(e.into()),
             };
             self.context = Some(ctx);
-            return Ok(t?);
+            return t;
         }
 
         Err(Error::GlutinContext(glutin::ContextError::ContextLost))
@@ -559,11 +559,13 @@ where
     )?;
 
     windows.run(&mut event_loop, move |windows, event, x, cf| {
-        if let Event::WindowEvent { event, .. } = &event {
-            if let WindowEvent::KeyboardInput { input, .. } = &event {
-                if input.scancode == 0x01 {
-                    *cf = ControlFlow::Exit;
-                }
+        if let Event::WindowEvent {
+            event: WindowEvent::KeyboardInput { input, .. },
+            ..
+        } = &event
+        {
+            if input.scancode == 0x01 {
+                *cf = ControlFlow::Exit;
             }
         }
         f(windows, event, x, cf)
@@ -601,11 +603,13 @@ where
     }
 
     windows.run(&mut event_loop, move |windows, event, x, cf| {
-        if let Event::WindowEvent { event, .. } = &event {
-            if let WindowEvent::KeyboardInput { input, .. } = &event {
-                if input.scancode == 0x01 {
-                    *cf = ControlFlow::Exit;
-                }
+        if let Event::WindowEvent {
+            event: WindowEvent::KeyboardInput { input, .. },
+            ..
+        } = &event
+        {
+            if input.scancode == 0x01 {
+                *cf = ControlFlow::Exit;
             }
         }
         f(windows, event, x, cf)

@@ -118,13 +118,13 @@ impl<'a, T: Type, C: Color> DataMut<'a, T, C> {
 
 impl<'a, T: Type, C: Color> AsRef<[T]> for Data<'a, T, C> {
     fn as_ref(&self) -> &[T] {
-        &self.0
+        self.0
     }
 }
 
 impl<'a, T: Type, C: Color> AsRef<[T]> for DataMut<'a, T, C> {
     fn as_ref(&self) -> &[T] {
-        &self.0
+        self.0
     }
 }
 

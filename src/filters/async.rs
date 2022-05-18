@@ -59,7 +59,7 @@ impl<'a, T: Type, C: Color, U: Unpin + Type, D: Unpin + Color> std::future::Futu
         let output = &mut p.output;
         let tmpconv = &mut p.tmpconv;
 
-        pipeline.loop_inner(input, output, tmpconv, j, index, &image_schedule_filters);
+        pipeline.loop_inner(input, output, tmpconv, j, index, image_schedule_filters);
 
         if p.index != p.pipeline.filters.len() - 1 {
             p.j += 1;
@@ -137,7 +137,7 @@ impl<'a, F: Unpin + Filter<T, C, U, D>, T: Type, C: Color, U: Unpin + Type, D: U
                 let mut data = filter.output.get_mut((filter.x, filter.y));
                 filter
                     .filter
-                    .compute_at(Point::new(filter.x, filter.y), &&filter.input, &mut data);
+                    .compute_at(Point::new(filter.x, filter.y), &filter.input, &mut data);
                 filter.x += 1;
                 if filter.x >= width {
                     filter.x = 0;
