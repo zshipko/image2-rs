@@ -12,7 +12,7 @@ edition = "2021"
 
 
 [dependencies]
-half = "1"
+half = "2"
 thiserror = "1"
 euclid = "0.22"
 cpp = {version = "0.5", optional = true}
