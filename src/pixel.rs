@@ -89,6 +89,12 @@ impl<C: Color> Pixel<C> {
         })
     }
 
+    /// Returns `self` after calling `clamp`
+    pub fn clamped(mut self) -> Self {
+        self.clamp();
+        self
+    }
+
     /// Returns true when the provided channel index matches the alpha channel index
     pub fn is_alpha(&self, index: Channel) -> bool {
         if let Some(alpha) = C::ALPHA {

@@ -18,26 +18,28 @@ fn main() {
         move |windows, event, _, _| match event {
             Event::LoopDestroyed => return,
             Event::WindowEvent { event, window_id } => {
-                if let Some(window) = windows.get_mut(&window_id) {
-                    match event {
-                        WindowEvent::CursorMoved { .. } => {
-                            println!("Mouse: {:?}", window.position);
-                        }
-                        WindowEvent::KeyboardInput { input, .. } => {
-                            if input.state != ElementState::Pressed {
-                                return;
-                            }
-
-                            if let Some(VirtualKeyCode::I) = input.virtual_keycode {
-                                window.image.run_in_place(filter::invert());
-                                window.mark_as_dirty();
-                            }
-                        }
-                        _ => (),
+                let window = match windows.get_mut(&window_id) {
+                    None => return,
+                    Some(x) => x,
+                };
+                match event {
+                    WindowEvent::CursorMoved { .. } => {
+                        println!("Mouse: {:?}", window.position);
                     }
+                    WindowEvent::KeyboardInput { input, .. } => {
+                        if input.state != ElementState::Pressed {
+                            return;
+                        }
+
+                        if let Some(VirtualKeyCode::I) = input.virtual_keycode {
+                            window.image.run_in_place(filter::invert());
+                            window.mark_as_dirty();
+                        }
+                    }
+                    _ => return,
                 }
             }
-            _ => (),
+            _ => return,
         },
     )
     .unwrap();

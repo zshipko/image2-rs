@@ -243,6 +243,20 @@ impl<
 }
 
 #[derive(Debug)]
+struct Clamp;
+
+/// Clamp pixel values
+pub fn clamp<T: Type, C: Color, U: Type, D: Color>() -> impl Filter<T, C, U, D> {
+    Clamp
+}
+
+impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Clamp {
+    fn compute_at(&self, pt: Point, input: &Input<T, C>, dest: &mut DataMut<U, D>) {
+        input.get_pixel(pt, None).clamped().copy_to_slice(dest)
+    }
+}
+
+#[derive(Debug)]
 struct Noop;
 
 /// Filter that does nothing
