@@ -15,31 +15,29 @@ use glutin::platform::run_return::EventLoopExtRunReturn;
 /// Window is used to display images
 pub struct Window<T: Type, C: Color> {
     /// Window ID
-    pub id: WindowId,
+    id: WindowId,
 
     /// OpenGL context
-    pub context: Option<Context<NotCurrent>>,
+    context: Option<Context<NotCurrent>>,
 
     /// Window texture
     pub texture: Texture,
 
     /// Window image
-    pub image: Image<T, C>,
+    image: Image<T, C>,
 
     /// OpenGL framebuffer
     pub framebuffer: GLuint,
 
     /// Window's current size
-    pub size: Size,
+    size: Size,
 
     /// Window dirty state, the window should be redrawn when set to true
-    pub dirty: bool,
+    dirty: bool,
 
     /// Current mouse position
-    pub position: Point,
+    position: Point,
 
-    /// Selection region
-    pub selection: Option<Region>,
     closed: bool,
     data: Option<Box<dyn std::any::Any>>,
 }
@@ -53,7 +51,7 @@ impl<T: Type, C: Color> Default for WindowSet<T, C> {
     }
 }
 
-impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
+impl<T: Type, C: Color> WindowSet<T, C> {
     /// Create new window set
     pub fn new() -> WindowSet<T, C> {
         Default::default()
@@ -113,8 +111,7 @@ impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
     /// Run the event loop until all windows are closed
     pub fn run<
         X,
-        F: 'static
-            + FnMut(&mut WindowSet<T, C>, Event<'_, X>, &EventLoopWindowTarget<X>, &mut ControlFlow),
+        F: FnMut(&mut WindowSet<T, C>, Event<'_, X>, &EventLoopWindowTarget<X>, &mut ControlFlow),
     >(
         &mut self,
         event_loop: &mut EventLoop<X>,
@@ -132,8 +129,8 @@ impl<T: 'static + Type, C: 'static + Color> WindowSet<T, C> {
                     }
                     WindowEvent::CursorMoved { position, .. } => {
                         if let Some(window) = self.get_mut(window_id) {
-                            window.position =
-                                window.mouse_position((position.x as usize, position.y as usize));
+                            window.position = window
+                                .fix_mouse_position((position.x as usize, position.y as usize));
                         }
                     }
                     _ => (),
@@ -219,7 +216,6 @@ impl<'a, T: Type, C: Color> Window<T, C> {
             position: Point::default(),
             size: Size::new(size.width as usize, size.height as usize),
             dirty: true,
-            selection: None,
             closed: false,
             data: None,
         })
@@ -270,8 +266,13 @@ impl<'a, T: Type, C: Color> Window<T, C> {
         Err(Error::GlutinContext(glutin::ContextError::ContextLost))
     }
 
+    /// Get current mouse position
+    pub fn mouse_position(&self) -> Point {
+        self.position
+    }
+
     /// Get mouse position  relative to image based on window mouse position
-    pub fn mouse_position(&self, pt: impl Into<Point>) -> Point {
+    pub fn fix_mouse_position(&self, pt: impl Into<Point>) -> Point {
         let pt = pt.into();
         let ratio = (self.size.width as f64 / self.image.meta.width() as f64)
             .min(self.size.height as f64 / self.image.meta.height() as f64);
@@ -329,6 +330,11 @@ impl<'a, T: Type, C: Color> Window<T, C> {
     /// Mark window as dirty - this tells the event handler to call `draw` on the next iteration
     pub fn mark_as_dirty(&mut self) {
         self.dirty = true;
+    }
+
+    /// Return true when the window is marked as dirty
+    pub fn is_dirty(&self) -> bool {
+        self.dirty
     }
 
     /// Return true when the window is closed
@@ -538,10 +544,9 @@ to_texture!(u8, Rgba, gl::UNSIGNED_BYTE, gl::RGBA);
 
 /// Show an image and exit when ESC is pressed
 pub fn show<
-    T: 'static + Type,
-    C: 'static + Color,
-    F: 'static
-        + FnMut(&mut WindowSet<T, C>, Event<'_, ()>, &EventLoopWindowTarget<()>, &mut ControlFlow),
+    T: Type,
+    C: Color,
+    F: FnMut(&mut WindowSet<T, C>, Event<'_, ()>, &EventLoopWindowTarget<()>, &mut ControlFlow),
 >(
     title: impl AsRef<str>,
     image: Image<T, C>,
@@ -580,10 +585,9 @@ where
 
 /// Show multiple images and exit when ESC is pressed
 pub fn show_all<
-    T: 'static + Type,
-    C: 'static + Color,
-    F: 'static
-        + FnMut(&mut WindowSet<T, C>, Event<'_, ()>, &EventLoopWindowTarget<()>, &mut ControlFlow),
+    T: Type,
+    C: Color,
+    F: FnMut(&mut WindowSet<T, C>, Event<'_, ()>, &EventLoopWindowTarget<()>, &mut ControlFlow),
 >(
     images: impl IntoIterator<Item = (impl Into<String>, Image<T, C>)>,
     mut f: F,
