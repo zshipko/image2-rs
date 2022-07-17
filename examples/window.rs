@@ -15,31 +15,31 @@ fn main() {
 
     show_all(
         vec![("A", image.clone()), ("B", image)],
-        move |windows, event, _, _| match event {
-            Event::LoopDestroyed => return,
-            Event::WindowEvent { event, window_id } => {
-                let window = match windows.get_mut(&window_id) {
-                    None => return,
-                    Some(x) => x,
-                };
-                match event {
-                    WindowEvent::CursorMoved { .. } => {
-                        println!("Mouse: {:?}", window.position);
-                    }
-                    WindowEvent::KeyboardInput { input, .. } => {
-                        if input.state != ElementState::Pressed {
-                            return;
+        move |windows, event| {
+            match event {
+                Event::LoopDestroyed => return Some(ControlFlow::Exit),
+                Event::WindowEvent { event, window_id } => {
+                    let window = windows.get_mut(&window_id)?;
+                    match event {
+                        WindowEvent::CursorMoved { .. } => {
+                            println!("Mouse: {:?}", window.mouse_position());
                         }
+                        WindowEvent::KeyboardInput { input, .. } => {
+                            if input.state != ElementState::Pressed {
+                                return None;
+                            }
 
-                        if let Some(VirtualKeyCode::I) = input.virtual_keycode {
-                            window.image.run_in_place(filter::invert());
-                            window.mark_as_dirty();
+                            if let Some(VirtualKeyCode::I) = input.virtual_keycode {
+                                window.image_mut().run_in_place(filter::invert());
+                                window.mark_as_dirty();
+                            }
                         }
+                        _ => (),
                     }
-                    _ => return,
                 }
-            }
-            _ => return,
+                _ => (),
+            };
+            None
         },
     )
     .unwrap();

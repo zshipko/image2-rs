@@ -104,20 +104,17 @@ impl<T: Type, C: Color> WindowSet<T, C> {
     }
 
     /// Convert into an interator over windows
-    pub fn into_windows(self) -> impl Iterator<Item = Window<T, C>> {
+    pub fn iter_windows(self) -> impl Iterator<Item = Window<T, C>> {
         self.0.into_iter().map(|(_, v)| v)
     }
 
     /// Run the event loop until all windows are closed
-    pub fn run<
-        X,
-        F: FnMut(&mut WindowSet<T, C>, Event<'_, X>, &EventLoopWindowTarget<X>, &mut ControlFlow),
-    >(
+    pub fn run<X, F: FnMut(&mut WindowSet<T, C>, Event<'_, X>) -> Option<ControlFlow>>(
         &mut self,
         event_loop: &mut EventLoop<X>,
         mut event_handler: F,
     ) {
-        event_loop.run_return(move |event, target, cf| {
+        event_loop.run_return(move |event, _target, cf| {
             *cf = ControlFlow::Wait;
 
             match &event {
@@ -143,7 +140,9 @@ impl<T: Type, C: Color> WindowSet<T, C> {
                 _ => (),
             }
 
-            event_handler(self, event, target, cf);
+            if let Some(new_cf) = event_handler(self, event) {
+                *cf = new_cf;
+            }
 
             let mut open = 0;
             for (_, window) in self.0.iter_mut() {
@@ -546,7 +545,7 @@ to_texture!(u8, Rgba, gl::UNSIGNED_BYTE, gl::RGBA);
 pub fn show<
     T: Type,
     C: Color,
-    F: FnMut(&mut WindowSet<T, C>, Event<'_, ()>, &EventLoopWindowTarget<()>, &mut ControlFlow),
+    F: FnMut(&mut WindowSet<T, C>, Event<'_, ()>) -> Option<ControlFlow>,
 >(
     title: impl AsRef<str>,
     image: Image<T, C>,
@@ -563,17 +562,17 @@ where
         WindowBuilder::new().with_title(title.as_ref()),
     )?;
 
-    windows.run(&mut event_loop, move |windows, event, x, cf| {
+    windows.run(&mut event_loop, move |windows, event| {
         if let Event::WindowEvent {
             event: WindowEvent::KeyboardInput { input, .. },
             ..
         } = &event
         {
             if input.scancode == 0x01 {
-                *cf = ControlFlow::Exit;
+                return Some(ControlFlow::Exit);
             }
         }
-        f(windows, event, x, cf)
+        f(windows, event)
     });
 
     if let Some(window) = windows.remove(&id) {
@@ -587,7 +586,7 @@ where
 pub fn show_all<
     T: Type,
     C: Color,
-    F: FnMut(&mut WindowSet<T, C>, Event<'_, ()>, &EventLoopWindowTarget<()>, &mut ControlFlow),
+    F: FnMut(&mut WindowSet<T, C>, Event<'_, ()>) -> Option<ControlFlow>,
 >(
     images: impl IntoIterator<Item = (impl Into<String>, Image<T, C>)>,
     mut f: F,
@@ -606,18 +605,18 @@ where
         )?;
     }
 
-    windows.run(&mut event_loop, move |windows, event, x, cf| {
+    windows.run(&mut event_loop, move |windows, event| {
         if let Event::WindowEvent {
             event: WindowEvent::KeyboardInput { input, .. },
             ..
         } = &event
         {
             if input.scancode == 0x01 {
-                *cf = ControlFlow::Exit;
+                return Some(ControlFlow::Exit);
             }
         }
-        f(windows, event, x, cf)
+        f(windows, event)
     });
 
-    Ok(windows.into_windows().map(|w| w.into_image()).collect())
+    Ok(windows.iter_windows().map(|w| w.into_image()).collect())
 }
