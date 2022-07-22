@@ -503,7 +503,7 @@ impl<T: Type, C: Color> Image<T, C> {
             .zip(b)
             .enumerate()
             .for_each(|(n, (pixel, pixel1))| {
-                let pt = meta.convert_index_to_point(n);
+                let pt = meta.convert_index_to_point(n * C::CHANNELS);
                 f(pt, DataMut::new(pixel), Data::new(pixel1))
             });
     }
@@ -522,7 +522,7 @@ impl<T: Type, C: Color> Image<T, C> {
             .zip(b)
             .enumerate()
             .for_each(|(n, (pixel, pixel1))| {
-                let pt = meta.convert_index_to_point(n);
+                let pt = meta.convert_index_to_point(n * C::CHANNELS);
                 f(pt, DataMut::new(pixel), Data::new(pixel1))
             });
     }
@@ -536,7 +536,7 @@ impl<T: Type, C: Color> Image<T, C> {
             .chunks_exact(C::CHANNELS)
             .enumerate()
             .for_each(|(n, px)| {
-                let pt = meta.convert_index_to_point(n);
+                let pt = meta.convert_index_to_point(n * C::CHANNELS);
                 pixel.copy_from_slice(px);
                 f(pt, &pixel)
             })
@@ -555,7 +555,7 @@ impl<T: Type, C: Color> Image<T, C> {
             .chunks_exact(C::CHANNELS)
             .enumerate()
             .map(|(n, px)| {
-                let pt = meta.convert_index_to_point(n);
+                let pt = meta.convert_index_to_point(n * C::CHANNELS);
                 (pt, px)
             })
             .filter(|(pt, _px)| region.contains(*pt))
@@ -574,7 +574,7 @@ impl<T: Type, C: Color> Image<T, C> {
             .chunks_exact_mut(C::CHANNELS)
             .enumerate()
             .for_each(|(n, px)| {
-                let pt = meta.convert_index_to_point(n);
+                let pt = meta.convert_index_to_point(n * C::CHANNELS);
                 pixel.copy_from_slice(&px);
                 f(pt, &mut pixel);
                 pixel.copy_to_slice(px);
@@ -594,7 +594,7 @@ impl<T: Type, C: Color> Image<T, C> {
             .chunks_exact_mut(C::CHANNELS)
             .enumerate()
             .map(|(n, px)| {
-                let pt = meta.convert_index_to_point(n);
+                let pt = meta.convert_index_to_point(n * C::CHANNELS);
                 (pt, px)
             })
             .filter(|(pt, _px)| region.contains(*pt))
