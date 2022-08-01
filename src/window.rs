@@ -161,7 +161,7 @@ impl<T: Type, C: Color> WindowSet<T, C> {
             if open == 0 {
                 *cf = ControlFlow::Exit;
             }
-        })
+        });
     }
 }
 
