@@ -88,11 +88,6 @@ impl ImageOutput {
     ///
     /// Note: `image` dimensions and type will take precendence over the ImageSpec
     pub fn write<T: Type, C: Color>(self, image: &Image<T, C>) -> Result<(), Error> {
-        if !["gray", "rgb", "rgba"].contains(&C::NAME) {
-            let image = image.convert::<T, Rgb>();
-            return self.write(&image);
-        }
-
         let base_type = T::BASE;
         let path: &std::path::Path = self.path.as_ref();
         let path_str = std::ffi::CString::new(path.to_string_lossy().as_bytes().to_vec()).unwrap();
@@ -119,11 +114,6 @@ impl ImageOutput {
     ///
     /// Note: `image` dimensions and type will take precendence over the ImageSpec
     pub fn append<T: Type, C: Color>(&mut self, image: &Image<T, C>) -> Result<(), Error> {
-        if !["gray", "rgb", "rgba"].contains(&C::NAME) {
-            let image = image.convert::<T, Rgb>();
-            return self.append(&image);
-        }
-
         let base_type = T::BASE;
         let path: &std::path::Path = self.path.as_ref();
         let path_str = std::ffi::CString::new(path.to_string_lossy().as_bytes().to_vec()).unwrap();
@@ -294,6 +284,37 @@ impl ImageInput {
         Ok(())
     }
 
+    /// Read scanline
+    pub fn read_scanline<T: Type, C: Color>(&self, y: usize, buf: &mut [T]) -> Result<(), Error> {
+        let data = buf.as_mut_ptr();
+
+        let input = self.image_input;
+        let spec = &self.spec;
+        let fmt = T::BASE;
+
+        if spec.nchannels() < C::CHANNELS || spec.width() * spec.nchannels() != buf.len() {
+            return Err(Error::InvalidDimensions(
+                spec.width(),
+                spec.height(),
+                spec.nchannels(),
+            ));
+        }
+
+        let res = unsafe {
+            cpp!([input as "std::unique_ptr<ImageInput>", y as "size_t", fmt as "TypeDesc::BASETYPE", data as "void *"] ->  bool as "bool" {
+                return input->read_scanline(y, 0, fmt, data);
+            })
+        };
+
+        if !res {
+            return Err(Error::CannotReadImage(
+                self.path.to_string_lossy().to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+
     /// Read to new image
     ///
     /// Note: the `convert` method may be called if the requested color doesn't match
@@ -302,7 +323,7 @@ impl ImageInput {
 
         // `convert` is called if the channels don't match the image on disk or the color is not
         // Gray, Rgb, or Rgba
-        if C::CHANNELS != nchannels || !["gray", "rgb", "rgba"].contains(&C::NAME) {
+        if C::CHANNELS != nchannels {
             if nchannels == 1 {
                 let mut image = Image::<f32, Gray>::new((self.spec.width(), self.spec.height()));
                 self.read_into(&mut image)?;

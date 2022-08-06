@@ -67,7 +67,7 @@ pub mod kernel;
 pub mod transform;
 
 pub use crate::meta::Meta;
-pub use color::{Channel, Cmyk, Color, Gray, Hsv, Rgb, Rgba, Xyz};
+pub use color::{Channel, Cmyk, Color, Gray, Hsv, Rgb, Rgba, Srgb, Srgba, Xyz, Yuv};
 pub use data::{Data, DataMut};
 pub use error::Error;
 pub use filters::{

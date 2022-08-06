@@ -107,6 +107,15 @@ impl<T: Type, C: Color> Image<T, C> {
         self.meta.size()
     }
 
+    /// Update the colorspace associated with an image without performing any conversion
+    pub fn with_color<D: Color>(self) -> Image<T, D> {
+        assert!(C::CHANNELS == D::CHANNELS);
+        Image {
+            meta: Meta::new(self.meta.size),
+            data: self.data,
+        }
+    }
+
     /// Convert image data into byte vec
     pub fn into_buffer(self) -> Vec<u8> {
         let mut from = self.data.into_vec();

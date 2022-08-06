@@ -36,7 +36,13 @@ pub struct Magick {
 }
 
 fn kind<C: Color>() -> String {
-    format!("{}:-", C::NAME)
+    let mut name = C::NAME.to_ascii_lowercase();
+    if name == "srgb" {
+        name = "rgb".to_string();
+    } else if name == "srgba" {
+        name = "rgba".to_string();
+    }
+    format!("{}:-", name)
 }
 
 fn depth<T: Type, C: Color>(cmd: &mut Command) {
@@ -70,6 +76,8 @@ pub fn set_default(magick: Magick) {
         DEFAULT = magick;
     }
 }
+
+const ALLOWED_COLORS: &[&str] = &["rgb", "rgba", "gray", "graya", "yuv", "cmyk"];
 
 impl Magick {
     /// Get size of image using identify command
@@ -107,8 +115,9 @@ impl Magick {
 
     /// Read image from disk using ImageMagick/GraphicsMagick
     pub fn read<P: AsRef<Path>, T: Type, C: Color>(&self, path: P) -> Result<Image<T, C>, Error> {
-        if !["gray", "rgb", "rgba"].contains(&C::NAME) {
-            return Ok(self.read::<P, f32, Rgb>(path)?.convert());
+        if !ALLOWED_COLORS.contains(&C::NAME) {
+            let image: Image<T, Rgb> = self.read(path)?;
+            return Ok(image.convert());
         }
 
         let (width, height) = match self.get_image_shape(&path) {
@@ -147,10 +156,11 @@ impl Magick {
         path: P,
         image: &Image<T, C>,
     ) -> Result<(), Error> {
-        if !["gray", "rgb", "rgba"].contains(&C::NAME) {
-            let image = image.convert::<T, Rgb>();
+        if !ALLOWED_COLORS.contains(&C::NAME) {
+            let image: Image<T, Rgb> = image.convert();
             return self.write(path, &image);
         }
+
         let kind = kind::<C>();
         let (width, height, _) = image.shape();
         let size = format!("{}x{}", width, height);

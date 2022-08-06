@@ -35,30 +35,16 @@ impl<'a> From<&'a [&'a [f64]]> for Kernel {
     }
 }
 
-macro_rules! kernel_from {
-    ($n:expr) => {
-        impl From<[[f64; $n]; $n]> for Kernel {
-            fn from(data: [[f64; $n]; $n]) -> Kernel {
-               let data = data.iter().map(|d| d.to_vec()).collect();
-               Kernel {
-                   data,
-                   rows: $n,
-                   cols: $n,
-               }
-           }
-       }
-   };
-   ($($n:expr,)*) => {
-       $(
-           kernel_from!($n);
-       )*
-   }
+impl<const N: usize> From<[[f64; N]; N]> for Kernel {
+    fn from(data: [[f64; N]; N]) -> Kernel {
+        let data = data.iter().map(|d| d.to_vec()).collect();
+        Kernel {
+            data,
+            rows: N,
+            cols: N,
+        }
+    }
 }
-
-kernel_from!(
-    2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
-    28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
-);
 
 impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Kernel {
     fn schedule(&self) -> Schedule {

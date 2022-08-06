@@ -40,6 +40,12 @@ impl<C: Color> Pixel<C> {
         px
     }
 
+    /// Update the colorspace associated with a pixel without performing any conversion
+    pub fn with_color<D: Color>(self) -> Pixel<D> {
+        assert!(C::CHANNELS == D::CHANNELS);
+        Pixel(self.0, std::marker::PhantomData)
+    }
+
     /// Data
     pub fn data(&self) -> Data<f64, C> {
         Data::new(self.as_ref())

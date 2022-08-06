@@ -9,7 +9,6 @@ A Rust crate focused on generic image processing for a wide range of image forma
 - Supported image data types: `u8`, `i8`, `u16`, `i16`, `u32`, `i32`, `u64`, `i64`, `f16`, `f32`, `f64`
 - Supported color types: `gray`, `rgb`, `rgba`, `hsv`, `cmyk`, `xyz`
 - Read and write images of any supported type/color
-  * Colors other than `gray`, `rgb` and `rgba` will be converted to `rgb` before writing
 - Easy to add new colors
 - Generic image processing across data types using `Pixel`
 - Composable operations using `Filter` (with async support)
