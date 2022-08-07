@@ -15,9 +15,7 @@ fn main() {
         let flags = String::from_utf8(pkg.stdout).unwrap();
         let flags = flags.split(" ");
         let mut config = cpp_build::Config::new();
-        config
-            .flag("-std=c++14")
-            .include("/opt/homebrew/Cellar/openimageio/2.3.17.0/include");
+        config.flag("-std=c++14");
 
         for flag in flags {
             config.flag(flag);
