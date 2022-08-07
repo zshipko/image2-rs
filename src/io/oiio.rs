@@ -87,7 +87,7 @@ impl ImageOutput {
     /// Write an image to the file
     ///
     /// Note: `image` dimensions and type will take precendence over the ImageSpec
-    pub fn write<T: Type, C: Color>(self, image: &Image<T, C>) -> Result<(), Error> {
+    pub fn write<T: Type, C: Color>(mut self, image: &Image<T, C>) -> Result<(), Error> {
         let base_type = T::BASE;
         let path: &std::path::Path = self.path.as_ref();
         let path_str = std::ffi::CString::new(path.to_string_lossy().as_bytes().to_vec()).unwrap();
@@ -95,9 +95,9 @@ impl ImageOutput {
         let pixels = image.data.as_ptr();
         let (width, height, channels) = image.shape();
         let out = self.image_output;
-        let spec = &self.spec;
+        let spec = &mut self.spec;
         unsafe {
-            cpp!([out as "ImageOutput*", filename as "const char *", base_type as "TypeDesc::BASETYPE", spec as "const ImageSpec *", width as "size_t", height as "size_t", channels as "size_t", pixels as "const void*"] {
+            cpp!([out as "ImageOutput*", filename as "const char *", base_type as "TypeDesc::BASETYPE", spec as "ImageSpec *", width as "size_t", height as "size_t", channels as "size_t", pixels as "const void*"] {
                 ImageSpec outspec (*spec);
                 outspec.width = width;
                 outspec.height = height;
@@ -105,6 +105,7 @@ impl ImageOutput {
                 outspec.set_format(TypeDesc(base_type));
                 out->open (filename, outspec);
                 out->write_image (base_type, pixels);
+                *spec = outspec;
             })
         }
         Ok(())
@@ -121,7 +122,7 @@ impl ImageOutput {
         let pixels = image.data.as_ptr();
         let (width, height, channels) = image.shape();
         let out = self.image_output;
-        let spec = &self.spec;
+        let spec = &mut self.spec;
         let index = self.index;
         let ok = unsafe {
             cpp!([out as "ImageOutput*", index as "size_t", filename as "const char *", base_type as "TypeDesc::BASETYPE", spec as "ImageSpec *", width as "size_t", height as "size_t", channels as "size_t", pixels as "const void*"] -> bool as "bool" {
@@ -272,37 +273,6 @@ impl ImageInput {
         let res = unsafe {
             cpp!([input as "std::unique_ptr<ImageInput>", index as "size_t", miplevel as "size_t", channels as "size_t", fmt as "TypeDesc::BASETYPE", data as "void *"] ->  bool as "bool" {
                 return input->read_image(index, miplevel, 0, channels, fmt, data);
-            })
-        };
-
-        if !res {
-            return Err(Error::CannotReadImage(
-                self.path.to_string_lossy().to_string(),
-            ));
-        }
-
-        Ok(())
-    }
-
-    /// Read scanline
-    pub fn read_scanline<T: Type, C: Color>(&self, y: usize, buf: &mut [T]) -> Result<(), Error> {
-        let data = buf.as_mut_ptr();
-
-        let input = self.image_input;
-        let spec = &self.spec;
-        let fmt = T::BASE;
-
-        if spec.nchannels() < C::CHANNELS || spec.width() * spec.nchannels() != buf.len() {
-            return Err(Error::InvalidDimensions(
-                spec.width(),
-                spec.height(),
-                spec.nchannels(),
-            ));
-        }
-
-        let res = unsafe {
-            cpp!([input as "std::unique_ptr<ImageInput>", y as "size_t", fmt as "TypeDesc::BASETYPE", data as "void *"] ->  bool as "bool" {
-                return input->read_scanline(y, 0, fmt, data);
             })
         };
 
