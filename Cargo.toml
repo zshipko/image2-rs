@@ -9,7 +9,7 @@ documentation = "https://docs.rs/image2"
 description = "A simple image processing library"
 readme = "README.md"
 edition = "2021"
-
+links = "OpenImageIO"
 
 [dependencies]
 half = "2"
