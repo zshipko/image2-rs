@@ -57,6 +57,10 @@ mod halide_wrapper;
 #[cfg(feature = "halide")]
 pub use halide_runtime as halide;
 
+/// Text
+#[cfg(feature = "text")]
+pub mod text;
+
 /// Image input/output
 pub mod io;
 
@@ -81,6 +85,9 @@ pub use kernel::Kernel;
 pub use pixel::Pixel;
 pub use r#type::Type;
 pub use transform::Transform;
+
+#[cfg(feature = "text")]
+pub use text::Text;
 
 #[cfg(test)]
 mod tests;

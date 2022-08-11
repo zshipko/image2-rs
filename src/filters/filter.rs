@@ -274,11 +274,15 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Noop {
 /// Build rotation `Transform` using the specified degrees and center point
 pub fn rotate<T: Type, C: Color, U: Type, D: Color>(
     deg: f64,
-    center: (f64, f64),
+    center: Point,
 ) -> impl Filter<T, C, U, D> {
+    let center = center.to_tuple();
     Transform::rotation(euclid::Angle::degrees(-deg))
-        .pre_translate(euclid::Vector2D::new(-center.0, -center.1))
-        .then_translate(euclid::Vector2D::new(center.0, center.1))
+        .pre_translate(euclid::Vector2D::new(
+            -(center.0 as f64),
+            -(center.1 as f64),
+        ))
+        .then_translate(euclid::Vector2D::new(center.0 as f64, center.1 as f64))
 }
 
 #[inline]
@@ -306,14 +310,20 @@ pub fn rotate90<T: Type, C: Color, U: Type, D: Color>(
 ) -> impl Filter<T, C, U, D> {
     let dwidth = to.width as f64;
     let height = from.height as f64;
-    rotate(90., (dwidth / 2., height / 2.))
+    rotate(
+        90.,
+        Point::new((dwidth / 2.) as usize, (height / 2.) as usize),
+    )
 }
 
 /// 180 degree rotation
 pub fn rotate180<T: Type, C: Color, U: Type, D: Color>(src: Size) -> impl Filter<T, C, U, D> {
     let dwidth = src.width as f64;
     let height = src.height as f64;
-    rotate(180., (dwidth / 2., height / 2.))
+    rotate(
+        180.,
+        Point::new((dwidth / 2.) as usize, (height / 2.) as usize),
+    )
 }
 
 /// 270 degree rotation
@@ -323,5 +333,8 @@ pub fn rotate270<T: Type, C: Color, U: Type, D: Color>(
 ) -> impl Filter<T, C, U, D> {
     let width = to.height as f64;
     let dheight = from.width as f64;
-    rotate(270., (width / 2., dheight / 2.))
+    rotate(
+        270.,
+        Point::new((width / 2.) as usize, (dheight / 2.) as usize),
+    )
 }

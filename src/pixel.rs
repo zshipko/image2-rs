@@ -23,6 +23,21 @@ impl<C: Color> Default for Pixel<C> {
     }
 }
 
+impl<C: Color> From<&[f64]> for Pixel<C> {
+    fn from(data: &[f64]) -> Self {
+        let mut px = Pixel::new();
+        px.copy_from_slice(&data);
+        px
+    }
+}
+
+impl<C: Color> From<Vec<f64>> for Pixel<C> {
+    fn from(data: Vec<f64>) -> Self {
+        let data = data.into_boxed_slice();
+        Pixel(data, std::marker::PhantomData)
+    }
+}
+
 impl<C: Color> Pixel<C> {
     /// Create an empty pixel
     pub fn new() -> Pixel<C> {
@@ -340,6 +355,16 @@ impl<'a, C: Color> std::ops::Add<&'a Pixel<C>> for Pixel<C> {
     }
 }
 
+impl<'a, C: Color> std::ops::Add<&'a Pixel<C>> for &'a Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn add(self, other: &'a Pixel<C>) -> Pixel<C> {
+        let mut dest = self.clone();
+        dest.map2(other, |x, y| x + y);
+        dest
+    }
+}
+
 impl<C: Color> std::ops::Add<Pixel<C>> for Pixel<C> {
     type Output = Pixel<C>;
 
@@ -383,6 +408,16 @@ impl<'a, T: Type, C: Color> std::ops::Sub<T> for &'a Pixel<C> {
     fn sub(self, other: T) -> Pixel<C> {
         let mut dest = self.clone();
         dest.map(|x| x - other.to_norm());
+        dest
+    }
+}
+
+impl<'a, C: Color> std::ops::Sub<&'a Pixel<C>> for &'a Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn sub(self, other: &'a Pixel<C>) -> Pixel<C> {
+        let mut dest = self.clone();
+        dest.map2(other, |x, y| x - y);
         dest
     }
 }
@@ -439,6 +474,16 @@ impl<'a, T: Type, C: Color> std::ops::Mul<T> for &'a Pixel<C> {
     fn mul(self, other: T) -> Pixel<C> {
         let mut dest = self.clone();
         dest.map(|x| x * other.to_norm());
+        dest
+    }
+}
+
+impl<'a, C: Color> std::ops::Mul<&'a Pixel<C>> for &'a Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn mul(self, other: &'a Pixel<C>) -> Pixel<C> {
+        let mut dest = self.clone();
+        dest.map2(other, |x, y| x * y);
         dest
     }
 }
@@ -506,6 +551,16 @@ impl<'a, C: Color> std::ops::Div<&'a Pixel<C>> for Pixel<C> {
     }
 }
 
+impl<'a, C: Color> std::ops::Div<&'a Pixel<C>> for &'a Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn div(self, other: &'a Pixel<C>) -> Pixel<C> {
+        let mut dest = self.clone();
+        dest.map2(other, |x, y| x / y);
+        dest
+    }
+}
+
 impl<C: Color> std::ops::Div<Pixel<C>> for Pixel<C> {
     type Output = Pixel<C>;
 
@@ -549,6 +604,16 @@ impl<'a, T: Type, C: Color> std::ops::Rem<T> for &'a Pixel<C> {
     fn rem(self, other: T) -> Pixel<C> {
         let mut dest = self.clone();
         dest.map(|x| x % other.to_norm());
+        dest
+    }
+}
+
+impl<'a, C: Color> std::ops::Rem<&'a Pixel<C>> for &'a Pixel<C> {
+    type Output = Pixel<C>;
+
+    fn rem(self, other: &'a Pixel<C>) -> Pixel<C> {
+        let mut dest = self.clone();
+        dest.map2(other, |x, y| x % y);
         dest
     }
 }

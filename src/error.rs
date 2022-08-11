@@ -51,4 +51,8 @@ pub enum Error {
     #[cfg(feature = "window")]
     #[error("Glutin context: {0}")]
     GlutinContext(#[from] glutin::ContextError),
+
+    /// Wraps `std::io::Error`
+    #[error("I/O: {0}")]
+    IO(#[from] std::io::Error),
 }

@@ -249,3 +249,15 @@ fn test_type_and_color_name() {
     assert!(f32::type_name() != f64::type_name());
     assert!(u8::type_name() == u8::type_name());
 }
+
+#[cfg(feature = "text")]
+#[test]
+fn test_text() {
+    let mut image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
+    let font = include_bytes!("../images/OpenSans-Regular.ttf");
+    let font = text::font(font).unwrap();
+    let px = Pixel::from(vec![1.0, 0.0, 0.0]);
+    let text = Text::new(font, "Testing123", 64.0).with_color(px);
+    text.draw(&mut image, (100, 100));
+    image.save("images/test-text.png").unwrap();
+}
