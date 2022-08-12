@@ -47,15 +47,17 @@ This is not a pure Rust crate, if that's important to you then [image](https://g
 ## Features
 
 - `oiio`
-  * Enables I/O using OpenImageIO
+  * Enables I/O using OpenImageIO (default: enabled)
 - `parallel`:
-  * Enables parallel image iterators
+  * Enables parallel image iterators (default: enabled)
+- `text`:
+  * Enables loading fonts and drawing text on images (default: enabled)
 - `window`:
-  * Enables ability to draw images to a graphical window
+  * Enables ability to draw images to a graphical window (default: disabled)
 - `halide`:
-  * [halide-runtime](https://github.com/zshipko/halide-runtime) interop
+  * [halide-runtime](https://github.com/zshipko/halide-runtime) interop (default: disabled)
 - `serialize`:
-  * Enables serde support for several data structures
+  * Enables serde support for several data structures (default: disabled)
 
 ## External dependencies
 
