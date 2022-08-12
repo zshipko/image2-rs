@@ -2,16 +2,7 @@ use std::io::Read;
 
 use crate::*;
 
-/// Defines size. location and contents for drawing text
-pub struct Text<'a, C: Color> {
-    text: String,
-    color: Pixel<C>,
-    width: Option<usize>,
-    height: Option<usize>,
-    size: f32,
-    font: Font<'a>,
-}
-
+// Re-export `Font` type
 pub use rusttype::Font;
 
 /// Load font from disk
@@ -33,48 +24,44 @@ pub fn font(data: &[u8]) -> Result<Font<'_>, Error> {
     }
 }
 
-impl<'a, C: Color> Text<'a, C> {
-    /// Create new `Text` from the given font, text and size (in pixels)
-    pub fn new(font: Font<'a>, text: impl Into<String>, size: f32) -> Self {
-        Text {
-            text: text.into(),
-            color: Pixel::new(),
-            width: None,
-            height: None,
-            size,
-            font,
+/// Get size of text to be drawn
+pub fn width<'a>(text: impl AsRef<str>, font: &Font<'a>, size: f32) -> usize {
+    if text.as_ref().is_empty() {
+        return 0;
+    }
+
+    let scale = rusttype::Scale::uniform(size);
+    let layout = font.layout(text.as_ref(), scale, rusttype::point(0., 0.));
+    let mut w = 0;
+
+    for glyph in layout {
+        if let Some(bounding_box) = glyph.pixel_bounding_box() {
+            w = bounding_box.max.x as usize;
         }
     }
 
-    /// Set bounding width
-    pub fn with_max_width(mut self, w: usize) -> Self {
-        self.width = Some(w);
-        self
-    }
+    w
+}
 
-    /// Set bounding height
-    pub fn with_max_height(mut self, h: usize) -> Self {
-        self.height = Some(h);
-        self
-    }
-
-    /// Set text color
-    pub fn with_color(mut self, color: Pixel<Rgb>) -> Self {
-        self.color = color.convert();
-        self
-    }
-
+impl<T: Type, C: Color> Image<T, C> {
     /// Draw text on image
-    pub fn draw<T: Type>(&self, image: &mut Image<T, C>, pos: impl Into<Point>) {
+    pub fn draw_text<'a>(
+        &mut self,
+        text: impl AsRef<str>,
+        font: &Font<'a>,
+        size: f32,
+        pos: impl Into<Point>,
+        color: &Pixel<C>,
+    ) {
         let pos = pos.into();
-        let scale = rusttype::Scale::uniform(self.size);
-        let layout = self.font.layout(
-            &self.text,
+        let scale = rusttype::Scale::uniform(size);
+        let layout = font.layout(
+            text.as_ref(),
             scale,
             rusttype::point(pos.x as f32, pos.y as f32),
         );
 
-        let mut data = vec![0.convert(); C::CHANNELS];
+        let mut data = vec![T::from_f64(0.0); C::CHANNELS];
         let mut tmp = Pixel::new();
         for glyph in layout {
             if let Some(bounding_box) = glyph.pixel_bounding_box() {
@@ -83,10 +70,10 @@ impl<'a, C: Color> Text<'a, C> {
                         (x as isize + bounding_box.min.x as isize) as usize,
                         (y as isize + bounding_box.min.y as isize) as usize,
                     );
-                    if image.at(pt, &mut data) {
+                    if self.at(pt, &mut data) {
                         tmp.copy_from_slice(&data);
-                        let color = &tmp * (1.0 - v) + &self.color * v;
-                        image.set_pixel(pt, &color);
+                        let color = &tmp * (1.0 - v) + color * v;
+                        self.set_pixel(pt, &color);
                     }
                 });
             }

@@ -257,7 +257,9 @@ fn test_text() {
     let font = include_bytes!("../images/OpenSans-Regular.ttf");
     let font = text::font(font).unwrap();
     let px = Pixel::from(vec![1.0, 0.0, 0.0]);
-    let text = Text::new(font, "Testing123", 64.0).with_color(px);
-    text.draw(&mut image, (100, 100));
+    image.draw_text("Testing123", &font, 64.0, (100, 100), &px);
+    println!("{:?}", text::width("Testing123", &font, 64.0));
+    let width = image.width();
+    image.draw_text("Testing123", &font, 64.0, (width - 100, 700), &px);
     image.save("images/test-text.png").unwrap();
 }

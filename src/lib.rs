@@ -86,9 +86,6 @@ pub use pixel::Pixel;
 pub use r#type::Type;
 pub use transform::Transform;
 
-#[cfg(feature = "text")]
-pub use text::Text;
-
 #[cfg(test)]
 mod tests;
 
