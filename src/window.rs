@@ -120,6 +120,10 @@ impl<T: Type, C: Color> WindowSet<T, C> {
             *cf = ControlFlow::Wait;
 
             match &event {
+                Event::LoopDestroyed => {
+                    *cf = ControlFlow::Exit;
+                    return;
+                }
                 Event::WindowEvent { event, window_id } => match event {
                     WindowEvent::CloseRequested => {
                         if let Some(window) = self.get_mut(window_id) {
