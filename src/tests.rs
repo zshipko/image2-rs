@@ -211,8 +211,13 @@ fn test_saturation() {
 
 #[test]
 fn test_xyz() {
+    let image: Image<f32, Rgb> = Image::open("images/A.exr").unwrap();
+    let image: Image<f32, Xyz> = image.convert();
+    assert!(image.save("images/test-xyz.exr").is_ok());
+
     let image: Image<f32, Xyz> = Image::open("images/A.exr").unwrap();
-    assert!(image.save("images/test-xyz.jpg").is_ok());
+    let image: Image<f32, Rgb> = image.convert();
+    assert!(image.save("images/test-xyz1.exr").is_ok());
 }
 
 #[cfg(feature = "oiio")]

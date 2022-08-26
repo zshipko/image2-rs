@@ -158,19 +158,15 @@ impl Color for Xyz {
             b /= 12.92
         }
 
-        r *= 100.;
-        g *= 100.;
-        b *= 100.;
-
         pixel[0] = r * 0.4124 + g * 0.3576 + b * 0.1805;
         pixel[1] = r * 0.2126 + g * 0.7152 + b * 0.0722;
         pixel[2] = r * 0.0193 + g * 0.1192 + b * 0.9505;
     }
 
     fn to_rgb(px: &Pixel<Xyz>, mut rgb: &mut Pixel<Rgb>) {
-        let x = px[0] / 100.;
-        let y = px[1] / 100.;
-        let z = px[2] / 100.;
+        let x = px[0];
+        let y = px[1];
+        let z = px[2];
 
         rgb[0] = {
             let var_r = x * 3.2406 + y * -1.5372 + z * -0.4986;

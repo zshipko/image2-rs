@@ -89,7 +89,6 @@ impl ImageOutput {
     /// Note: `image` dimensions and type will take precendence over the ImageSpec
     pub fn write<T: Type, C: Color>(mut self, image: &Image<T, C>) -> Result<(), Error> {
         let base_type = T::BASE;
-        let name = C::NAME.as_bytes().as_ptr() as *const _;
         let path: &std::path::Path = self.path.as_ref();
         let path_str = std::ffi::CString::new(path.to_string_lossy().as_bytes().to_vec()).unwrap();
         let filename = path_str.as_ptr();
@@ -98,16 +97,12 @@ impl ImageOutput {
         let out = self.image_output;
         let spec = &mut self.spec;
         unsafe {
-            cpp!([out as "ImageOutput*", name as "const char *", filename as "const char *", base_type as "TypeDesc::BASETYPE", spec as "ImageSpec *", width as "size_t", height as "size_t", channels as "size_t", pixels as "const void*"] {
+            cpp!([out as "ImageOutput*", filename as "const char *", base_type as "TypeDesc::BASETYPE", spec as "ImageSpec *", width as "size_t", height as "size_t", channels as "size_t", pixels as "const void*"] {
                 ImageSpec outspec (*spec);
                 outspec.width = width;
                 outspec.height = height;
                 outspec.nchannels = channels;
-                auto x = std::vector<std::string>(channels);
-                for (int i = 0; i < channels; i++){
-                    x[i] = std::string(1, name[i]);
-                }
-                outspec.channelnames = x;
+                outspec.channelnames.assign({"R", "G", "B", "A"});
                 outspec.set_format(TypeDesc(base_type));
                 out->open (filename, outspec);
                 out->write_image (base_type, pixels);
