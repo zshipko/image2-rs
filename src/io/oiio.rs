@@ -213,18 +213,24 @@ impl ImageInput {
     }
 
     /// Open image for reading
-    pub fn open(path: impl AsRef<std::path::Path>) -> Result<ImageInput, Error> {
+    pub fn open(
+        path: impl AsRef<std::path::Path>,
+        config: Option<&ImageSpec>,
+    ) -> Result<ImageInput, Error> {
         let mut spec = ImageSpec::empty();
         let tmp = &mut spec;
 
         let path = path.as_ref();
         let path_str = std::ffi::CString::new(path.to_string_lossy().as_bytes().to_vec()).unwrap();
         let filename = path_str.as_ptr();
+        let config = config
+            .map(|x| x as *const ImageSpec)
+            .unwrap_or_else(|| std::ptr::null());
 
         let input = unsafe {
-            cpp!([filename as "const char *", tmp as "ImageSpec*"] ->  *mut u8 as "std::unique_ptr<ImageInput>" {
+            cpp!([filename as "const char *", tmp as "ImageSpec*", config as "ImageSpec*"] ->  *mut u8 as "std::unique_ptr<ImageInput>" {
                 std::string s(filename);
-                auto input = ImageInput::open(s);
+                auto input = ImageInput::open(s, config);
                 if (!input) {
                     return nullptr;
                 }
@@ -352,7 +358,8 @@ cpp_class!(
     pub unsafe struct ImageSpec as "ImageSpec"
 );
 impl ImageSpec {
-    fn empty() -> ImageSpec {
+    /// Create an empty ImageSpec
+    pub fn empty() -> ImageSpec {
         unsafe {
             cpp!([] -> ImageSpec as "ImageSpec" {
                 return ImageSpec();
@@ -621,7 +628,7 @@ pub(crate) mod internal {
 
 /// Read image from disk
 pub fn read<P: AsRef<std::path::Path>, T: Type, C: Color>(path: P) -> Result<Image<T, C>, Error> {
-    ImageInput::open(path)?.read()
+    ImageInput::open(path, None)?.read()
 }
 
 /// Write image to disk
