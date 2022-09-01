@@ -230,7 +230,7 @@ impl ImageInput {
         let input = unsafe {
             cpp!([filename as "const char *", tmp as "ImageSpec*", config as "ImageSpec*"] ->  *mut u8 as "std::unique_ptr<ImageInput>" {
                 std::string s(filename);
-                auto input = ImageInput::open(s, config);
+                auto input = config == nullptr ? ImageInput::open(s) : ImageInput::open(s, config);
                 if (!input) {
                     return nullptr;
                 }
