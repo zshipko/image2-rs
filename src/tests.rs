@@ -234,7 +234,7 @@ fn test_convert_colorspace() {
 #[cfg(feature = "oiio")]
 #[test]
 fn test_metadata() {
-    let input = ImageInput::open("images/A.exr").unwrap();
+    let input = ImageInput::open("images/A.exr", None).unwrap();
     let a = input.spec().attrs();
     println!("KEYS: {:?}", a);
 
@@ -243,7 +243,7 @@ fn test_metadata() {
     output.spec_mut().set_attr("testing", "123");
     output.write(&image).unwrap();
 
-    let input2 = ImageInput::open("images/test.exr").unwrap();
+    let input2 = ImageInput::open("images/test.exr", None).unwrap();
     let b = input2.spec().attrs();
     assert!(b.contains_key(&"testing"));
     assert!(input2.spec().get_attr("testing") == Some(Attr::String("123")));
