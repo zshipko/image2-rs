@@ -117,7 +117,7 @@ impl<T: Type, C: Color> WindowSet<T, C> {
         mut event_handler: F,
     ) {
         event_loop.run_return(move |event, _target, cf| {
-            *cf = ControlFlow::Wait;
+            *cf = ControlFlow::Poll;
 
             match &event {
                 Event::LoopDestroyed => {
