@@ -169,7 +169,7 @@ impl<T: Type, C: Color> WindowSet<T, C> {
     }
 }
 
-impl<'a, T: Type, C: Color> Window<T, C> {
+impl<T: Type, C: Color> Window<T, C> {
     /// Create a new window
     pub fn new<X>(
         event_loop: &EventLoop<X>,
@@ -428,7 +428,7 @@ impl<'a, T: Type, C: Color> Window<T, C> {
 }
 
 /// Wraps OpenGL textures
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Default)]
 pub struct Texture {
     /// OpenGL texture id
     pub id: GLuint,

@@ -25,7 +25,7 @@ pub fn font(data: &[u8]) -> Result<Font<'_>, Error> {
 }
 
 /// Get size of text to be drawn
-pub fn width<'a>(text: impl AsRef<str>, font: &Font<'a>, size: f32) -> usize {
+pub fn width(text: impl AsRef<str>, font: &Font, size: f32) -> usize {
     if text.as_ref().is_empty() {
         return 0;
     }

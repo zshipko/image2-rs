@@ -1,7 +1,7 @@
 use crate::*;
 
 /// Image histogram
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Histogram {
     total: usize,
     bins: Box<[usize]>,

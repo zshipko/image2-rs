@@ -1,11 +1,11 @@
 use crate::*;
 
 /// Wraps image data slices, tagging them with a Color type
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd)]
 pub struct Data<'a, T: 'a + Type, C: 'a + Color>(&'a [T], std::marker::PhantomData<C>);
 
 /// Wraps mutable image data slices, tagging them with a Color type
-#[derive(Debug, PartialEq, PartialOrd)]
+#[derive(Debug, PartialEq, Eq, PartialOrd)]
 pub struct DataMut<'a, T: 'a + Type, C: 'a + Color>(&'a mut [T], std::marker::PhantomData<C>);
 
 impl<'a, T: Type, C: Color> Data<'a, T, C> {
