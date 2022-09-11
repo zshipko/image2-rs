@@ -49,6 +49,22 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Brightness {
 }
 
 #[derive(Debug)]
+struct Exposure(i32);
+
+/// Adjust image exposure, the argument is the number of stops to increase or decrease exposure by
+pub fn exposure<T: Type, C: Color, U: Type, D: Color>(stops: i32) -> impl Filter<T, C, U, D> {
+    Exposure(stops)
+}
+
+impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Exposure {
+    fn compute_at(&self, pt: Point, input: &Input<T, C>, data: &mut DataMut<U, D>) {
+        let mut px = input.get_pixel(pt, None);
+        px *= 2f64.powi(self.0);
+        px.convert_to_data(data);
+    }
+}
+
+#[derive(Debug)]
 struct Contrast(pub f64);
 
 /// Adjust image contrast
