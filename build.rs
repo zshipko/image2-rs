@@ -1,5 +1,5 @@
 fn main() {
-    #[cfg(all(feature = "oiio", not(feature = "docs-rs")))]
+    #[cfg(all(feature = "oiio", not(feature = "docs-rs"), not(feature = "oiio-custom")))]
     {
         let mut pkg = std::process::Command::new("pkg-config");
         pkg.arg("--cflags")
@@ -44,5 +44,20 @@ fn main() {
                 println!("cargo:rustc-link-lib={lib}");
             }
         }
+    }
+
+    #[cfg(all(feature = "oiio-custom", not(feature = "docs-rs")))]
+    {
+        let oiio_include = env!("OIIO_CUSTOM_INCLUDE", "Must set OIIO_CUSTOM_INCLUDE env in .cargo/config.toml to directory with OpenImageIO headers");
+        let oiio_lib = env!("OIIO_CUSTOM_LIB", "Must set OIIO_CUSTOM_LIB env in .cargo/config.toml to directory with compiled OpenImageIO libraries");
+
+        let mut config = cpp_build::Config::new();
+        config.flag("-std=c++14").flag("-w");
+        config.include(oiio_include);
+        config.build("src/io/oiio.rs");
+
+        println!("cargo:rustc-link-search={}", oiio_lib);
+        println!("cargo:rustc-link-lib=OpenImageIO");
+        println!("cargo:rustc-link-lib=OpenImageIO_Util");
     }
 }
