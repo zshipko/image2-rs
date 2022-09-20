@@ -33,6 +33,7 @@ smol = "1"
 default = ["oiio", "parallel", "text"]
 window = ["gl", "glutin"]
 oiio = ["cpp", "cpp_build"]
+oiio-custom = ["cpp", "cpp_build"]
 parallel = ["rayon"]
 halide = ["halide-runtime"]
 serialize = ["serde", "euclid/serde"]
