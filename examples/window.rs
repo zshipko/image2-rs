@@ -9,33 +9,26 @@ fn main() {
         "images/A.exr".to_string()
     };
 
+    let context = Context::new().unwrap();
     let image = Image::<f32, Rgb>::open(&arg).unwrap();
 
     println!("Press 'i' to invert the image");
 
     show_all(
+        &context,
         vec![("A", image.clone()), ("B", image)],
-        move |windows, event| {
-            if let Event::WindowEvent { event, window_id } = event {
-                let window = windows.get_mut(&window_id)?;
-                match event {
-                    WindowEvent::CursorMoved { .. } => {
-                        println!("Mouse: {:?}", window.mouse_position());
-                    }
-                    WindowEvent::KeyboardInput { input, .. } => {
-                        if input.state != ElementState::Pressed {
-                            return None;
-                        }
-
-                        if let Some(VirtualKeyCode::I) = input.virtual_keycode {
-                            window.image_mut().run_in_place(filter::invert());
-                            window.mark_as_dirty();
-                        }
-                    }
-                    _ => (),
+        move |window, event| {
+            match event {
+                Event::CursorPos(x, y) => {
+                    println!("Mouse: {x} {y}");
                 }
-            };
-            None
+                Event::Key(Key::I, _, Action::Press, _) => {
+                    window.image_mut().run_in_place(filter::invert());
+                }
+                _ => (),
+            }
+
+            Ok(())
         },
     )
     .unwrap();

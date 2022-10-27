@@ -42,15 +42,15 @@ pub enum Error {
     #[error("Magick: {0}")]
     Magick(#[from] crate::io::magick::Error),
 
-    /// Window creation error
+    /// GLFW error
     #[cfg(feature = "window")]
-    #[error("Glutin window creation: {0}")]
-    GlutinWindowCreation(#[from] glutin::CreationError),
+    #[error("GLFW: {0}")]
+    GLFW(#[from] glfw::Error),
 
-    /// Glutin context error
+    /// GLFW init error
     #[cfg(feature = "window")]
-    #[error("Glutin context: {0}")]
-    GlutinContext(#[from] glutin::ContextError),
+    #[error("GLFW init: {0}")]
+    GLFWInit(#[from] glfw::InitError),
 
     /// Wraps `std::io::Error`
     #[error("I/O: {0}")]

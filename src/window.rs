@@ -2,31 +2,45 @@ use crate::*;
 
 use gl::types::*;
 
-pub use glutin::{
-    self,
-    event::{
-        ElementState, Event, KeyboardInput, ModifiersState, ScanCode, VirtualKeyCode, WindowEvent,
-    },
-    event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
-    window::{WindowBuilder, WindowId},
-    ContextCurrentState as CurrentState, NotCurrent, PossiblyCurrent, WindowedContext as Context,
-};
+use glfw::Context as GlfwContext;
+pub use glfw::{Action, Key, Modifiers, MouseButton, WindowEvent as Event, WindowId};
 
-use glutin::platform::run_return::EventLoopExtRunReturn;
+/// Window context
+pub struct Context {
+    /// GLFW handle
+    pub glfw: std::cell::RefCell<glfw::Glfw>,
+}
+
+impl Context {
+    /// Create a new context
+    pub fn new() -> Result<Self, Error> {
+        let glfw = std::cell::RefCell::new(glfw::init::<()>(glfw::FAIL_ON_ERRORS)?);
+        Ok(Context { glfw })
+    }
+
+    /// Create a new context with error callback
+    pub fn new_with_error_callback<T: 'static>(
+        f: glfw::Callback<fn(glfw::Error, String, &T), T>,
+    ) -> Result<Self, Error> {
+        let glfw = std::cell::RefCell::new(glfw::init::<T>(Some(f))?);
+        Ok(Context { glfw })
+    }
+}
 
 /// Window is used to display images
 pub struct Window<T: Type, C: Color> {
-    /// Window ID
     id: WindowId,
 
-    /// OpenGL context
-    context: Option<Context<NotCurrent>>,
+    /// GLFW Window
+    inner: glfw::Window,
+
+    /// Event stream
+    events: std::sync::mpsc::Receiver<(f64, Event)>,
+
+    image: Image<T, C>,
 
     /// Window texture
     pub texture: Texture,
-
-    /// Window image
-    image: Image<T, C>,
 
     /// OpenGL framebuffer
     pub framebuffer: GLuint,
@@ -34,18 +48,16 @@ pub struct Window<T: Type, C: Color> {
     /// Window's current size
     size: Size,
 
-    /// Window dirty state, the window should be redrawn when set to true
-    dirty: bool,
-
     /// Current mouse position
     position: Point,
 
     closed: bool,
+
     data: Option<Box<dyn std::any::Any>>,
 }
 
 /// `WindowSet` allows for multiple windows to run at once
-pub struct WindowSet<T: Type, C: Color>(std::collections::BTreeMap<WindowId, Window<T, C>>);
+pub struct WindowSet<T: Type, C: Color>(std::collections::BTreeMap<glfw::WindowId, Window<T, C>>);
 
 impl<T: Type, C: Color> Default for WindowSet<T, C> {
     fn default() -> Self {
@@ -67,16 +79,16 @@ impl<T: Type, C: Color> WindowSet<T, C> {
     }
 
     /// Create a new window and add it
-    pub fn create<X>(
+    pub fn create(
         &mut self,
-        event_loop: &EventLoop<X>,
+        context: &Context,
+        title: impl AsRef<str>,
         image: Image<T, C>,
-        window_builder: WindowBuilder,
     ) -> Result<WindowId, Error>
     where
         Image<T, C>: ToTexture<T, C>,
     {
-        let window = Window::new(event_loop, image, window_builder)?;
+        let window = Window::new(context, image, title)?;
         self.add(window)
     }
 
@@ -97,98 +109,109 @@ impl<T: Type, C: Color> WindowSet<T, C> {
 
     /// Iterate over all windows
     pub fn iter(&self) -> impl Iterator<Item = (&WindowId, &Window<T, C>)> {
-        self.0.iter()
+        self.0.iter().filter(|(_, x)| !x.is_closed())
     }
 
     /// Iterate over mutable windows
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&WindowId, &mut Window<T, C>)> {
-        self.0.iter_mut()
+        self.0.iter_mut().filter(|(_, x)| !x.is_closed())
     }
 
     /// Convert into an interator over windows
-    pub fn iter_windows(self) -> impl Iterator<Item = Window<T, C>> {
-        self.0.into_values()
+    pub fn iter_windows(&self) -> impl Iterator<Item = &Window<T, C>> {
+        self.0.values().filter(|x| !x.is_closed())
+    }
+
+    /// Convert into an interator over mutable windows
+    pub fn iter_windows_mut(&mut self) -> impl Iterator<Item = &mut Window<T, C>> {
+        self.0.values_mut().filter(|x| !x.is_closed())
     }
 
     /// Run the event loop until all windows are closed
-    pub fn run<X, F: FnMut(&mut WindowSet<T, C>, Event<'_, X>) -> Option<ControlFlow>>(
+    pub fn run<F: FnMut(&mut Window<T, C>, Event) -> Result<(), Error>>(
         &mut self,
-        event_loop: &mut EventLoop<X>,
+        context: &Context,
         mut event_handler: F,
-    ) {
-        event_loop.run_return(move |event, _target, cf| {
-            *cf = ControlFlow::Poll;
+    ) -> Result<(), Error> {
+        while self.iter_windows().count() > 0 {
+            context.glfw.borrow_mut().poll_events();
 
-            match &event {
-                Event::LoopDestroyed => {
-                    *cf = ControlFlow::Exit;
-                    return;
-                }
-                Event::WindowEvent { event, window_id } => match event {
-                    WindowEvent::CloseRequested => {
-                        if let Some(window) = self.get_mut(window_id) {
+            let mut count = 0;
+            for window in self.iter_windows_mut() {
+                count += 1;
+
+                // Poll for and process events
+                let mut events = vec![];
+                for (_, event) in glfw::flush_messages(&window.events) {
+                    let event = match event {
+                        Event::CursorPos(x, y) => {
+                            let pt = window.fix_mouse_position((x as usize, y as usize));
+                            window.position = pt;
+                            Event::CursorPos(pt.x as f64, pt.y as f64)
+                        }
+                        Event::Scroll(x, y) => {
+                            let pt = window.fix_mouse_position((x as usize, y as usize));
+                            Event::Scroll(pt.x as f64, pt.y as f64)
+                        }
+                        Event::Size(w, h) => {
+                            window.size = Size::new(w as usize, h as usize);
+                            Event::Size(w, h)
+                        }
+                        Event::Close => {
                             window.close();
+                            break;
                         }
-                    }
-                    WindowEvent::CursorMoved { position, .. } => {
-                        if let Some(window) = self.get_mut(window_id) {
-                            window.position = window
-                                .fix_mouse_position((position.x as usize, position.y as usize));
-                        }
-                    }
-                    _ => (),
-                },
-                Event::RedrawRequested(window_id) => {
-                    if let Some(window) = self.get_mut(window_id) {
-                        window.draw().unwrap();
-                    }
+                        event => event,
+                    };
+
+                    events.push(event);
                 }
-                _ => (),
-            }
 
-            if let Some(new_cf) = event_handler(self, event) {
-                *cf = new_cf;
-            }
-
-            let mut open = 0;
-            for (_, window) in self.0.iter_mut() {
-                if window.closed {
+                if events.is_empty() {
                     continue;
                 }
 
-                open += 1;
-                if window.dirty {
-                    let _ = window.draw();
+                for event in events {
+                    event_handler(window, event)?;
                 }
+
+                window.draw()?;
             }
 
-            if open == 0 {
-                *cf = ControlFlow::Exit;
+            if count == 0 {
+                break;
             }
-        });
+        }
+
+        Ok(())
     }
 }
 
 impl<T: Type, C: Color> Window<T, C> {
     /// Create a new window
-    pub fn new<X>(
-        event_loop: &EventLoop<X>,
+    pub fn new(
+        context: &Context,
         image: Image<T, C>,
-        window: WindowBuilder,
+        title: impl AsRef<str>,
     ) -> Result<Window<T, C>, Error>
     where
         Image<T, C>: ToTexture<T, C>,
     {
-        let mut framebuffer = 0;
-
-        let context = glutin::ContextBuilder::new().build_windowed(window, event_loop)?;
-        let context = match unsafe { context.make_current() } {
-            Ok(ctx) => ctx,
-            Err((_, e)) => return Err(e.into()),
+        let (mut inner, events) = match context.glfw.borrow().create_window(
+            image.width() as u32,
+            image.height() as u32,
+            title.as_ref(),
+            glfw::WindowMode::Windowed,
+        ) {
+            Some(x) => x,
+            None => return Err(Error::Message("Unable to open window".into())),
         };
+        inner.set_all_polling(true);
+        inner.make_current();
 
-        gl::load_with(|ptr| context.context().get_proc_address(ptr) as *const _);
+        gl::load_with(|ptr| context.glfw.borrow().get_proc_address_raw(ptr));
 
+        let mut framebuffer = 0;
         let texture = image.to_texture()?;
 
         unsafe {
@@ -204,26 +227,25 @@ impl<T: Type, C: Color> Window<T, C> {
             gl::BindFramebuffer(gl::READ_FRAMEBUFFER, 0);
         }
 
-        let context = match unsafe { context.make_not_current() } {
-            Ok(ctx) => ctx,
-            Err((_, e)) => return Err(e.into()),
-        };
+        let (width, height) = inner.get_size();
+        let id = inner.window_id();
+        let size = Size::new(width as usize, height as usize);
 
-        let size = context.window().inner_size();
-        let id = context.window().id();
-
-        Ok(Window {
+        let mut window = Window {
             id,
-            context: Some(context),
-            image,
-            texture,
-            framebuffer,
+            inner,
+            events,
             position: Point::default(),
-            size: Size::new(size.width as usize, size.height as usize),
-            dirty: true,
+            size,
             closed: false,
             data: None,
-        })
+            texture,
+            framebuffer,
+            image,
+        };
+
+        window.draw()?;
+        Ok(window)
     }
 
     /// Set user data
@@ -239,36 +261,6 @@ impl<T: Type, C: Color> Window<T, C> {
     /// Get mutable user data
     pub fn data_mut<X: std::any::Any>(&mut self) -> Option<&mut X> {
         self.data.as_deref_mut().and_then(|x| x.downcast_mut())
-    }
-
-    /// Execute a callback with a current OpenGL context
-    pub fn with_current_context<X, F: FnOnce(&mut Context<PossiblyCurrent>) -> Result<X, Error>>(
-        &mut self,
-        f: F,
-    ) -> Result<X, Error> {
-        if let Some(ctx) = self.context.take() {
-            let size = ctx.window().inner_size();
-            self.size.width = size.width as usize;
-            self.size.height = size.height as usize;
-
-            let ctx = unsafe { ctx.make_current() };
-            let mut ctx = match ctx {
-                Ok(ctx) => ctx,
-                Err((_, e)) => return Err(e.into()),
-            };
-
-            gl::load_with(|ptr| ctx.context().get_proc_address(ptr) as *const _);
-
-            let t = f(&mut ctx);
-            let ctx = match unsafe { ctx.make_not_current() } {
-                Ok(x) => x,
-                Err((_, e)) => return Err(e.into()),
-            };
-            self.context = Some(ctx);
-            return t;
-        }
-
-        Err(Error::GlutinContext(glutin::ContextError::ContextLost))
     }
 
     /// Get current mouse position
@@ -332,97 +324,73 @@ impl<T: Type, C: Color> Window<T, C> {
         &mut self.image
     }
 
-    /// Mark window as dirty - this tells the event handler to call `draw` on the next iteration
-    pub fn mark_as_dirty(&mut self) {
-        self.dirty = true;
-    }
-
-    /// Return true when the window is marked as dirty
-    pub fn is_dirty(&self) -> bool {
-        self.dirty
-    }
-
     /// Return true when the window is closed
     pub fn is_closed(&self) -> bool {
-        self.closed
-    }
-
-    /// Show a window after being closed
-    pub fn open(&mut self) {
-        if let Some(ctx) = &self.context {
-            ctx.window().set_visible(true)
-        }
-        self.closed = false
+        self.closed || self.inner.should_close()
     }
 
     /// Close a window
     pub fn close(&mut self) {
-        if let Some(ctx) = &self.context {
-            ctx.window().set_visible(false)
-        }
-        self.closed = true
+        self.inner.set_should_close(true);
+        self.inner.hide();
+        self.closed = true;
     }
 
     /// Update the texture with data from the window's image
     pub fn draw(&mut self) -> Result<(), Error> {
+        self.inner.make_current();
         let meta = self.image.meta();
         let image = self.image.data.as_ptr();
         let texture = self.texture;
         let framebuffer = self.framebuffer;
         let size = self.size;
-        let size = self.with_current_context(|ctx| {
-            let ratio = (size.width as f64 / meta.width() as f64)
-                .min(size.height as f64 / meta.height() as f64);
-            let display_width = (meta.width() as f64 * ratio) as usize;
-            let display_height = (meta.height() as f64 * ratio) as usize;
-            let x = size.width.saturating_sub(display_width) / 2;
-            let y = size.height.saturating_sub(display_height) / 2;
-            unsafe {
-                gl::ClearColor(0.0, 0.0, 0.0, 1.0);
-                gl::Clear(gl::COLOR_BUFFER_BIT);
+        let ratio = (size.width as f64 / meta.width() as f64)
+            .min(size.height as f64 / meta.height() as f64);
+        let display_width = (meta.width() as f64 * ratio) as usize;
+        let display_height = (meta.height() as f64 * ratio) as usize;
+        let x = size.width.saturating_sub(display_width) / 2;
+        let y = size.height.saturating_sub(display_height) / 2;
+        unsafe {
+            gl::ClearColor(0.0, 0.0, 0.0, 1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT);
 
-                gl::BindTexture(gl::TEXTURE_2D, texture.id);
-                gl::TexImage2D(
-                    gl::TEXTURE_2D,
-                    0,
-                    texture.internal as i32,
-                    meta.width() as i32,
-                    meta.height() as i32,
-                    0,
-                    texture.color,
-                    texture.kind,
-                    image as *const _,
-                );
-                gl::BindTexture(gl::TEXTURE_2D, 0);
+            gl::BindTexture(gl::TEXTURE_2D, texture.id);
+            gl::TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                texture.internal as i32,
+                meta.width() as i32,
+                meta.height() as i32,
+                0,
+                texture.color,
+                texture.kind,
+                image as *const _,
+            );
+            gl::BindTexture(gl::TEXTURE_2D, 0);
+            gl::BindFramebuffer(gl::READ_FRAMEBUFFER, framebuffer);
+            gl::FramebufferTexture2D(
+                gl::READ_FRAMEBUFFER,
+                gl::COLOR_ATTACHMENT0,
+                gl::TEXTURE_2D,
+                texture.id,
+                0,
+            );
+            gl::BlitFramebuffer(
+                0,
+                meta.height() as i32,
+                meta.width() as i32,
+                0,
+                x as i32,
+                y as i32,
+                x as i32 + display_width as i32,
+                y as i32 + display_height as i32,
+                gl::COLOR_BUFFER_BIT,
+                gl::NEAREST,
+            );
+            gl::BindFramebuffer(gl::READ_FRAMEBUFFER, 0);
+        }
 
-                gl::BindFramebuffer(gl::READ_FRAMEBUFFER, framebuffer);
-                gl::FramebufferTexture2D(
-                    gl::READ_FRAMEBUFFER,
-                    gl::COLOR_ATTACHMENT0,
-                    gl::TEXTURE_2D,
-                    texture.id,
-                    0,
-                );
-                gl::BlitFramebuffer(
-                    0,
-                    meta.height() as i32,
-                    meta.width() as i32,
-                    0,
-                    x as i32,
-                    y as i32,
-                    x as i32 + display_width as i32,
-                    y as i32 + display_height as i32,
-                    gl::COLOR_BUFFER_BIT,
-                    gl::NEAREST,
-                );
-                gl::BindFramebuffer(gl::READ_FRAMEBUFFER, 0);
-            }
-            ctx.swap_buffers()?;
-            Ok(ctx.window().inner_size())
-        })?;
-
-        self.size = Size::new(size.width as usize, size.height as usize);
-        self.dirty = false;
+        self.inner.swap_buffers();
         Ok(())
     }
 }
@@ -548,11 +516,8 @@ to_texture!(u8, Rgb, gl::UNSIGNED_BYTE, gl::RGB);
 to_texture!(u8, Rgba, gl::UNSIGNED_BYTE, gl::RGBA);
 
 /// Show an image and exit when ESC is pressed
-pub fn show<
-    T: Type,
-    C: Color,
-    F: FnMut(&mut WindowSet<T, C>, Event<'_, ()>) -> Option<ControlFlow>,
->(
+pub fn show<T: Type, C: Color, F: FnMut(&mut Window<T, C>, Event) -> Result<(), Error>>(
+    context: &Context,
     title: impl AsRef<str>,
     image: Image<T, C>,
     mut f: F,
@@ -560,26 +525,17 @@ pub fn show<
 where
     Image<T, C>: ToTexture<T, C>,
 {
-    let mut event_loop = EventLoop::new();
     let mut windows = WindowSet::new();
-    let id = windows.create(
-        &event_loop,
-        image,
-        WindowBuilder::new().with_title(title.as_ref()),
-    )?;
+    let id = windows.create(context, title, image)?;
 
-    windows.run(&mut event_loop, move |windows, event| {
-        if let Event::WindowEvent {
-            event: WindowEvent::KeyboardInput { input, .. },
-            ..
-        } = &event
-        {
-            if input.scancode == 0x01 {
-                return Some(ControlFlow::Exit);
+    windows.run(context, |window, event| {
+        if let Event::Key(k, _, action, _) = event {
+            if k == Key::Escape && action == Action::Press {
+                window.close();
             }
         }
-        f(windows, event)
-    });
+        f(window, event)
+    })?;
 
     if let Some(window) = windows.remove(&id) {
         return Ok(window.into_image());
@@ -589,40 +545,28 @@ where
 }
 
 /// Show multiple images and exit when ESC is pressed
-pub fn show_all<
-    T: Type,
-    C: Color,
-    F: FnMut(&mut WindowSet<T, C>, Event<'_, ()>) -> Option<ControlFlow>,
->(
+pub fn show_all<T: Type, C: Color, F: FnMut(&mut Window<T, C>, Event) -> Result<(), Error>>(
+    context: &Context,
     images: impl IntoIterator<Item = (impl Into<String>, Image<T, C>)>,
     mut f: F,
 ) -> Result<Vec<Image<T, C>>, Error>
 where
     Image<T, C>: ToTexture<T, C>,
 {
-    let mut event_loop = EventLoop::new();
     let mut windows = WindowSet::new();
 
     for (title, image) in images.into_iter() {
-        windows.create(
-            &event_loop,
-            image,
-            WindowBuilder::new().with_title(title.into()),
-        )?;
+        windows.create(context, title.into(), image)?;
     }
 
-    windows.run(&mut event_loop, move |windows, event| {
-        if let Event::WindowEvent {
-            event: WindowEvent::KeyboardInput { input, .. },
-            ..
-        } = &event
-        {
-            if input.scancode == 0x01 {
-                return Some(ControlFlow::Exit);
+    windows.run(context, |window, event| {
+        if let Event::Key(k, _, action, _) = event {
+            if k == Key::Escape && action == Action::Press {
+                window.close();
             }
         }
-        f(windows, event)
-    });
+        f(window, event)
+    })?;
 
-    Ok(windows.iter_windows().map(|w| w.into_image()).collect())
+    Ok(windows.0.into_values().map(|w| w.into_image()).collect())
 }

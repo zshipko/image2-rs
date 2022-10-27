@@ -1,6 +1,6 @@
 [package]
 name = "image2"
-version = "1.6.1"
+version = "1.7.0"
 authors = ["Zach Shipko <zachshipko@gmail.com>"]
 license = "ISC"
 keywords = ["image", "image-processing"]
@@ -20,7 +20,7 @@ rayon = {version = "1", optional = true}
 serde = {version = "1", optional = true, features = ["derive"]}
 rusttype = {version = "0.9", optional = true}
 halide-runtime = {version = "0.6", optional = true}
-glutin = {version = "0.29", optional = true}
+glfw = {version = "0.45", optional = true}
 gl = {version = "0.14", optional = true}
 
 [build-dependencies]
@@ -31,7 +31,7 @@ smol = "1"
 
 [features]
 default = ["oiio", "parallel", "text"]
-window = ["gl", "glutin"]
+window = ["gl", "glfw"]
 oiio = ["cpp", "cpp_build"]
 oiio-custom = ["cpp", "cpp_build"]
 parallel = ["rayon"]
