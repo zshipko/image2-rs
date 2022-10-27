@@ -225,7 +225,7 @@ impl ImageInput {
         let filename = path_str.as_ptr();
         let config = config
             .map(|x| x as *const ImageSpec)
-            .unwrap_or_else(|| std::ptr::null());
+            .unwrap_or_else(std::ptr::null);
 
         let input = unsafe {
             cpp!([filename as "const char *", tmp as "ImageSpec*", config as "ImageSpec*"] ->  *mut u8 as "std::unique_ptr<ImageInput>" {

@@ -107,7 +107,7 @@ impl<T: Type, C: Color> WindowSet<T, C> {
 
     /// Convert into an interator over windows
     pub fn iter_windows(self) -> impl Iterator<Item = Window<T, C>> {
-        self.0.into_iter().map(|(_, v)| v)
+        self.0.into_values()
     }
 
     /// Run the event loop until all windows are closed

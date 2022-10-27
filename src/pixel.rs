@@ -26,7 +26,7 @@ impl<C: Color> Default for Pixel<C> {
 impl<C: Color> From<&[f64]> for Pixel<C> {
     fn from(data: &[f64]) -> Self {
         let mut px = Pixel::new();
-        px.copy_from_slice(&data);
+        px.copy_from_slice(data);
         px
     }
 }
@@ -99,15 +99,7 @@ impl<C: Color> Pixel<C> {
 
     /// Clamp values betwen 0 and 1.0
     pub fn clamp(&mut self) -> &mut Self {
-        self.map(|x| {
-            if x < 0. {
-                0.
-            } else if x > 1.0 {
-                1.0
-            } else {
-                x
-            }
-        })
+        self.map(|x| x.clamp(0., 1.))
     }
 
     /// Returns `self` after calling `clamp`

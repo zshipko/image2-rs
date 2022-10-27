@@ -8,7 +8,7 @@ on:
 
 jobs:
   linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
 
@@ -16,7 +16,7 @@ jobs:
       run: sudo apt update && sudo apt install libopenimageio-dev
 
     - name: Run tests
-      run: cargo test --verbose --all
+      run: cargo test --verbose --all --features window,halide
   macos:
     runs-on: macos-latest
     steps:
@@ -26,9 +26,9 @@ jobs:
       run: brew update && brew install openimageio
 
     - name: Run tests
-      run: cargo test --verbose --all
+      run: cargo test --verbose --all --features window,halide
   all_linux_nightly:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
 
@@ -39,7 +39,7 @@ jobs:
       run: rustup toolchain install nightly
 
     - name: Run tests
-      run: cargo +nightly test --verbose --all
+      run: cargo +nightly test --verbose --all --features window,halide
   all_macos_nightly:
     runs-on: macos-latest
     steps:
@@ -52,9 +52,9 @@ jobs:
       run: rustup toolchain install nightly
 
     - name: Run tests
-      run: cargo +nightly test --verbose --all
+      run: cargo +nightly test --verbose --all --features window,halide
   linux_no_default_features:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
 
@@ -64,7 +64,7 @@ jobs:
     - name: Run tests
       run: cargo test --no-default-features --verbose --all
   clippy:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
 
@@ -75,6 +75,6 @@ jobs:
       run: rustup toolchain install nightly --profile=default
 
     - name: Run tests
-      run: cargo +nightly clippy --all
+      run: cargo +nightly clippy --all --features window,halide
 
 

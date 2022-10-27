@@ -363,10 +363,10 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Iterate over part of an image with mutable data access
     #[cfg(feature = "parallel")]
-    pub fn iter_region_mut<'a>(
-        &'a mut self,
+    pub fn iter_region_mut(
+        &mut self,
         roi: Region,
-    ) -> impl 'a + rayon::iter::ParallelIterator<Item = (Point, DataMut<T, C>)> {
+    ) -> impl rayon::iter::ParallelIterator<Item = (Point, DataMut<T, C>)> {
         self.row_range_mut(roi.origin.y, roi.height())
             .flat_map(move |(y, row)| {
                 row.par_chunks_mut(C::CHANNELS)
@@ -380,10 +380,10 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Iterate over part of an image with mutable data access
     #[cfg(not(feature = "parallel"))]
-    pub fn iter_region_mut<'a>(
-        &'a mut self,
+    pub fn iter_region_mut(
+        &mut self,
         roi: Region,
-    ) -> impl 'a + std::iter::Iterator<Item = (Point, DataMut<T, C>)> {
+    ) -> impl std::iter::Iterator<Item = (Point, DataMut<T, C>)> {
         self.row_range_mut(roi.origin.y, roi.height())
             .flat_map(move |(y, row)| {
                 row.chunks_mut(C::CHANNELS)
@@ -397,10 +397,10 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Iterate over part of an image
     #[cfg(feature = "parallel")]
-    pub fn iter_region<'a>(
-        &'a self,
+    pub fn iter_region(
+        &self,
         roi: Region,
-    ) -> impl 'a + rayon::iter::ParallelIterator<Item = (Point, Data<T, C>)> {
+    ) -> impl rayon::iter::ParallelIterator<Item = (Point, Data<T, C>)> {
         self.row_range(roi.origin.y, roi.height())
             .flat_map(move |(y, row)| {
                 row.par_chunks(C::CHANNELS)
@@ -414,10 +414,7 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Iterate over part of an image
     #[cfg(not(feature = "parallel"))]
-    pub fn iter_region<'a>(
-        &'a self,
-        roi: Region,
-    ) -> impl 'a + std::iter::Iterator<Item = (Point, Data<T, C>)> {
+    pub fn iter_region(&self, roi: Region) -> impl std::iter::Iterator<Item = (Point, Data<T, C>)> {
         self.row_range(roi.origin.y, roi.height())
             .flat_map(move |(y, row)| {
                 row.chunks(C::CHANNELS)
@@ -431,9 +428,7 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Get pixel iterator
     #[cfg(feature = "parallel")]
-    pub fn iter<'a>(
-        &'a self,
-    ) -> impl 'a + rayon::iter::ParallelIterator<Item = (Point, Data<T, C>)> {
+    pub fn iter(&self) -> impl rayon::iter::ParallelIterator<Item = (Point, Data<T, C>)> {
         self.rows().flat_map(move |(y, row)| {
             row.par_chunks(C::CHANNELS)
                 .map(Data::new)
@@ -444,7 +439,7 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Get pixel iterator
     #[cfg(not(feature = "parallel"))]
-    pub fn iter<'a>(&'a self) -> impl 'a + std::iter::Iterator<Item = (Point, Data<T, C>)> {
+    pub fn iter(&self) -> impl std::iter::Iterator<Item = (Point, Data<T, C>)> {
         self.rows().flat_map(move |(y, row)| {
             row.chunks(C::CHANNELS)
                 .map(Data::new)
@@ -455,9 +450,9 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Get mutable pixel iterator
     #[cfg(feature = "parallel")]
-    pub fn iter_mut<'a>(
-        &'a mut self,
-    ) -> impl 'a + rayon::iter::ParallelIterator<Item = (Point, DataMut<T, C>)> {
+    pub fn iter_mut(
+        &mut self,
+    ) -> impl rayon::iter::ParallelIterator<Item = (Point, DataMut<T, C>)> {
         self.rows_mut().flat_map(move |(y, row)| {
             row.par_chunks_mut(C::CHANNELS)
                 .map(DataMut::new)
@@ -468,9 +463,7 @@ impl<T: Type, C: Color> Image<T, C> {
 
     /// Get mutable data iterator
     #[cfg(not(feature = "parallel"))]
-    pub fn iter_mut<'a>(
-        &'a mut self,
-    ) -> impl 'a + std::iter::Iterator<Item = (Point, DataMut<T, C>)> {
+    pub fn iter_mut(&mut self) -> impl std::iter::Iterator<Item = (Point, DataMut<T, C>)> {
         self.rows_mut().flat_map(move |(y, row)| {
             row.chunks_mut(C::CHANNELS)
                 .map(DataMut::new)

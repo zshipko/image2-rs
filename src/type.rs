@@ -84,13 +84,7 @@ pub trait Type:
     /// minimum value
     #[inline]
     fn clamp(f: f64) -> f64 {
-        if f > Self::MAX {
-            Self::MAX
-        } else if f < Self::MIN {
-            Self::MIN
-        } else {
-            f
-        }
+        f.clamp(Self::MIN, Self::MAX)
     }
 
     /// Convert a value from one type to another
@@ -251,10 +245,10 @@ impl Type for f64 {
     const BASE: io::BaseType = io::BaseType::Double;
 
     fn to_f64(&self) -> f64 {
-        *self as f64
+        *self
     }
 
     fn from_f64(f: f64) -> Self {
-        f as Self
+        f
     }
 }

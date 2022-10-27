@@ -130,7 +130,7 @@ impl<'a, T: Type, C: Color> AsRef<[T]> for DataMut<'a, T, C> {
 
 impl<'a, T: Type, C: Color> AsMut<[T]> for DataMut<'a, T, C> {
     fn as_mut(&mut self) -> &mut [T] {
-        &mut self.0
+        self.0
     }
 }
 
