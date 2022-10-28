@@ -58,14 +58,23 @@ This is not a pure Rust crate, if that's important to you then [image](https://g
   * [halide-runtime](https://github.com/zshipko/halide-runtime) interop (default: disabled)
 - `serialize`:
   * Enables serde support for several data structures (default: disabled)
+- `glfw-sys`:
+  * Builds `glfw` with `glfw-sys` (default: disabled)
 
 ## External dependencies
 
 - `libOpenImageIO` (optional)
-    * `oiio` feature
-    * Version >= 2.0
-    * Debian-based distros: `apt install libopenimageio-dev`
+  * `oiio` feature
+  * Version >= 2.0
+  * Debian-based distros: `apt install libopenimageio-dev`
+  * macOS: `brew install openimageio`
 - `ImageMagick` (optional)
-    * Only required if `oiio` is not being used
+  * Only required if `oiio` is not being used
+  * Debian-based distros: `apt install imagemagick`
+  * macOS: `brew install imagemagick`
+- `libGLFW3` (optional)
+  * `window` feature
+  * Debian-based distros: `apt install libglfw3-dev`
+  * macOS: `brew install glfw3`
 
 
