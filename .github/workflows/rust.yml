@@ -16,7 +16,7 @@ jobs:
       run: sudo apt update && sudo apt install libopenimageio-dev libglfw3-dev
 
     - name: Run tests
-      run: cargo test --verbose --all --features window,halide
+      run: cargo test --verbose --features window,halide
   macos:
     runs-on: macos-latest
     steps:
@@ -26,8 +26,8 @@ jobs:
       run: brew update && brew install openimageio glfw3
 
     - name: Run tests
-      run: cargo test --verbose --all --features window,halide
-  all_linux_nightly:
+      run: cargo test --verbose --features window,halide
+  linux_nightly:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -39,8 +39,8 @@ jobs:
       run: rustup toolchain install nightly
 
     - name: Run tests
-      run: cargo +nightly test --verbose --all --features window,halide
-  all_macos_nightly:
+      run: cargo +nightly test --verbose --features window,halide
+  macos_nightly:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
@@ -52,7 +52,7 @@ jobs:
       run: rustup toolchain install nightly
 
     - name: Run tests
-      run: cargo +nightly test --verbose --all --features window,halide
+      run: cargo +nightly test --verbose --features window,halide
   linux_no_default_features:
     runs-on: ubuntu-latest
     steps:
@@ -62,7 +62,7 @@ jobs:
       run: sudo apt update && sudo apt install libopenimageio-dev libglfw3-dev
 
     - name: Run tests
-      run: cargo test --no-default-features --verbose --all
+      run: cargo test --no-default-features --verbose
   clippy:
     runs-on: ubuntu-latest
     steps:
@@ -75,6 +75,6 @@ jobs:
       run: rustup toolchain install nightly --profile=default
 
     - name: Run tests
-      run: cargo +nightly clippy --all --features window,halide
+      run: cargo +nightly clippy --features window,halide
 
 
