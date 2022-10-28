@@ -6,6 +6,7 @@ use glfw::Context as GlfwContext;
 pub use glfw::{Action, Key, Modifiers, MouseButton, WindowEvent as Event, WindowId};
 
 /// Window context
+#[derive(Clone)]
 pub struct Context {
     /// GLFW handle
     pub glfw: std::cell::RefCell<glfw::Glfw>,
@@ -24,6 +25,16 @@ impl Context {
     ) -> Result<Self, Error> {
         let glfw = std::cell::RefCell::new(glfw::init::<T>(Some(f))?);
         Ok(Context { glfw })
+    }
+
+    /// Access `Glfw` handle
+    pub fn glfw_context(&self) -> std::cell::Ref<glfw::Glfw> {
+        self.glfw.borrow()
+    }
+
+    /// Access mutable `Glfw` handle
+    pub fn glfw_context_mut(&self) -> std::cell::RefMut<glfw::Glfw> {
+        self.glfw.borrow_mut()
     }
 }
 
@@ -51,24 +62,31 @@ pub struct Window<T: Type, C: Color> {
     /// Current mouse position
     position: Point,
 
+    /// `true` when the window is closed
     closed: bool,
 
+    /// User data
     data: Option<Box<dyn std::any::Any>>,
 }
 
 /// `WindowSet` allows for multiple windows to run at once
-pub struct WindowSet<T: Type, C: Color>(std::collections::BTreeMap<glfw::WindowId, Window<T, C>>);
-
-impl<T: Type, C: Color> Default for WindowSet<T, C> {
-    fn default() -> Self {
-        WindowSet(std::collections::BTreeMap::new())
-    }
-}
+pub struct WindowSet<T: Type, C: Color>(
+    std::collections::BTreeMap<glfw::WindowId, Window<T, C>>,
+    Context,
+);
 
 impl<T: Type, C: Color> WindowSet<T, C> {
     /// Create new window set
-    pub fn new() -> WindowSet<T, C> {
-        Default::default()
+    pub fn new() -> Result<WindowSet<T, C>, Error> {
+        Ok(WindowSet(
+            std::collections::BTreeMap::new(),
+            Context::new()?,
+        ))
+    }
+
+    /// Create new window set with an exitising `Context`
+    pub fn new_with_context(context: Context) -> WindowSet<T, C> {
+        Self(std::collections::BTreeMap::new(), context)
     }
 
     /// Add an existing window
@@ -78,17 +96,22 @@ impl<T: Type, C: Color> WindowSet<T, C> {
         Ok(id)
     }
 
+    /// Access `Context`
+    pub fn context(&self) -> &Context {
+        &self.1
+    }
+
+    /// Access mutable `Context`
+    pub fn context_mut(&mut self) -> &mut Context {
+        &mut self.1
+    }
+
     /// Create a new window and add it
-    pub fn create(
-        &mut self,
-        context: &Context,
-        title: impl AsRef<str>,
-        image: Image<T, C>,
-    ) -> Result<WindowId, Error>
+    pub fn create(&mut self, title: impl AsRef<str>, image: Image<T, C>) -> Result<WindowId, Error>
     where
         Image<T, C>: ToTexture<T, C>,
     {
-        let window = Window::new(context, image, title)?;
+        let window = Window::new(&self.1, image, title)?;
         self.add(window)
     }
 
@@ -127,14 +150,18 @@ impl<T: Type, C: Color> WindowSet<T, C> {
         self.0.values_mut().filter(|x| !x.is_closed())
     }
 
+    /// Convert into an iterator over images
+    pub fn into_images(self) -> impl Iterator<Item = Image<T, C>> {
+        self.0.into_values().map(|x| x.into_image())
+    }
+
     /// Run the event loop until all windows are closed
     pub fn run<F: FnMut(&mut Window<T, C>, Event) -> Result<(), Error>>(
         &mut self,
-        context: &Context,
         mut event_handler: F,
     ) -> Result<(), Error> {
         while self.iter_windows().count() > 0 {
-            context.glfw.borrow_mut().poll_events();
+            self.context().glfw_context_mut().poll_events();
 
             let mut count = 0;
             for window in self.iter_windows_mut() {
@@ -148,10 +175,6 @@ impl<T: Type, C: Color> WindowSet<T, C> {
                             let pt = window.fix_mouse_position((x as usize, y as usize));
                             window.position = pt;
                             Event::CursorPos(pt.x as f64, pt.y as f64)
-                        }
-                        Event::Scroll(x, y) => {
-                            let pt = window.fix_mouse_position((x as usize, y as usize));
-                            Event::Scroll(pt.x as f64, pt.y as f64)
                         }
                         Event::Size(w, h) => {
                             window.size = Size::new(w as usize, h as usize);
@@ -517,7 +540,6 @@ to_texture!(u8, Rgba, gl::UNSIGNED_BYTE, gl::RGBA);
 
 /// Show an image and exit when ESC is pressed
 pub fn show<T: Type, C: Color, F: FnMut(&mut Window<T, C>, Event) -> Result<(), Error>>(
-    context: &Context,
     title: impl AsRef<str>,
     image: Image<T, C>,
     mut f: F,
@@ -525,10 +547,10 @@ pub fn show<T: Type, C: Color, F: FnMut(&mut Window<T, C>, Event) -> Result<(), 
 where
     Image<T, C>: ToTexture<T, C>,
 {
-    let mut windows = WindowSet::new();
-    let id = windows.create(context, title, image)?;
+    let mut windows = WindowSet::new()?;
+    let id = windows.create(title, image)?;
 
-    windows.run(context, |window, event| {
+    windows.run(|window, event| {
         if let Event::Key(k, _, action, _) = event {
             if k == Key::Escape && action == Action::Press {
                 window.close();
@@ -546,20 +568,19 @@ where
 
 /// Show multiple images and exit when ESC is pressed
 pub fn show_all<T: Type, C: Color, F: FnMut(&mut Window<T, C>, Event) -> Result<(), Error>>(
-    context: &Context,
     images: impl IntoIterator<Item = (impl Into<String>, Image<T, C>)>,
     mut f: F,
 ) -> Result<Vec<Image<T, C>>, Error>
 where
     Image<T, C>: ToTexture<T, C>,
 {
-    let mut windows = WindowSet::new();
+    let mut windows = WindowSet::new()?;
 
     for (title, image) in images.into_iter() {
-        windows.create(context, title.into(), image)?;
+        windows.create(title.into(), image)?;
     }
 
-    windows.run(context, |window, event| {
+    windows.run(|window, event| {
         if let Event::Key(k, _, action, _) = event {
             if k == Key::Escape && action == Action::Press {
                 window.close();
@@ -568,5 +589,5 @@ where
         f(window, event)
     })?;
 
-    Ok(windows.0.into_values().map(|w| w.into_image()).collect())
+    Ok(windows.into_images().collect())
 }

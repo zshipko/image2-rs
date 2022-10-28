@@ -9,18 +9,19 @@ fn main() {
         "images/A.exr".to_string()
     };
 
-    let context = Context::new().unwrap();
     let image = Image::<f32, Rgb>::open(&arg).unwrap();
 
     println!("Press 'i' to invert the image");
 
     show_all(
-        &context,
         vec![("A", image.clone()), ("B", image)],
         move |window, event| {
             match event {
                 Event::CursorPos(x, y) => {
                     println!("Mouse: {x} {y}");
+                }
+                Event::Scroll(x, y) => {
+                    println!("Scroll: {x} {y}");
                 }
                 Event::Key(Key::I, _, Action::Press, _) => {
                     window.image_mut().run_in_place(filter::invert());
