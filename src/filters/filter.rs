@@ -273,6 +273,41 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Clamp {
 }
 
 #[derive(Debug)]
+struct Normalize {
+    min: f64,
+    max: f64,
+    new_min: f64,
+    new_max: f64,
+}
+
+/// Normalize image data
+pub fn normalize<T: Type, C: Color, U: Type, D: Color>(
+    min: f64,
+    max: f64,
+    new_min: f64,
+    new_max: f64,
+) -> impl Filter<T, C, U, D> {
+    Normalize {
+        min,
+        max,
+        new_min,
+        new_max,
+    }
+}
+
+impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Normalize {
+    fn compute_at(&self, pt: Point, input: &Input<T, C>, dest: &mut DataMut<U, D>) {
+        input
+            .get_pixel(pt, None)
+            .map(|x| {
+                (x - self.min) * ((self.new_max - self.new_min) / (self.max - self.min))
+                    + self.new_min
+            })
+            .copy_to_slice(dest)
+    }
+}
+
+#[derive(Debug)]
 struct Noop;
 
 /// Filter that does nothing
