@@ -2,9 +2,9 @@ name: Rust
 
 on:
   push:
-    branches: [ master, rewrite ]
+    branches: [ main, rewrite ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   linux:
