@@ -14,7 +14,7 @@ fn kind<T: Type>() -> Result<halide_runtime::Kind, Error> {
 
 impl<T: Type, C: Color> crate::Image<T, C> {
     /// Use the image as a mutable halide_buffer_t
-    pub fn to_mut_halide_buffer(&mut self) -> Result<halide_runtime::Buffer, Error> {
+    pub fn to_halide_buffer(&mut self) -> Result<halide_runtime::Buffer, Error> {
         let kind = kind::<T>()?;
 
         Ok(halide_runtime::Buffer::new(
@@ -26,8 +26,8 @@ impl<T: Type, C: Color> crate::Image<T, C> {
         ))
     }
 
-    /// Use the image as a mutable halide_buffer_t
-    pub fn to_halide_buffer(&self) -> Result<halide_runtime::Buffer, Error> {
+    /// Use the image as a const halide_buffer_t
+    pub unsafe fn to_const_halide_buffer(&self) -> Result<halide_runtime::Buffer, Error> {
         let kind = kind::<T>()?;
 
         Ok(halide_runtime::Buffer::new_const(
