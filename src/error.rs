@@ -38,7 +38,7 @@ pub enum Error {
     Message(String),
 
     /// Magick I/O error type
-    #[cfg(not(feature = "oiio"))]
+    #[cfg(feature = "magick")]
     #[error("Magick: {0}")]
     Magick(#[from] crate::io::magick::Error),
 

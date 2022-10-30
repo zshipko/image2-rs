@@ -39,6 +39,7 @@ halide = ["halide-runtime"]
 serialize = ["serde", "euclid/serde"]
 text = ["rusttype"]
 glfw-sys = ["glfw/glfw-sys"]
+magick = []
 
 [package.metadata.docs.rs]
 no-default-features = true

@@ -48,6 +48,9 @@ This is not a pure Rust crate, if that's important to you then [image](https://g
 
 - `oiio`
   * Enables I/O using OpenImageIO (default: enabled)
+- `magick`
+  * Enables I/O using ImageMagick (default: disabled)
+  * Incompatible with the `oiio` feature
 - `parallel`:
   * Enables parallel image iterators (default: enabled)
 - `text`:

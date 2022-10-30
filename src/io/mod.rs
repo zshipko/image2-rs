@@ -1,4 +1,4 @@
-#[cfg(not(feature = "oiio"))]
+#[cfg(feature = "magick")]
 /// ImageMagick/GraphicsMagick based I/O
 ///
 /// Note: This is enabled when OpenImageIO is disabled, to use OpenImageIO make sure the `oiio` feature is enabled at
@@ -70,5 +70,11 @@ pub mod oiio;
 #[cfg(all(feature = "oiio", not(feature = "docs-rs")))]
 pub use oiio::{read, write};
 
-#[cfg(not(feature = "oiio"))]
+#[cfg(feature = "magick")]
 pub use magick::{read, write};
+
+#[cfg(all(not(feature = "magick"), not(feature = "oiio")))]
+mod stub;
+
+#[cfg(all(not(feature = "magick"), not(feature = "oiio")))]
+pub use stub::{read, write};
