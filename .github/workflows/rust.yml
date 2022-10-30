@@ -62,7 +62,7 @@ jobs:
       run: sudo apt update && sudo apt install libopenimageio-dev libglfw3-dev
 
     - name: Run tests
-      run: cargo test --no-default-features --verbose
+      run: cargo test --no-default-features --features=magick --verbose
   clippy:
     runs-on: ubuntu-latest
     steps:
