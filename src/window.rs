@@ -220,7 +220,7 @@ impl<T: Type, C: Color> Window<T, C> {
     where
         Image<T, C>: ToTexture<T, C>,
     {
-        let (mut inner, events) = match context.glfw.borrow().create_window(
+        let (mut inner, events) = match context.glfw.borrow_mut().create_window(
             image.width() as u32,
             image.height() as u32,
             title.as_ref(),
