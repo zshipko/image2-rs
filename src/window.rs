@@ -202,6 +202,7 @@ impl<T: Type, C: Color> WindowSet<T, C> {
 
                 if window.is_dirty() {
                     window.draw()?;
+                    window.dirty = false;
                 }
             }
 
