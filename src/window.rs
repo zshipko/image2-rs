@@ -156,7 +156,7 @@ impl<T: Type, C: Color> WindowSet<T, C> {
     }
 
     /// Run the event loop until all windows are closed
-    pub fn run<F: FnMut(&mut Window<T, C>, Event) -> Result<(), Error>>(
+    pub fn run<F: FnMut(&mut Window<T, C>, Option<Event>) -> Result<(), Error>>(
         &mut self,
         mut event_handler: F,
     ) -> Result<(), Error> {
@@ -191,11 +191,11 @@ impl<T: Type, C: Color> WindowSet<T, C> {
                 }
 
                 if events.is_empty() {
-                    continue;
-                }
-
-                for event in events {
-                    event_handler(window, event)?;
+                    event_handler(window, None)?;
+                } else {
+                    for event in events {
+                        event_handler(window, Some(event))?;
+                    }
                 }
 
                 window.draw()?;
@@ -269,6 +269,11 @@ impl<T: Type, C: Color> Window<T, C> {
 
         window.draw()?;
         Ok(window)
+    }
+
+    /// Get window ID
+    pub fn id(&self) -> WindowId {
+        self.id
     }
 
     /// Set user data
@@ -539,7 +544,7 @@ to_texture!(u8, Rgb, gl::UNSIGNED_BYTE, gl::RGB);
 to_texture!(u8, Rgba, gl::UNSIGNED_BYTE, gl::RGBA);
 
 /// Show an image and exit when ESC is pressed
-pub fn show<T: Type, C: Color, F: FnMut(&mut Window<T, C>, Event) -> Result<(), Error>>(
+pub fn show<T: Type, C: Color, F: FnMut(&mut Window<T, C>, Option<Event>) -> Result<(), Error>>(
     title: impl AsRef<str>,
     image: Image<T, C>,
     mut f: F,
@@ -551,7 +556,7 @@ where
     let id = windows.create(title, image)?;
 
     windows.run(|window, event| {
-        if let Event::Key(k, _, action, _) = event {
+        if let Some(Event::Key(k, _, action, _)) = event {
             if k == Key::Escape && action == Action::Press {
                 window.close();
             }
@@ -567,7 +572,11 @@ where
 }
 
 /// Show multiple images and exit when ESC is pressed
-pub fn show_all<T: Type, C: Color, F: FnMut(&mut Window<T, C>, Event) -> Result<(), Error>>(
+pub fn show_all<
+    T: Type,
+    C: Color,
+    F: FnMut(&mut Window<T, C>, Option<Event>) -> Result<(), Error>,
+>(
     images: impl IntoIterator<Item = (impl Into<String>, Image<T, C>)>,
     mut f: F,
 ) -> Result<Vec<Image<T, C>>, Error>
@@ -581,7 +590,7 @@ where
     }
 
     windows.run(|window, event| {
-        if let Event::Key(k, _, action, _) = event {
+        if let Some(Event::Key(k, _, action, _)) = event {
             if k == Key::Escape && action == Action::Press {
                 window.close();
             }

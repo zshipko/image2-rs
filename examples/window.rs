@@ -17,13 +17,13 @@ fn main() {
         vec![("A", image.clone()), ("B", image)],
         move |window, event| {
             match event {
-                Event::CursorPos(x, y) => {
+                Some(Event::CursorPos(x, y)) => {
                     println!("Mouse: {x} {y}");
                 }
-                Event::Scroll(x, y) => {
+                Some(Event::Scroll(x, y)) => {
                     println!("Scroll: {x} {y}");
                 }
-                Event::Key(Key::I, _, Action::Press, _) => {
+                Some(Event::Key(Key::I, _, Action::Press, _)) => {
                     window.image_mut().run_in_place(filter::invert());
                 }
                 _ => (),
