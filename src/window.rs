@@ -5,38 +5,17 @@ use gl::types::*;
 use glfw::Context as GlfwContext;
 pub use glfw::{Action, Key, Modifiers, MouseButton, WindowEvent as Event, WindowId};
 
-/// Window context
-#[derive(Clone)]
-pub struct Context {
+/// Multiple windows
+pub struct WindowSet<T: Type, C: Color> {
     /// GLFW handle
     pub glfw: std::cell::RefCell<glfw::Glfw>,
+
+    /// Mapping from `WindowId` to `Window`
+    pub windows: std::collections::BTreeMap<glfw::WindowId, Window<T, C>>,
 }
 
-impl Context {
-    /// Create a new context
-    pub fn new() -> Result<Self, Error> {
-        let glfw = std::cell::RefCell::new(glfw::init::<()>(glfw::FAIL_ON_ERRORS)?);
-        Ok(Context { glfw })
-    }
-
-    /// Create a new context with error callback
-    pub fn new_with_error_callback<T: 'static>(
-        f: glfw::Callback<fn(glfw::Error, String, &T), T>,
-    ) -> Result<Self, Error> {
-        let glfw = std::cell::RefCell::new(glfw::init::<T>(Some(f))?);
-        Ok(Context { glfw })
-    }
-
-    /// Access `Glfw` handle
-    pub fn glfw_context(&self) -> std::cell::Ref<glfw::Glfw> {
-        self.glfw.borrow()
-    }
-
-    /// Access mutable `Glfw` handle
-    pub fn glfw_context_mut(&self) -> std::cell::RefMut<glfw::Glfw> {
-        self.glfw.borrow_mut()
-    }
-}
+unsafe impl<T: Type, C: Color> Send for WindowSet<T, C> {}
+unsafe impl<T: Type, C: Color> Sync for WindowSet<T, C> {}
 
 /// Window is used to display images
 pub struct Window<T: Type, C: Color> {
@@ -71,41 +50,42 @@ pub struct Window<T: Type, C: Color> {
     dirty: bool,
 }
 
-/// `WindowSet` allows for multiple windows to run at once
-pub struct WindowSet<T: Type, C: Color>(
-    std::collections::BTreeMap<glfw::WindowId, Window<T, C>>,
-    Context,
-);
-
 impl<T: Type, C: Color> WindowSet<T, C> {
-    /// Create new window set
-    pub fn new() -> Result<WindowSet<T, C>, Error> {
-        Ok(WindowSet(
-            std::collections::BTreeMap::new(),
-            Context::new()?,
-        ))
+    /// Create a new context
+    pub fn new() -> Result<Self, Error> {
+        let glfw = std::cell::RefCell::new(glfw::init::<()>(glfw::FAIL_ON_ERRORS)?);
+        Ok(WindowSet {
+            glfw,
+            windows: std::collections::BTreeMap::new(),
+        })
     }
 
-    /// Create new window set with an exitising `Context`
-    pub fn new_with_context(context: Context) -> WindowSet<T, C> {
-        Self(std::collections::BTreeMap::new(), context)
+    /// Create a new context with error callback
+    pub fn new_with_error_callback<E: 'static>(
+        f: glfw::Callback<fn(glfw::Error, String, &E), E>,
+    ) -> Result<Self, Error> {
+        let glfw = std::cell::RefCell::new(glfw::init::<E>(Some(f))?);
+        Ok(WindowSet {
+            glfw,
+            windows: std::collections::BTreeMap::new(),
+        })
+    }
+
+    /// Access `Glfw` handle
+    pub fn glfw_context(&self) -> std::cell::Ref<glfw::Glfw> {
+        self.glfw.borrow()
+    }
+
+    /// Access mutable `Glfw` handle
+    pub fn glfw_context_mut(&self) -> std::cell::RefMut<glfw::Glfw> {
+        self.glfw.borrow_mut()
     }
 
     /// Add an existing window
     pub fn add(&mut self, window: Window<T, C>) -> Result<WindowId, Error> {
         let id = window.id;
-        self.0.insert(id, window);
+        self.windows.insert(id, window);
         Ok(id)
-    }
-
-    /// Access `Context`
-    pub fn context(&self) -> &Context {
-        &self.1
-    }
-
-    /// Access mutable `Context`
-    pub fn context_mut(&mut self) -> &mut Context {
-        &mut self.1
     }
 
     /// Create a new window and add it
@@ -113,48 +93,68 @@ impl<T: Type, C: Color> WindowSet<T, C> {
     where
         Image<T, C>: ToTexture<T, C>,
     {
-        let window = Window::new(&self.1, image, title)?;
+        let window = Window::new(self, image, title)?;
         self.add(window)
     }
 
     /// Get window by ID
     pub fn get(&self, window_id: &WindowId) -> Option<&Window<T, C>> {
-        self.0.get(window_id)
+        self.windows.get(window_id)
     }
 
     /// Get mutable window by ID
     pub fn get_mut(&mut self, window_id: &WindowId) -> Option<&mut Window<T, C>> {
-        self.0.get_mut(window_id)
+        self.windows.get_mut(window_id)
     }
 
     /// Remove a window and return it
     pub fn remove(&mut self, window_id: &WindowId) -> Option<Window<T, C>> {
-        self.0.remove(window_id)
+        self.windows.remove(window_id)
     }
 
     /// Iterate over all windows
     pub fn iter(&self) -> impl Iterator<Item = (&WindowId, &Window<T, C>)> {
-        self.0.iter().filter(|(_, x)| !x.is_closed())
+        self.windows.iter().filter(|(_, x)| !x.is_closed())
     }
 
     /// Iterate over mutable windows
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&WindowId, &mut Window<T, C>)> {
-        self.0.iter_mut().filter(|(_, x)| !x.is_closed())
+        self.windows.iter_mut().filter(|(_, x)| !x.is_closed())
     }
 
     /// Convert into an interator over windows
     pub fn iter_windows(&self) -> impl Iterator<Item = &Window<T, C>> {
-        self.0.values().filter(|x| !x.is_closed())
+        self.windows.values().filter(|x| !x.is_closed())
     }
 
     /// Convert into an interator over mutable windows
     pub fn iter_windows_mut(&mut self) -> impl Iterator<Item = &mut Window<T, C>> {
-        self.0.values_mut().filter(|x| !x.is_closed())
+        self.windows.values_mut().filter(|x| !x.is_closed())
     }
 
     /// Convert into an iterator over images
     pub fn into_images(self) -> impl Iterator<Item = Image<T, C>> {
-        self.0.into_values().map(|x| x.into_image())
+        self.windows.into_values().map(|x| x.into_image())
+    }
+
+    /// Returns false when there are no more open windows
+    pub fn step<F: FnMut(&mut Window<T, C>, Option<Event>) -> Result<(), Error>>(
+        &mut self,
+        mut event_handler: F,
+    ) -> Result<bool, Error> {
+        let mut count = 0;
+
+        for window in self.iter_windows_mut() {
+            count += 1;
+            window.handle_events(&mut event_handler)?;
+        }
+
+        Ok(count > 0)
+    }
+
+    /// Poll for new events with the given timeout
+    pub fn wait_events(&self, timeout: f64) {
+        self.glfw_context_mut().wait_events_timeout(timeout);
     }
 
     /// Run the event loop until all windows are closed
@@ -162,55 +162,9 @@ impl<T: Type, C: Color> WindowSet<T, C> {
         &mut self,
         mut event_handler: F,
     ) -> Result<(), Error> {
-        while self.iter_windows().count() > 0 {
-            self.context().glfw_context_mut().poll_events();
-
-            let mut count = 0;
-            for window in self.iter_windows_mut() {
-                count += 1;
-
-                // Poll for and process events
-                let mut events = vec![];
-                for (_, event) in glfw::flush_messages(&window.events) {
-                    let event = match event {
-                        Event::CursorPos(x, y) => {
-                            let pt = window.fix_mouse_position((x as usize, y as usize));
-                            window.position = pt;
-                            Event::CursorPos(pt.x as f64, pt.y as f64)
-                        }
-                        Event::Size(w, h) => {
-                            window.size = Size::new(w as usize, h as usize);
-                            Event::Size(w, h)
-                        }
-                        Event::Close => {
-                            window.close();
-                            break;
-                        }
-                        event => event,
-                    };
-
-                    events.push(event);
-                }
-
-                if events.is_empty() {
-                    event_handler(window, None)?;
-                } else {
-                    for event in events {
-                        event_handler(window, Some(event))?;
-                    }
-                }
-
-                if window.is_dirty() {
-                    window.draw()?;
-                    window.dirty = false;
-                }
-            }
-
-            if count == 0 {
-                break;
-            }
+        while self.step(&mut event_handler)? {
+            self.wait_events(0.1)
         }
-
         Ok(())
     }
 }
@@ -218,7 +172,7 @@ impl<T: Type, C: Color> WindowSet<T, C> {
 impl<T: Type, C: Color> Window<T, C> {
     /// Create a new window
     pub fn new(
-        context: &Context,
+        context: &WindowSet<T, C>,
         image: Image<T, C>,
         title: impl AsRef<str>,
     ) -> Result<Window<T, C>, Error>
@@ -290,6 +244,54 @@ impl<T: Type, C: Color> Window<T, C> {
     /// Check if window is dirty
     pub fn is_dirty(&self) -> bool {
         self.dirty
+    }
+
+    /// Get pending events for a window
+    pub fn events(&mut self) -> Result<Vec<Event>, Error> {
+        let mut events = vec![];
+        for (_, event) in glfw::flush_messages(&self.events) {
+            let event = match event {
+                Event::CursorPos(x, y) => {
+                    let pt = self.fix_mouse_position((x as usize, y as usize));
+                    self.position = pt;
+                    Event::CursorPos(pt.x as f64, pt.y as f64)
+                }
+                Event::Size(w, h) => {
+                    self.size = Size::new(w as usize, h as usize);
+                    Event::Size(w, h)
+                }
+                Event::Close => {
+                    self.close();
+                    break;
+                }
+                event => event,
+            };
+
+            events.push(event);
+        }
+        Ok(events)
+    }
+
+    /// Handle events using `event_handler`
+    pub fn handle_events<F: FnMut(&mut Window<T, C>, Option<Event>) -> Result<(), Error>>(
+        &mut self,
+        mut event_handler: F,
+    ) -> Result<(), Error> {
+        let events = self.events()?;
+
+        if events.is_empty() {
+            event_handler(self, None)?;
+        } else {
+            for event in events {
+                event_handler(self, Some(event))?;
+            }
+        }
+
+        if self.is_dirty() {
+            self.draw()?;
+        }
+
+        Ok(())
     }
 
     /// Set user data
@@ -436,6 +438,7 @@ impl<T: Type, C: Color> Window<T, C> {
         }
 
         self.inner.swap_buffers();
+        self.dirty = false;
         Ok(())
     }
 }
