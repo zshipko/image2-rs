@@ -30,7 +30,7 @@ cpp_build = {version = "0.5", optional = true}
 smol = "1"
 
 [features]
-default = ["oiio", "parallel", "text"]
+default = ["oiio", "parallel", "text", "window"]
 window = ["gl", "glfw"]
 oiio = ["cpp", "cpp_build"]
 oiio-custom = ["cpp", "cpp_build"]

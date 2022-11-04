@@ -67,6 +67,8 @@ pub struct Window<T: Type, C: Color> {
 
     /// User data
     data: Option<Box<dyn std::any::Any>>,
+
+    dirty: bool,
 }
 
 /// `WindowSet` allows for multiple windows to run at once
@@ -198,7 +200,9 @@ impl<T: Type, C: Color> WindowSet<T, C> {
                     }
                 }
 
-                window.draw()?;
+                if window.is_dirty() {
+                    window.draw()?;
+                }
             }
 
             if count == 0 {
@@ -265,6 +269,7 @@ impl<T: Type, C: Color> Window<T, C> {
             texture,
             framebuffer,
             image,
+            dirty: false,
         };
 
         window.draw()?;
@@ -274,6 +279,16 @@ impl<T: Type, C: Color> Window<T, C> {
     /// Get window ID
     pub fn id(&self) -> WindowId {
         self.id
+    }
+
+    /// Mark window as dirty, this will trigger a draw on the next iteration
+    pub fn mark_as_dirty(&mut self) {
+        self.dirty = true;
+    }
+
+    /// Check if window is dirty
+    pub fn is_dirty(&self) -> bool {
+        self.dirty
     }
 
     /// Set user data
@@ -349,6 +364,7 @@ impl<T: Type, C: Color> Window<T, C> {
 
     /// Get mutable image
     pub fn image_mut(&mut self) -> &mut Image<T, C> {
+        self.mark_as_dirty();
         &mut self.image
     }
 
