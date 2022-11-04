@@ -24,7 +24,6 @@ fn main() {
                     println!("Scroll: {x} {y}");
                 }
                 Some(Event::Key(Key::I, _, Action::Press, _)) => {
-                    std::thread::sleep(std::time::Duration::from_secs(10));
                     window.image_mut().run_in_place(filter::invert());
                 }
                 _ => (),
