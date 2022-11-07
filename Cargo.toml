@@ -21,7 +21,7 @@ serde = {version = "1", optional = true, features = ["derive"]}
 rusttype = {version = "0.9", optional = true}
 halide-runtime = {version = "0.6", optional = true}
 glfw = {version = "0.46", optional = true, default-features=false}
-gl = {version = "0.14", optional = true}
+glow = {version = "0.11", optional = true}
 
 [build-dependencies]
 cpp_build = {version = "0.5", optional = true}
@@ -31,7 +31,7 @@ smol = "1"
 
 [features]
 default = ["oiio", "parallel", "text"]
-window = ["gl", "glfw"]
+window = ["opengl", "glfw"]
 oiio = ["cpp", "cpp_build"]
 oiio-custom = ["cpp", "cpp_build"]
 parallel = ["rayon"]
@@ -40,6 +40,7 @@ serialize = ["serde", "euclid/serde"]
 text = ["rusttype"]
 glfw-sys = ["glfw/glfw-sys"]
 magick = []
+opengl = ["glow"]
 
 [package.metadata.docs.rs]
 no-default-features = true

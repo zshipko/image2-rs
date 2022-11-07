@@ -46,6 +46,10 @@ mod meta;
 mod pixel;
 mod r#type;
 
+/// OpenGL interop
+#[cfg(feature = "opengl")]
+pub mod texture;
+
 /// Display images
 #[cfg(feature = "window")]
 pub mod window;

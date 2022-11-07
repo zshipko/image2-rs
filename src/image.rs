@@ -582,8 +582,9 @@ impl<T: Type, C: Color> Image<T, C> {
         f: F,
     ) {
         let meta = self.meta();
-        let b = other.data.chunks(C::CHANNELS);
+        let b = other.data.data().chunks(C::CHANNELS);
         self.data
+            .data_mut()
             .chunks_mut(C::CHANNELS)
             .zip(b)
             .enumerate()

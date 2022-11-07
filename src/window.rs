@@ -1,6 +1,5 @@
+use crate::texture::{ImageTexture, ToTexture};
 use crate::*;
-
-use gl::types::*;
 
 use glfw::Context as GlfwContext;
 pub use glfw::{Action, Key, Modifiers, MouseButton, WindowEvent as Event, WindowId};
@@ -21,6 +20,8 @@ unsafe impl<T: Type, C: Color> Sync for WindowSet<T, C> {}
 pub struct Window<T: Type, C: Color> {
     id: WindowId,
 
+    glfw: glfw::Glfw,
+
     /// GLFW Window
     inner: glfw::Window,
 
@@ -29,11 +30,7 @@ pub struct Window<T: Type, C: Color> {
 
     image: Image<T, C>,
 
-    /// Window texture
-    pub texture: Texture,
-
-    /// OpenGL framebuffer
-    pub framebuffer: GLuint,
+    image_texture: ImageTexture<T, C>,
 
     /// Window's current size
     size: Size,
@@ -50,7 +47,10 @@ pub struct Window<T: Type, C: Color> {
     dirty: bool,
 }
 
-impl<T: Type, C: Color> WindowSet<T, C> {
+impl<T: Type, C: Color> WindowSet<T, C>
+where
+    Image<T, C>: ToTexture<T, C>,
+{
     /// Create a new context
     pub fn new() -> Result<Self, Error> {
         let glfw = std::cell::RefCell::new(glfw::init::<()>(glfw::FAIL_ON_ERRORS)?);
@@ -169,16 +169,16 @@ impl<T: Type, C: Color> WindowSet<T, C> {
     }
 }
 
-impl<T: Type, C: Color> Window<T, C> {
+impl<T: Type, C: Color> Window<T, C>
+where
+    Image<T, C>: ToTexture<T, C>,
+{
     /// Create a new window
     pub fn new(
         context: &WindowSet<T, C>,
         image: Image<T, C>,
         title: impl AsRef<str>,
-    ) -> Result<Window<T, C>, Error>
-    where
-        Image<T, C>: ToTexture<T, C>,
-    {
+    ) -> Result<Window<T, C>, Error> {
         let (mut inner, events) = match context.glfw.borrow_mut().create_window(
             image.width() as u32,
             image.height() as u32,
@@ -191,38 +191,27 @@ impl<T: Type, C: Color> Window<T, C> {
         inner.set_all_polling(true);
         inner.make_current();
 
-        gl::load_with(|ptr| context.glfw.borrow().get_proc_address_raw(ptr));
+        let ctx = unsafe {
+            glow::Context::from_loader_function(|ptr| {
+                context.glfw.borrow().get_proc_address_raw(ptr)
+            })
+        };
 
-        let mut framebuffer = 0;
-        let texture = image.to_texture()?;
-
-        unsafe {
-            gl::GenFramebuffers(1, &mut framebuffer);
-            gl::BindFramebuffer(gl::READ_FRAMEBUFFER, framebuffer);
-            gl::FramebufferTexture2D(
-                gl::READ_FRAMEBUFFER,
-                gl::COLOR_ATTACHMENT0,
-                gl::TEXTURE_2D,
-                texture.id,
-                0,
-            );
-            gl::BindFramebuffer(gl::READ_FRAMEBUFFER, 0);
-        }
-
+        let image_texture = image.create_image_texture(&ctx)?;
         let (width, height) = inner.get_size();
         let id = inner.window_id();
         let size = Size::new(width as usize, height as usize);
 
         let mut window = Window {
             id,
+            glfw: context.glfw.borrow().clone(),
             inner,
             events,
             position: Point::default(),
             size,
             closed: false,
             data: None,
-            texture,
-            framebuffer,
+            image_texture,
             image,
             dirty: false,
         };
@@ -387,9 +376,6 @@ impl<T: Type, C: Color> Window<T, C> {
     pub fn draw(&mut self) -> Result<(), Error> {
         self.inner.make_current();
         let meta = self.image.meta();
-        let image = self.image.data.as_ptr();
-        let texture = self.texture;
-        let framebuffer = self.framebuffer;
         let size = self.size;
         let ratio = (size.width as f64 / meta.width() as f64)
             .min(size.height as f64 / meta.height() as f64);
@@ -397,171 +383,22 @@ impl<T: Type, C: Color> Window<T, C> {
         let display_height = (meta.height() as f64 * ratio) as usize;
         let x = size.width.saturating_sub(display_width) / 2;
         let y = size.height.saturating_sub(display_height) / 2;
-        unsafe {
-            gl::ClearColor(0.0, 0.0, 0.0, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
 
-            gl::BindTexture(gl::TEXTURE_2D, texture.id);
-            gl::TexImage2D(
-                gl::TEXTURE_2D,
-                0,
-                texture.internal as i32,
-                meta.width() as i32,
-                meta.height() as i32,
-                0,
-                texture.color,
-                texture.kind,
-                image as *const _,
-            );
-            gl::BindTexture(gl::TEXTURE_2D, 0);
-            gl::BindFramebuffer(gl::READ_FRAMEBUFFER, framebuffer);
-            gl::FramebufferTexture2D(
-                gl::READ_FRAMEBUFFER,
-                gl::COLOR_ATTACHMENT0,
-                gl::TEXTURE_2D,
-                texture.id,
-                0,
-            );
-            gl::BlitFramebuffer(
-                0,
-                meta.height() as i32,
-                meta.width() as i32,
-                0,
-                x as i32,
-                y as i32,
-                x as i32 + display_width as i32,
-                y as i32 + display_height as i32,
-                gl::COLOR_BUFFER_BIT,
-                gl::NEAREST,
-            );
-            gl::BindFramebuffer(gl::READ_FRAMEBUFFER, 0);
-        }
+        let ctx = unsafe {
+            glow::Context::from_loader_function(|ptr| self.glfw.get_proc_address_raw(ptr))
+        };
 
+        self.image.draw_image_texture(
+            &ctx,
+            &self.image_texture,
+            (display_width, display_height).into(),
+            (x, y).into(),
+        )?;
         self.inner.swap_buffers();
         self.dirty = false;
         Ok(())
     }
 }
-
-/// Wraps OpenGL textures
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Default)]
-pub struct Texture {
-    /// OpenGL texture id
-    pub id: GLuint,
-
-    /// OpenGL data type
-    pub internal: GLuint,
-
-    /// OpenGL type
-    pub kind: GLuint,
-
-    /// OpenGL color
-    pub color: GLuint,
-}
-
-impl Texture {
-    fn new(id: GLuint, internal: GLuint, kind: GLuint, color: GLuint) -> Self {
-        Texture {
-            id,
-            internal,
-            kind,
-            color,
-        }
-    }
-}
-
-/// ToTexture is defined for image types that can be converted to OpenGL textures
-pub trait ToTexture<T: Type, C: Color> {
-    /// OpenGL color
-    const COLOR: GLuint;
-
-    /// OpenGL type
-    const KIND: GLuint;
-
-    /// Get metadata
-    fn get_meta(&self) -> &Meta<T, C>;
-
-    /// Get data buffer
-    fn get_data(&self) -> &[T];
-
-    /// Convert to texture
-    fn to_texture(&self) -> Result<Texture, Error> {
-        let mut texture_id: GLuint = 0;
-
-        unsafe {
-            gl::GenTextures(1, &mut texture_id);
-            gl::BindTexture(gl::TEXTURE_2D, texture_id);
-        }
-
-        let internal = match (Self::COLOR, Self::KIND) {
-            (gl::RED, gl::BYTE) => gl::R8,
-            (gl::RED, gl::SHORT) => gl::R16,
-            (gl::RED, gl::UNSIGNED_BYTE) => gl::R8,
-            (gl::RED, gl::UNSIGNED_SHORT) => gl::R16,
-            (gl::RED, gl::FLOAT) => gl::R32F,
-            (gl::RG, gl::BYTE) => gl::RG8,
-            (gl::RG, gl::SHORT) => gl::RG16,
-            (gl::RG, gl::UNSIGNED_BYTE) => gl::RG8,
-            (gl::RG, gl::UNSIGNED_SHORT) => gl::RG16,
-            (gl::RG, gl::FLOAT) => gl::RG32F,
-            (gl::RGB, gl::BYTE) => gl::RGB8,
-            (gl::RGB, gl::SHORT) => gl::RGB16,
-            (gl::RGB, gl::UNSIGNED_BYTE) => gl::RGB,
-            (gl::RGB, gl::UNSIGNED_SHORT) => gl::RGB16,
-            (gl::RGB, gl::FLOAT) => gl::RGB32F,
-            (gl::RGBA, gl::BYTE) => gl::RGBA,
-            (gl::RGBA, gl::SHORT) => gl::RGBA16,
-            (gl::RGBA, gl::UNSIGNED_BYTE) => gl::RGBA,
-            (gl::RGBA, gl::UNSIGNED_SHORT) => gl::RGBA16,
-            (gl::RGBA, gl::FLOAT) => gl::RGBA32F,
-            _ => return Err(Error::InvalidType),
-        };
-
-        unsafe {
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-            gl::TexImage2D(
-                gl::TEXTURE_2D,
-                0,
-                internal as i32,
-                self.get_meta().width() as i32,
-                self.get_meta().height() as i32,
-                0,
-                Self::COLOR,
-                Self::KIND,
-                self.get_data().as_ptr() as *const _,
-            );
-            gl::BindTexture(gl::TEXTURE_2D, 0);
-        }
-        Ok(Texture::new(texture_id, internal, Self::KIND, Self::COLOR))
-    }
-}
-
-macro_rules! to_texture {
-    ($t:ty, $c:ty, $kind:expr, $color:expr) => {
-        impl ToTexture<$t, $c> for Image<$t, $c> {
-            const COLOR: GLuint = $color;
-            const KIND: GLuint = $kind;
-
-            fn get_meta(&self) -> &Meta<$t, $c> {
-                &self.meta
-            }
-
-            fn get_data(&self) -> &[$t] {
-                &self.data
-            }
-        }
-    };
-}
-
-to_texture!(f32, Rgb, gl::FLOAT, gl::RGB);
-to_texture!(f32, Rgba, gl::FLOAT, gl::RGBA);
-to_texture!(u16, Rgb, gl::UNSIGNED_SHORT, gl::RGB);
-to_texture!(u16, Rgba, gl::UNSIGNED_SHORT, gl::RGBA);
-to_texture!(i16, Rgb, gl::SHORT, gl::RGB);
-to_texture!(i16, Rgba, gl::SHORT, gl::RGBA);
-to_texture!(u8, Rgb, gl::UNSIGNED_BYTE, gl::RGB);
-to_texture!(u8, Rgba, gl::UNSIGNED_BYTE, gl::RGBA);
 
 /// Show an image and exit when ESC is pressed
 pub fn show<T: Type, C: Color, F: FnMut(&mut Window<T, C>, Option<Event>) -> Result<(), Error>>(
