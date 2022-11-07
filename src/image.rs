@@ -3,15 +3,99 @@ use crate::*;
 #[cfg(feature = "parallel")]
 use rayon::{iter::ParallelIterator, prelude::*};
 
+pub trait ImageData<T: Type>: Sync + Send + AsRef<[T]> + AsMut<[T]>
+where
+    T: Copy,
+{
+    fn data(&self) -> &[T] {
+        self.as_ref()
+    }
+
+    fn data_mut(&mut self) -> &mut [T] {
+        self.as_mut()
+    }
+
+    fn as_ptr(&self) -> *const T {
+        self.as_ref().as_ptr()
+    }
+
+    fn as_mut_ptr(&mut self) -> *mut T {
+        self.as_mut().as_mut_ptr()
+    }
+
+    fn buffer(&self) -> &[u8] {
+        unsafe {
+            std::slice::from_raw_parts(
+                self.as_ref().as_ptr() as *const u8,
+                self.as_ref().len() * std::mem::size_of::<T>(),
+            )
+        }
+    }
+
+    fn buffer_mut(&mut self) -> &mut [u8] {
+        unsafe {
+            std::slice::from_raw_parts_mut(
+                self.as_mut().as_ptr() as *mut u8,
+                self.as_mut().len() * std::mem::size_of::<T>(),
+            )
+        }
+    }
+}
+
+impl<T: Type> ImageData<T> for [T] {}
+impl<T: Type> ImageData<T> for Vec<T> {}
+impl<T: Type> ImageData<T> for Box<[T]> {}
+
+impl<T: Type> std::ops::Index<usize> for dyn ImageData<T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.as_ref()[index]
+    }
+}
+
+impl<T: Type> std::ops::IndexMut<usize> for dyn ImageData<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.as_mut()[index]
+    }
+}
+
+impl<T: Type> std::ops::Index<std::ops::Range<usize>> for dyn ImageData<T> {
+    type Output = [T];
+
+    fn index(&self, index: std::ops::Range<usize>) -> &Self::Output {
+        &self.as_ref()[index]
+    }
+}
+
+impl<T: Type> std::ops::IndexMut<std::ops::Range<usize>> for dyn ImageData<T> {
+    fn index_mut(&mut self, index: std::ops::Range<usize>) -> &mut Self::Output {
+        &mut self.as_mut()[index]
+    }
+}
+
 /// Image type
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Image<T: Type, C: Color> {
     /// Metadata
     pub meta: Meta<T, C>,
 
     /// Pixel data
-    pub data: Box<[T]>,
+    pub data: Box<dyn ImageData<T>>,
+}
+
+impl<T: Type, C: Color> PartialEq for Image<T, C> {
+    fn eq(&self, other: &Self) -> bool {
+        self.meta == other.meta && self.data.as_ref().as_ref() == other.data.as_ref().as_ref()
+    }
+}
+
+impl<T: Type, C: Color> Clone for Image<T, C> {
+    fn clone(&self) -> Self {
+        Image {
+            meta: self.meta.clone(),
+            data: Box::new(self.data.data().to_vec().into_boxed_slice()),
+        }
+    }
 }
 
 impl<X: Into<Point>, T: Type, C: Color> std::ops::Index<X> for Image<T, C> {
@@ -40,7 +124,7 @@ impl<T: Type, C: Color> Image<T, C> {
     pub unsafe fn new_with_data(size: impl Into<Size>, data: impl Into<Box<[T]>>) -> Image<T, C> {
         Image {
             meta: Meta::new(size),
-            data: data.into(),
+            data: Box::new(data.into()),
         }
     }
 
@@ -116,48 +200,14 @@ impl<T: Type, C: Color> Image<T, C> {
         }
     }
 
-    /// Convert image data into byte vec
-    pub fn into_buffer(self) -> Vec<u8> {
-        let mut from = self.data.into_vec();
-        unsafe {
-            let capacity = from.capacity() * std::mem::size_of::<T>();
-            let len = from.len() * std::mem::size_of::<T>();
-            let ptr = from.as_mut_ptr();
-            std::mem::forget(from);
-            Vec::from_raw_parts(ptr as *mut u8, len, capacity)
-        }
-    }
-
-    /// Copy image data into new byte vec
-    pub fn to_buffer(&self) -> Vec<u8> {
-        let mut from = self.data.to_vec();
-        unsafe {
-            let capacity = from.capacity() * std::mem::size_of::<T>();
-            let len = from.len() * std::mem::size_of::<T>();
-            let ptr = from.as_mut_ptr();
-            std::mem::forget(from);
-            Vec::from_raw_parts(ptr as *mut u8, len, capacity)
-        }
-    }
-
     /// Get image data as bytes
     pub fn buffer(&self) -> &[u8] {
-        unsafe {
-            std::slice::from_raw_parts(
-                self.data.as_ptr() as *const u8,
-                self.data.len() * std::mem::size_of::<T>(),
-            )
-        }
+        self.data.buffer()
     }
 
     /// Get image data as mutable bytes
     pub fn buffer_mut(&mut self) -> &mut [u8] {
-        unsafe {
-            std::slice::from_raw_parts_mut(
-                self.data.as_ptr() as *mut u8,
-                self.data.len() * std::mem::size_of::<T>(),
-            )
-        }
+        self.data.buffer_mut()
     }
 
     /// Get data at specified index
@@ -274,31 +324,41 @@ impl<T: Type, C: Color> Image<T, C> {
     /// Iterate over image rows
     #[cfg(not(feature = "parallel"))]
     pub fn rows(&self) -> impl Iterator<Item = (usize, &[T])> {
-        self.data.chunks(self.meta.width_step()).enumerate()
+        self.data.data().chunks(self.meta.width_step()).enumerate()
     }
 
     /// Iterate over mutable image rows
     #[cfg(not(feature = "parallel"))]
     pub fn rows_mut(&mut self) -> impl Iterator<Item = (usize, &mut [T])> {
-        self.data.chunks_mut(self.meta.width_step()).enumerate()
+        self.data
+            .data_mut()
+            .chunks_mut(self.meta.width_step())
+            .enumerate()
     }
 
     /// Iterate over image rows
     #[cfg(feature = "parallel")]
     pub fn rows(&self) -> impl ParallelIterator<Item = (usize, &[T])> {
-        self.data.par_chunks(self.meta.width_step()).enumerate()
+        self.data
+            .data()
+            .par_chunks(self.meta.width_step())
+            .enumerate()
     }
 
     /// Iterate over mutable image rows
     #[cfg(feature = "parallel")]
     pub fn rows_mut(&mut self) -> impl ParallelIterator<Item = (usize, &mut [T])> {
-        self.data.par_chunks_mut(self.meta.width_step()).enumerate()
+        self.data
+            .data_mut()
+            .par_chunks_mut(self.meta.width_step())
+            .enumerate()
     }
 
     /// Iterate over image rows
     #[cfg(not(feature = "parallel"))]
     pub fn row_range(&self, y: usize, height: usize) -> impl Iterator<Item = (usize, &[T])> {
         self.data
+            .data()
             .chunks(self.meta.width_step())
             .skip(y)
             .take(height)
@@ -314,6 +374,7 @@ impl<T: Type, C: Color> Image<T, C> {
         height: usize,
     ) -> impl Iterator<Item = (usize, &mut [T])> {
         self.data
+            .data_mut()
             .chunks_mut(self.meta.width_step())
             .skip(y)
             .take(height)
@@ -329,6 +390,7 @@ impl<T: Type, C: Color> Image<T, C> {
         height: usize,
     ) -> impl ParallelIterator<Item = (usize, &[T])> {
         self.data
+            .data()
             .par_chunks(self.meta.width_step())
             .skip(y)
             .take(height)
@@ -344,6 +406,7 @@ impl<T: Type, C: Color> Image<T, C> {
         height: usize,
     ) -> impl ParallelIterator<Item = (usize, &mut [T])> {
         self.data
+            .data_mut()
             .par_chunks_mut(self.meta.width_step())
             .skip(y)
             .take(height)
@@ -499,8 +562,9 @@ impl<T: Type, C: Color> Image<T, C> {
         f: F,
     ) {
         let meta = self.meta();
-        let b = other.data.par_chunks(C::CHANNELS);
+        let b = other.data.data().par_chunks(C::CHANNELS);
         self.data
+            .data_mut()
             .par_chunks_mut(C::CHANNELS)
             .zip(b)
             .enumerate()
@@ -535,6 +599,7 @@ impl<T: Type, C: Color> Image<T, C> {
         let mut pixel = Pixel::new();
 
         self.data
+            .data()
             .chunks_exact(C::CHANNELS)
             .enumerate()
             .for_each(|(n, px)| {
@@ -554,6 +619,7 @@ impl<T: Type, C: Color> Image<T, C> {
         let mut pixel = Pixel::new();
 
         self.data
+            .data()
             .chunks_exact(C::CHANNELS)
             .enumerate()
             .map(|(n, px)| {
@@ -573,6 +639,7 @@ impl<T: Type, C: Color> Image<T, C> {
         let mut pixel = Pixel::new();
 
         self.data
+            .data_mut()
             .chunks_exact_mut(C::CHANNELS)
             .enumerate()
             .for_each(|(n, px)| {
@@ -593,6 +660,7 @@ impl<T: Type, C: Color> Image<T, C> {
         let mut pixel = Pixel::new();
 
         self.data
+            .data_mut()
             .chunks_exact_mut(C::CHANNELS)
             .enumerate()
             .map(|(n, px)| {
@@ -702,7 +770,7 @@ impl<T: Type, C: Color> Image<T, C> {
             self.width(),
             self.height(),
             self.channels(),
-            &mut self.data,
+            self.data.data_mut(),
         )
     }
 
@@ -713,7 +781,7 @@ impl<T: Type, C: Color> Image<T, C> {
             self.width(),
             self.height(),
             self.channels(),
-            &self.data,
+            self.data.data(),
         )
     }
 

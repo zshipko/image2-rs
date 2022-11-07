@@ -2,7 +2,7 @@ use crate::*;
 
 /// Type is used to represent supported image data types
 pub trait Type:
-    Unpin + Default + Clone + Copy + Sync + Send + PartialEq + PartialOrd + std::fmt::Debug
+    'static + Unpin + Default + Clone + Copy + Sync + Send + PartialEq + PartialOrd + std::fmt::Debug
 {
     /// Min value
     const MIN: f64;

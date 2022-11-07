@@ -71,6 +71,6 @@ mod test {
         let mut dest1: Image<u16, Rgb> = Image::new(a.size() * 2);
         scale(2., 2.).eval(&[&a], &mut dest0);
         resize(a.size(), a.size() * 2).eval(&[&a], &mut dest1);
-        assert_eq!(dest0, dest1);
+        assert!(dest0 == dest1);
     }
 }
