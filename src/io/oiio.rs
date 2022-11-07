@@ -97,7 +97,15 @@ impl ImageOutput {
         let out = self.image_output;
         let spec = &mut self.spec;
         unsafe {
-            cpp!([out as "ImageOutput*", filename as "const char *", base_type as "TypeDesc::BASETYPE", spec as "ImageSpec *", width as "size_t", height as "size_t", channels as "size_t", pixels as "const void*"] {
+            cpp!([out as "ImageOutput*",
+              filename as "const char *",
+              base_type as "TypeDesc::BASETYPE",
+              spec as "ImageSpec *",
+              width as "size_t",
+              height as "size_t",
+              channels as "size_t",
+              pixels as "const void*"
+            ] {
                 ImageSpec outspec (*spec);
                 outspec.width = width;
                 outspec.height = height;
@@ -126,7 +134,16 @@ impl ImageOutput {
         let spec = &mut self.spec;
         let index = self.index;
         let ok = unsafe {
-            cpp!([out as "ImageOutput*", index as "size_t", filename as "const char *", base_type as "TypeDesc::BASETYPE", spec as "ImageSpec *", width as "size_t", height as "size_t", channels as "size_t", pixels as "const void*"] -> bool as "bool" {
+            cpp!([out as "ImageOutput*",
+              index as "size_t",
+              filename as "const char *",
+              base_type as "TypeDesc::BASETYPE",
+              spec as "ImageSpec *",
+              width as "size_t",
+              height as "size_t",
+              channels as "size_t",
+              pixels as "const void*"
+            ] -> bool as "bool" {
                 if (!out->supports ("multiimage")){
                     return false;
                 }
@@ -228,7 +245,10 @@ impl ImageInput {
             .unwrap_or_else(std::ptr::null);
 
         let input = unsafe {
-            cpp!([filename as "const char *", tmp as "ImageSpec*", config as "ImageSpec*"] ->  *mut u8 as "std::unique_ptr<ImageInput>" {
+            cpp!([filename as "const char *",
+              tmp as "ImageSpec*",
+              config as "ImageSpec*"
+            ] ->  *mut u8 as "std::unique_ptr<ImageInput>" {
                 std::string s(filename);
                 auto input = config == nullptr ? ImageInput::open(s) : ImageInput::open(s, config);
                 if (!input) {
@@ -278,7 +298,13 @@ impl ImageInput {
         }
 
         let res = unsafe {
-            cpp!([input as "std::unique_ptr<ImageInput>", index as "size_t", miplevel as "size_t", channels as "size_t", fmt as "TypeDesc::BASETYPE", data as "void *"] ->  bool as "bool" {
+            cpp!([input as "std::unique_ptr<ImageInput>",
+              index as "size_t",
+              miplevel as "size_t",
+              channels as "size_t",
+              fmt as "TypeDesc::BASETYPE",
+              data as "void *"
+            ] ->  bool as "bool" {
                 return input->read_image(index, miplevel, 0, channels, fmt, data);
             })
         };
@@ -370,7 +396,11 @@ impl ImageSpec {
     /// Create new ImageSpec
     pub fn new(w: usize, h: usize, c: usize, t: BaseType) -> ImageSpec {
         unsafe {
-            cpp!([w as "size_t", h as "size_t", c as "size_t", t as "TypeDesc::BASETYPE"] -> ImageSpec as "ImageSpec" {
+            cpp!([w as "size_t",
+                  h as "size_t",
+                  c as "size_t",
+                  t as "TypeDesc::BASETYPE"
+            ] -> ImageSpec as "ImageSpec" {
                 return ImageSpec(w, h, c, t);
             })
         }
@@ -417,7 +447,9 @@ impl ImageSpec {
         let key_str = std::ffi::CString::new(key.as_ref().as_bytes().to_vec()).unwrap();
         let key_ptr = key_str.as_ptr();
         let value = unsafe {
-            cpp!([self as "const ImageSpec*", key_ptr as "const char*"] -> *const internal::ParamValue as "const ParamValue*" {
+            cpp!([self as "const ImageSpec*",
+                  key_ptr as "const char*"
+            ] -> *const internal::ParamValue as "const ParamValue*" {
                 ParamValue param;
                 return self->find_attribute(key_ptr, param, TypeDesc::UNKNOWN, false);
             })
@@ -480,7 +512,9 @@ impl ImageSpec {
         let mut len = 0;
         let len_ptr = &mut len;
         let ptr = unsafe {
-            cpp!([self as "const ImageSpec*", len_ptr as "size_t*"] -> *const internal::ParamValue as "const ParamValue*" {
+            cpp!([self as "const ImageSpec*",
+                  len_ptr as "size_t*"
+            ] -> *const internal::ParamValue as "const ParamValue*" {
                 *len_ptr = self->extra_attribs.size();
                 return self->extra_attribs.data();
             })
@@ -580,7 +614,12 @@ pub(crate) mod internal {
             let base_type = T::BASE;
             let data = data.as_mut_ptr();
             unsafe {
-                cpp!([width as "size_t", height as "size_t", channels as "size_t", base_type as "TypeDesc::BASETYPE", data as "void *"] -> ImageBuf as "ImageBuf" {
+                cpp!([width as "size_t",
+                      height as "size_t",
+                      channels as "size_t",
+                      base_type as "TypeDesc::BASETYPE",
+                      data as "void *"
+                ] -> ImageBuf as "ImageBuf" {
                     auto spec = ImageSpec(width, height, channels, base_type);
                     return ImageBuf(spec, data);
                 })
@@ -596,7 +635,12 @@ pub(crate) mod internal {
             let base_type = T::BASE;
             let data = data.as_ptr();
             unsafe {
-                cpp!([width as "size_t", height as "size_t", channels as "size_t", base_type as "TypeDesc::BASETYPE", data as "void *"] -> ImageBuf as "ImageBuf" {
+                cpp!([width as "size_t",
+                      height as "size_t",
+                      channels as "size_t",
+                      base_type as "TypeDesc::BASETYPE",
+                      data as "void *"
+                ] -> ImageBuf as "const ImageBuf" {
                     auto spec = ImageSpec(width, height, channels, base_type);
                     return ImageBuf(spec, data);
                 })
@@ -618,7 +662,11 @@ pub(crate) mod internal {
             let to_space = to_space_str.as_ptr();
 
             unsafe {
-                cpp!([dest as "ImageBuf*", self as "const ImageBuf*", from_space as "const char *", to_space as "const char *"] -> bool as "bool" {
+                cpp!([dest as "ImageBuf*",
+                      self as "const ImageBuf*",
+                      from_space as "const char *",
+                      to_space as "const char *"
+                ] -> bool as "bool" {
                     return ImageBufAlgo::colorconvert(*dest, *self, from_space, to_space);
                 })
             }

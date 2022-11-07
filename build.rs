@@ -1,5 +1,9 @@
 fn main() {
-    #[cfg(all(feature = "oiio", not(feature = "docs-rs"), not(feature = "oiio-custom")))]
+    #[cfg(all(
+        feature = "oiio",
+        not(feature = "docs-rs"),
+        not(feature = "oiio-custom")
+    ))]
     {
         let mut pkg = std::process::Command::new("pkg-config");
         pkg.arg("--cflags")
