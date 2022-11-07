@@ -42,6 +42,7 @@ mod geom;
 mod hash;
 mod histogram;
 mod image;
+mod image_data;
 mod meta;
 mod pixel;
 mod r#type;
@@ -85,10 +86,14 @@ pub use geom::{Point, Region, Size};
 pub use hash::Hash;
 pub use histogram::Histogram;
 pub use image::Image;
+pub use image_data::ImageData;
 pub use kernel::Kernel;
 pub use pixel::Pixel;
 pub use r#type::Type;
 pub use transform::Transform;
+
+#[cfg(feature = "mmap")]
+pub use image_data::mmap::Mmap;
 
 #[cfg(test)]
 mod tests;

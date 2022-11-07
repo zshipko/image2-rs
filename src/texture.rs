@@ -45,21 +45,16 @@ pub trait ToTexture<T: Type, C: Color> {
             (glow::RED, glow::UNSIGNED_BYTE) => glow::R8,
             (glow::RED, glow::UNSIGNED_SHORT) => glow::R16,
             (glow::RED, glow::FLOAT) => glow::R32F,
-            (glow::RG, glow::BYTE) => glow::RG8,
-            (glow::RG, glow::SHORT) => glow::RG16,
-            (glow::RG, glow::UNSIGNED_BYTE) => glow::RG8,
-            (glow::RG, glow::UNSIGNED_SHORT) => glow::RG16,
-            (glow::RG, glow::FLOAT) => glow::RG32F,
-            (glow::RGB, glow::BYTE) => glow::RGB8,
-            (glow::RGB, glow::SHORT) => glow::RGB16,
-            (glow::RGB, glow::UNSIGNED_BYTE) => glow::RGB,
-            (glow::RGB, glow::UNSIGNED_SHORT) => glow::RGB16,
-            (glow::RGB, glow::FLOAT) => glow::RGB32F,
-            (glow::RGBA, glow::BYTE) => glow::RGBA,
-            (glow::RGBA, glow::SHORT) => glow::RGBA16,
-            (glow::RGBA, glow::UNSIGNED_BYTE) => glow::RGBA,
-            (glow::RGBA, glow::UNSIGNED_SHORT) => glow::RGBA16,
-            (glow::RGBA, glow::FLOAT) => glow::RGBA32F,
+            (glow::RGB | glow::SRGB, glow::BYTE) => glow::RGB8,
+            (glow::RGB | glow::SRGB, glow::SHORT) => glow::RGB16,
+            (glow::RGB | glow::SRGB, glow::UNSIGNED_BYTE) => glow::RGB,
+            (glow::RGB | glow::SRGB, glow::UNSIGNED_SHORT) => glow::RGB16,
+            (glow::RGB | glow::SRGB, glow::FLOAT) => glow::RGB32F,
+            (glow::RGBA | glow::SRGB_ALPHA, glow::BYTE) => glow::RGBA,
+            (glow::RGBA | glow::SRGB_ALPHA, glow::SHORT) => glow::RGBA16,
+            (glow::RGBA | glow::SRGB_ALPHA, glow::UNSIGNED_BYTE) => glow::RGBA,
+            (glow::RGBA | glow::SRGB_ALPHA, glow::UNSIGNED_SHORT) => glow::RGBA16,
+            (glow::RGBA | glow::SRGB_ALPHA, glow::FLOAT) => glow::RGBA32F,
             _ => return Err(Error::InvalidType),
         };
         Ok(internal)
@@ -86,6 +81,12 @@ pub trait ToTexture<T: Type, C: Color> {
                 glow::TEXTURE_MIN_FILTER,
                 glow::NEAREST as i32,
             );
+
+            if Self::COLOR == glow::RED {
+                gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_SWIZZLE_G, glow::RED as i32);
+                gl.tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_SWIZZLE_B, glow::RED as i32);
+            }
+
             let meta = self.get_meta();
             gl.tex_image_2d(
                 glow::TEXTURE_2D,
@@ -189,18 +190,18 @@ macro_rules! to_texture {
 }
 
 to_texture!(f32, Rgb, glow::FLOAT, glow::RGB);
-to_texture!(f32, Srgb, glow::FLOAT, glow::RGB);
+to_texture!(f32, Srgb, glow::FLOAT, glow::SRGB);
 to_texture!(f32, Rgba, glow::FLOAT, glow::RGBA);
-to_texture!(f32, Srgba, glow::FLOAT, glow::RGBA);
+to_texture!(f32, Srgba, glow::FLOAT, glow::SRGB_ALPHA);
 to_texture!(u16, Rgb, glow::UNSIGNED_SHORT, glow::RGB);
-to_texture!(u16, Srgb, glow::UNSIGNED_SHORT, glow::RGB);
+to_texture!(u16, Srgb, glow::UNSIGNED_SHORT, glow::SRGB);
 to_texture!(u16, Rgba, glow::UNSIGNED_SHORT, glow::RGBA);
-to_texture!(u16, Srgba, glow::UNSIGNED_SHORT, glow::RGBA);
+to_texture!(u16, Srgba, glow::UNSIGNED_SHORT, glow::SRGB_ALPHA);
 to_texture!(i16, Rgb, glow::SHORT, glow::RGB);
-to_texture!(i16, Srgb, glow::SHORT, glow::RGB);
+to_texture!(i16, Srgb, glow::SHORT, glow::SRGB);
 to_texture!(i16, Rgba, glow::SHORT, glow::RGBA);
-to_texture!(i16, Srgba, glow::SHORT, glow::RGBA);
+to_texture!(i16, Srgba, glow::SHORT, glow::SRGB_ALPHA);
 to_texture!(u8, Rgb, glow::UNSIGNED_BYTE, glow::RGB);
-to_texture!(u8, Srgb, glow::UNSIGNED_BYTE, glow::RGB);
+to_texture!(u8, Srgb, glow::UNSIGNED_BYTE, glow::SRGB);
 to_texture!(u8, Rgba, glow::UNSIGNED_BYTE, glow::RGBA);
-to_texture!(u8, Srgba, glow::UNSIGNED_BYTE, glow::RGBA);
+to_texture!(u8, Srgba, glow::UNSIGNED_BYTE, glow::SRGB_ALPHA);

@@ -268,3 +268,16 @@ fn test_text() {
     image.draw_text("Testing123", &font, 64.0, (width - 100, 700), &px);
     image.save("images/test-text.png").unwrap();
 }
+
+#[cfg(feature = "mmap")]
+#[test]
+fn test_mmap() {
+    let image: Image<f32, Rgb> = Image::open("images/A.exr")
+        .unwrap()
+        .mmap("images/test.image2")
+        .unwrap();
+    let image1: Image<f32, Rgb> = Image::new_mmap("images/test.image2", None).unwrap();
+
+    assert!(image == image1);
+    image1.save("images/test-mmap.png").unwrap();
+}

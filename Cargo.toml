@@ -15,6 +15,7 @@ links = "OpenImageIO"
 half = "2"
 thiserror = "1"
 euclid = "0.22"
+memmap2 = {version = "0.5", optional = true}
 cpp = {version = "0.5", optional = true}
 rayon = {version = "1", optional = true}
 serde = {version = "1", optional = true, features = ["derive"]}
@@ -30,7 +31,7 @@ cpp_build = {version = "0.5", optional = true}
 smol = "1"
 
 [features]
-default = ["oiio", "parallel", "text"]
+default = ["oiio", "parallel", "text", "mmap", "window"]
 window = ["opengl", "glfw"]
 oiio = ["cpp", "cpp_build"]
 oiio-custom = ["cpp", "cpp_build"]
@@ -41,6 +42,7 @@ text = ["rusttype"]
 glfw-sys = ["glfw/glfw-sys"]
 magick = []
 opengl = ["glow"]
+mmap = ["memmap2"]
 
 [package.metadata.docs.rs]
 no-default-features = true

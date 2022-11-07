@@ -3,77 +3,6 @@ use crate::*;
 #[cfg(feature = "parallel")]
 use rayon::{iter::ParallelIterator, prelude::*};
 
-pub trait ImageData<T: Type>: Sync + Send + AsRef<[T]> + AsMut<[T]>
-where
-    T: Copy,
-{
-    fn data(&self) -> &[T] {
-        self.as_ref()
-    }
-
-    fn data_mut(&mut self) -> &mut [T] {
-        self.as_mut()
-    }
-
-    fn as_ptr(&self) -> *const T {
-        self.as_ref().as_ptr()
-    }
-
-    fn as_mut_ptr(&mut self) -> *mut T {
-        self.as_mut().as_mut_ptr()
-    }
-
-    fn buffer(&self) -> &[u8] {
-        unsafe {
-            std::slice::from_raw_parts(
-                self.as_ref().as_ptr() as *const u8,
-                self.as_ref().len() * std::mem::size_of::<T>(),
-            )
-        }
-    }
-
-    fn buffer_mut(&mut self) -> &mut [u8] {
-        unsafe {
-            std::slice::from_raw_parts_mut(
-                self.as_mut().as_ptr() as *mut u8,
-                self.as_mut().len() * std::mem::size_of::<T>(),
-            )
-        }
-    }
-}
-
-impl<T: Type> ImageData<T> for [T] {}
-impl<T: Type> ImageData<T> for Vec<T> {}
-impl<T: Type> ImageData<T> for Box<[T]> {}
-
-impl<T: Type> std::ops::Index<usize> for dyn ImageData<T> {
-    type Output = T;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.as_ref()[index]
-    }
-}
-
-impl<T: Type> std::ops::IndexMut<usize> for dyn ImageData<T> {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.as_mut()[index]
-    }
-}
-
-impl<T: Type> std::ops::Index<std::ops::Range<usize>> for dyn ImageData<T> {
-    type Output = [T];
-
-    fn index(&self, index: std::ops::Range<usize>) -> &Self::Output {
-        &self.as_ref()[index]
-    }
-}
-
-impl<T: Type> std::ops::IndexMut<std::ops::Range<usize>> for dyn ImageData<T> {
-    fn index_mut(&mut self, index: std::ops::Range<usize>) -> &mut Self::Output {
-        &mut self.as_mut()[index]
-    }
-}
-
 /// Image type
 pub struct Image<T: Type, C: Color> {
     /// Metadata
@@ -121,10 +50,13 @@ impl<T: Type, C: Color> Image<T, C> {
     /// # Safety
     /// This is marked as unsafe because it does not check to ensure the data passed in matches the
     /// dimensions
-    pub unsafe fn new_with_data(size: impl Into<Size>, data: impl Into<Box<[T]>>) -> Image<T, C> {
+    pub unsafe fn new_with_data(
+        size: impl Into<Size>,
+        data: impl 'static + ImageData<T>,
+    ) -> Image<T, C> {
         Image {
             meta: Meta::new(size),
-            data: Box::new(data.into()),
+            data: Box::new(data),
         }
     }
 
@@ -153,6 +85,29 @@ impl<T: Type, C: Color> Image<T, C> {
     /// Create a new image with the same size as an existing image with the given type and color
     pub fn new_like_with_type_and_color<U: Type, D: Color>(&self) -> Image<U, D> {
         Image::new(self.size())
+    }
+
+    #[cfg(feature = "mmap")]
+    /// New memory mapped image - if `meta` is None then it is assumed the image already exists on disk
+    /// otherwise it will be created
+    pub fn new_mmap(
+        filename: impl AsRef<std::path::Path>,
+        meta: Option<Meta<T, C>>,
+    ) -> Result<Image<T, C>, Error> {
+        match meta {
+            Some(meta) => Mmap::create_image(filename, &meta),
+            None => Mmap::load_image(filename),
+        }
+    }
+
+    #[cfg(feature = "mmap")]
+    /// Map an existing image to disk, this consumes the original and returns the memory mapped
+    /// image
+    pub fn mmap(mut self, filename: impl AsRef<std::path::Path>) -> Result<Image<T, C>, Error> {
+        let mut data = Mmap::create(filename, &self.meta)?;
+        data.data_mut().copy_from_slice(self.data.data());
+        self.data = Box::new(data);
+        Ok(self)
     }
 
     /// Returns the number of channels
