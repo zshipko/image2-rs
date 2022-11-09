@@ -22,7 +22,7 @@ impl<T: Type, C: Color> crate::Image<T, C> {
             self.height() as i32,
             self.channels() as i32,
             halide_runtime::Type::new(kind, T::bits() as u8),
-            &mut self.data,
+            self.data.data_mut(),
         ))
     }
 
@@ -35,7 +35,7 @@ impl<T: Type, C: Color> crate::Image<T, C> {
             self.height() as i32,
             self.channels() as i32,
             halide_runtime::Type::new(kind, T::bits() as u8),
-            &self.data,
+            self.data.data(),
         ))
     }
 }
