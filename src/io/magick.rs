@@ -145,7 +145,7 @@ impl Magick {
             data: unsafe {
                 let mut data: Vec<T> = std::mem::transmute(cmd.stdout);
                 data.set_len(width * height * C::CHANNELS);
-                data.into()
+                Box::new(data)
             },
         })
     }
