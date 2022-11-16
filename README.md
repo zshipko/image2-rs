@@ -53,6 +53,8 @@ This is not a pure Rust crate, if that's important to you then [image](https://g
   * Incompatible with the `oiio` feature
 - `parallel`:
   * Enables parallel image iterators (default: enabled)
+- `mmap`:
+  * Enabled memory-mapped image data (default: enabled)
 - `text`:
   * Enables loading fonts and drawing text on images (default: enabled)
 - `window`:
