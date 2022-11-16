@@ -138,7 +138,7 @@ pub mod mmap {
             meta: &Meta<T, C>,
         ) -> Result<Image<T, C>, Error> {
             let data = Self::create(filename, meta)?;
-            unsafe { Ok(Image::new_with_data(meta.size(), data)) }
+            Image::new_with_data(meta.size(), data)
         }
 
         /// Load `Mmap` from disk
@@ -198,7 +198,7 @@ pub mod mmap {
             filename: impl AsRef<std::path::Path>,
         ) -> Result<Image<T, C>, Error> {
             let (data, meta) = Self::load::<C>(filename)?;
-            unsafe { Ok(Image::new_with_data(meta.size(), data)) }
+            Image::new_with_data(meta.size(), data)
         }
     }
 

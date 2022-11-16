@@ -45,26 +45,34 @@ impl<X: Into<Point>, T: Type, C: Color> std::ops::IndexMut<X> for Image<T, C> {
 }
 
 impl<T: Type, C: Color> Image<T, C> {
-    /// Create a new image with the given size and data
-    ///
-    /// # Safety
-    /// This is marked as unsafe because it does not check to ensure the data passed in matches the
-    /// dimensions
-    pub unsafe fn new_with_data(
+    /// Create a new image with the given size and data, returns `Err` if the provided `ImageData` isn't big enough
+    /// for the specified dimensions
+    pub fn new_with_data(
         size: impl Into<Size>,
         data: impl 'static + ImageData<T>,
-    ) -> Image<T, C> {
-        Image {
-            meta: Meta::new(size),
-            data: Box::new(data),
+    ) -> Result<Image<T, C>, Error> {
+        let meta = Meta::new(size);
+        if data.as_ref().len() < meta.num_values() {
+            return Err(Error::InvalidDimensions(
+                meta.width(),
+                meta.height(),
+                C::CHANNELS,
+            ));
         }
+        Ok(Image {
+            meta,
+            data: Box::new(data),
+        })
     }
 
     /// Create a new image
     pub fn new(size: impl Into<Size>) -> Image<T, C> {
         let size = size.into();
         let data = vec![T::default(); size.width * size.height * C::CHANNELS];
-        unsafe { Self::new_with_data(size, data) }
+        Image {
+            meta: Meta::new(size),
+            data: Box::new(data.into_boxed_slice()),
+        }
     }
 
     /// Create a new image with the same size, type and color
