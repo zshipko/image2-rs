@@ -2,6 +2,7 @@ use crate::*;
 
 /// Image histogram
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Histogram {
     total: usize,
     bins: Box<[usize]>,

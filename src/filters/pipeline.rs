@@ -3,6 +3,7 @@ use crate::*;
 /// Used to determine if a filter can be executed and interleaved at the pixel level or if the
 /// whole filter needs to be evaulated before moving to the next filter
 #[derive(Debug, PartialEq, Clone, Copy, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Schedule {
     /// Allows pixel level composition
     Pixel,

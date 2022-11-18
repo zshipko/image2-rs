@@ -6,8 +6,8 @@ use rayon::prelude::*;
 use std::marker::PhantomData;
 
 /// Image metadata
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Meta<T: Type, C: Color> {
     /// Image size
     pub size: Size,

@@ -2,6 +2,7 @@ use crate::*;
 
 /// Convert between colors
 #[derive(Clone, Copy, Default, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Convert<T: Color>(std::marker::PhantomData<T>);
 
 /// Create new color conversion filter
@@ -16,6 +17,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Convert<D> {
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Saturation(pub f64);
 
 /// Adjust saturation
@@ -33,6 +35,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Saturation {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Brightness(f64);
 
 /// Adjust image brightness
@@ -49,6 +52,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Brightness {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Exposure(f64);
 
 /// Adjust image exposure, the argument is the number of stops to increase or decrease exposure by
@@ -65,6 +69,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Exposure {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Contrast(pub f64);
 
 /// Adjust image contrast
@@ -81,6 +86,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Contrast {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Crop(Region);
 
 /// Crop an image
@@ -107,6 +113,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Crop {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Invert;
 
 /// Invert an image
@@ -123,6 +130,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Invert {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Blend;
 
 /// Average two images
@@ -139,6 +147,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Blend {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct GammaLog(f64);
 
 /// Convert to log gamma
@@ -157,6 +166,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for GammaLog {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct GammaLin(f64);
 
 /// Convert to linear gamma
@@ -259,6 +269,7 @@ impl<
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Clamp;
 
 /// Clamp pixel values
@@ -273,6 +284,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Clamp {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Normalize {
     min: f64,
     max: f64,
@@ -308,6 +320,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Filter<T, C, U, D> for Normalize {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Noop;
 
 /// Filter that does nothing

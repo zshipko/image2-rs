@@ -5,6 +5,7 @@ use crate::*;
 
 /// 2-dimensional convolution kernel
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Kernel {
     rows: usize,
     cols: usize,
