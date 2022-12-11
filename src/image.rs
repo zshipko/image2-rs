@@ -829,4 +829,14 @@ impl<T: Type, C: Color> Image<T, C> {
             ))),
         )
     }
+
+    /// Image data
+    pub fn data(&self) -> &[T] {
+        self.data.data()
+    }
+
+    /// Mutable image data
+    pub fn data_mut(&mut self) -> &mut [T] {
+        self.data.data_mut()
+    }
 }
