@@ -17,7 +17,7 @@ fn main() {
 
         let pkg = pkg.output().unwrap();
         let flags = String::from_utf8(pkg.stdout).unwrap();
-        let flags = flags.split(' ');
+        let flags = flags.trim().split(' ');
         let mut config = cpp_build::Config::new();
         config.flag("-std=c++14").flag("-w");
 
