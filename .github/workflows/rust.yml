@@ -19,6 +19,8 @@ jobs:
       run: cargo test --verbose --features window,halide
   macos:
     runs-on: macos-latest
+    env:
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
     steps:
     - uses: actions/checkout@v2
     - run: brew update
@@ -46,6 +48,8 @@ jobs:
       run: cargo +nightly test --verbose --features window,halide
   macos_nightly:
     runs-on: macos-latest
+    env:
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
     steps:
     - uses: actions/checkout@v2
     - run: brew update
