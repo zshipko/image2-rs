@@ -21,7 +21,7 @@ rayon = {version = "1", optional = true}
 serde = {version = "1", optional = true, features = ["derive"]}
 rusttype = {version = "0.9", optional = true}
 halide-runtime = {version = "0.6", optional = true}
-glfw = {version = "0.48", optional = true, default-features=false}
+glfw = {version = "0.49", optional = true, default-features=false}
 glow = {version = "0.11", optional = true}
 
 [build-dependencies]
