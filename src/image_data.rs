@@ -99,6 +99,19 @@ pub mod mmap {
                 + std::mem::size_of::<u16>() as u64
         }
 
+        /// Write header to file
+        pub fn write_header<C: Color>(
+            mut file: impl Write,
+            meta: &Meta<T, C>,
+        ) -> Result<(), Error> {
+            file.write_all(b"img2")?;
+            file.write_all(&(std::mem::size_of::<T>() as u64).to_le_bytes())?;
+            file.write_all(&(meta.width() as u64).to_le_bytes())?;
+            file.write_all(&(meta.height() as u64).to_le_bytes())?;
+            file.write_all(&(C::CHANNELS as u16).to_le_bytes())?;
+            Ok(())
+        }
+
         /// Create new `Mmap` on disk
         pub fn create<C: Color>(
             filename: impl AsRef<std::path::Path>,
@@ -112,11 +125,7 @@ pub mod mmap {
 
             file.set_len(Self::header_len() + meta.num_bytes() as u64)?;
 
-            file.write_all(b"img2")?;
-            file.write_all(&(std::mem::size_of::<T>() as u64).to_le_bytes())?;
-            file.write_all(&(meta.width() as u64).to_le_bytes())?;
-            file.write_all(&(meta.height() as u64).to_le_bytes())?;
-            file.write_all(&(C::CHANNELS as u16).to_le_bytes())?;
+            Self::write_header(&mut file, meta)?;
 
             let inner = unsafe {
                 MmapOptions::new()
@@ -133,7 +142,7 @@ pub mod mmap {
         }
 
         /// Create new image on disk
-        pub(crate) fn create_image<C: Color>(
+        pub fn create_image<C: Color>(
             filename: impl AsRef<std::path::Path>,
             meta: &Meta<T, C>,
         ) -> Result<Image<T, C>, Error> {
@@ -141,15 +150,8 @@ pub mod mmap {
             Image::new_with_data(meta.size(), data)
         }
 
-        /// Load `Mmap` from disk
-        pub(crate) fn load<C: Color>(
-            filename: impl AsRef<std::path::Path>,
-        ) -> Result<(Mmap<T>, Meta<T, C>), Error> {
-            let mut file = std::fs::OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(filename)?;
-
+        /// Read header from file on disk
+        pub fn read_header<C: Color>(mut file: impl Read) -> Result<Meta<T, C>, Error> {
             let mut hdr = [0u8; 4];
             file.read_exact(&mut hdr)?;
 
@@ -177,24 +179,38 @@ pub mod mmap {
                 return Err(Error::InvalidType);
             }
 
+            let width = u64::from_le_bytes(width) as usize;
+            let height = u64::from_le_bytes(height) as usize;
+
+            Ok(Meta::new((width, height)))
+        }
+
+        /// Load `Mmap` from disk
+        pub fn load<C: Color>(
+            filename: impl AsRef<std::path::Path>,
+        ) -> Result<(Mmap<T>, Meta<T, C>), Error> {
+            let mut file = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(filename)?;
+
+            let meta = Self::read_header(&mut file)?;
+
             let inner = unsafe {
                 MmapOptions::new()
                     .offset(Self::header_len())
                     .map_mut(&file)?
             };
 
-            let width = u64::from_le_bytes(width) as usize;
-            let height = u64::from_le_bytes(height) as usize;
-
             let data = Self {
                 inner,
                 _t: std::marker::PhantomData,
             };
-            Ok((data, Meta::new((width, height))))
+            Ok((data, meta))
         }
 
         /// Load image from disk
-        pub(crate) fn load_image<C: Color>(
+        pub fn load_image<C: Color>(
             filename: impl AsRef<std::path::Path>,
         ) -> Result<Image<T, C>, Error> {
             let (data, meta) = Self::load::<C>(filename)?;
