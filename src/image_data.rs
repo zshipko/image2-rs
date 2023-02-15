@@ -257,3 +257,4 @@ pub mod mmap {
 impl<T: Type> ImageData<T> for [T] {}
 impl<T: Type> ImageData<T> for Vec<T> {}
 impl<T: Type> ImageData<T> for Box<[T]> {}
+impl<T: Type> ImageData<T> for &mut [T] {}
