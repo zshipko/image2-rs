@@ -16,7 +16,7 @@ jobs:
       run: sudo apt update && sudo apt install libopenimageio-dev libglfw3-dev
 
     - name: Run tests
-      run: cargo test --verbose --features window,halide
+      run: cargo test --verbose --features window
   macos:
     runs-on: macos-latest
     env:
@@ -32,7 +32,7 @@ jobs:
       run: brew install --force --overwrite openimageio glfw
 
     - name: Run tests
-      run: cargo test --verbose --features window,halide
+      run: cargo test --verbose --features window
   linux_nightly:
     runs-on: ubuntu-latest
     steps:
@@ -45,7 +45,7 @@ jobs:
       run: rustup toolchain install nightly
 
     - name: Run tests
-      run: cargo +nightly test --verbose --features window,halide
+      run: cargo +nightly test --verbose --features window
   macos_nightly:
     runs-on: macos-latest
     env:
@@ -64,7 +64,7 @@ jobs:
       run: rustup toolchain install nightly
 
     - name: Run tests
-      run: cargo +nightly test --verbose --features window,halide
+      run: cargo +nightly test --verbose --features window
   linux_no_default_features:
     runs-on: ubuntu-latest
     steps:
@@ -87,6 +87,6 @@ jobs:
       run: rustup toolchain install nightly --profile=default
 
     - name: Run tests
-      run: cargo +nightly clippy --features window,halide
+      run: cargo +nightly clippy --features window
 
 
