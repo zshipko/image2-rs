@@ -12,7 +12,6 @@ fn main() {
     let image = Image::<f32, Rgb>::open(&arg).unwrap();
 
     println!("Press 'i' to invert the image");
-
     show_all(
         vec![("A", image.clone()), ("B", image)],
         move |window, event| {
@@ -24,7 +23,7 @@ fn main() {
                     println!("Scroll: {x} {y}");
                 }
                 Some(Event::Key(Key::I, _, Action::Press, _)) => {
-                    window.image_mut().run_in_place(filter::invert());
+                    window.image_mut().run(filter::invert());
                 }
                 _ => (),
             }

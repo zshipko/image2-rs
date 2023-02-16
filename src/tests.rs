@@ -204,7 +204,7 @@ fn test_saturation() {
 
     assert!(image.save("images/test-saturation0.jpg").is_ok());
 
-    image = image.run_in_place(saturation(1.25));
+    image.run_in_place(saturation(1.25));
 
     assert!(image.save("images/test-saturation1.jpg").is_ok());
 }

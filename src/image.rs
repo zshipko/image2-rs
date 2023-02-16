@@ -679,8 +679,9 @@ impl<T: Type, C: Color> Image<T, C> {
     }
 
     /// Run a filter using the same Image as input and output
-    pub fn run_in_place(self, filter: impl Filter<T, C>) -> Self {
-        filter.eval_in_place(self)
+    pub fn run_in_place(&mut self, filter: impl Filter<T, C>) -> &mut Self {
+        filter.eval_in_place(self);
+        self
     }
 
     /// Run a filter using an Image as input
