@@ -55,13 +55,6 @@ pub mod texture;
 #[cfg(feature = "window")]
 pub mod window;
 
-#[cfg(feature = "halide")]
-mod halide_wrapper;
-
-/// Halide bindings
-#[cfg(feature = "halide")]
-pub use halide_runtime as halide;
-
 /// Text
 #[cfg(feature = "text")]
 pub mod text;
