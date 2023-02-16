@@ -23,7 +23,7 @@ fn main() {
                     println!("Scroll: {x} {y}");
                 }
                 Some(Event::Key(Key::I, _, Action::Press, _)) => {
-                    window.image_mut().run(filter::invert());
+                    window.image_mut().run_in_place(filter::invert());
                 }
                 _ => (),
             }
