@@ -4,6 +4,13 @@ use crate::*;
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Hash(blockhash::Blockhash256);
 
+impl std::str::FromStr for Hash {
+    type Err = <blockhash::Blockhash256 as std::str::FromStr>::Err;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Hash(blockhash::Blockhash256::from_str(s)?))
+    }
+}
+
 impl std::fmt::Display for Hash {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(fmt, "{}", self.0.to_string())
