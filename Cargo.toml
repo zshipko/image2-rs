@@ -1,6 +1,6 @@
 [package]
 name = "image2"
-version = "1.9.2"
+version = "1.10.0"
 authors = ["Zach Shipko <zachshipko@gmail.com>"]
 license = "ISC"
 keywords = ["image", "image-processing"]

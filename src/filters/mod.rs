@@ -47,15 +47,16 @@ pub trait Filter<T: Type, C: Color, U: Type = T, D: Color = C>: std::fmt::Debug 
     }
 
     /// Evaluate filter on part of an image using the same image for input and output
-    fn eval_partial_in_place(&self, roi: Region, output: &mut Image<U, D>) {
-        let input = output as *mut _ as *const _;
+    fn eval_partial_in_place(&self, roi: Region, image: Image<U, D>) -> Image<U, D> {
+        let image = std::cell::UnsafeCell::new(image);
+        let input = image.get() as *const _;
         let input = unsafe { &[&*input] };
-
         let input = Input::new(input);
-
+        let output = unsafe { &mut *image.get() };
         output.iter_region_mut(roi).for_each(|(pt, mut data)| {
             self.compute_at(pt, &input, &mut data);
         });
+        image.into_inner()
     }
 
     /// Evaluate filter
@@ -68,14 +69,15 @@ pub trait Filter<T: Type, C: Color, U: Type = T, D: Color = C>: std::fmt::Debug 
     }
 
     /// Evaluate filter using the same image for input and output
-    fn eval_in_place(&self, output: &mut Image<U, D>) {
-        let input = output as *mut _ as *const _;
+    fn eval_in_place(&self, image: Image<U, D>) -> Image<U, D> {
+        let image = std::cell::UnsafeCell::new(image);
+        let input = image.get() as *const _;
         let input = unsafe { &[&*input] };
-
         let input = Input::new(input);
-
+        let output = unsafe { &mut *image.get() };
         output.for_each(|pt, mut data| {
             self.compute_at(pt, &input, &mut data);
         });
+        image.into_inner()
     }
 }

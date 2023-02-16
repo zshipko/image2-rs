@@ -53,11 +53,12 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
         &self,
         input: &mut Input<'a, T, C>,
         output: &mut Image<U, D>,
-        tmpconv: &mut Image<T, C>,
+        tmpconvp: &std::cell::UnsafeCell<Image<T, C>>,
         j: usize,
         index: usize,
         image_schedule_filters: &[usize],
     ) {
+        let tmpconv = unsafe { &mut *tmpconvp.get() };
         let current_filter = &self.filters[index];
         if current_filter.schedule() == Schedule::Image {
             let output_size = current_filter.output_size(input, output);
@@ -66,13 +67,12 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
             }
         }
         output.iter_mut().for_each(|(pt, mut data)| {
-            for f in self.filters[if j == 0 {
+            let n = if j == 0 {
                 0
             } else {
                 image_schedule_filters[j - 1] + 1
-            }..=index]
-                .iter()
-            {
+            }..=index;
+            for f in self.filters[n].iter() {
                 match f.schedule() {
                     Schedule::Pixel if j > 0 => {
                         let mut px = Pixel::new();
@@ -82,21 +82,17 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
 
                         f.compute_at(pt, &input, &mut data);
                     }
-                    Schedule::Pixel => {
-                        f.compute_at(pt, input, &mut data);
-                    }
-                    Schedule::Image => {
+                    Schedule::Pixel | Schedule::Image => {
                         f.compute_at(pt, input, &mut data);
                     }
                 }
             }
         });
 
-        // Sketchy code in this block to allow re-use of `tmpconv`
         if index != self.filters.len() - 1 {
             output.convert_to(tmpconv);
 
-            let tmp = tmpconv as *const _;
+            let tmp = tmpconvp.get();
             input.images[0] = unsafe { &*tmp };
         }
     }
@@ -106,13 +102,13 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
         let mut input = Input::new(input);
         let image_schedule_filters = self.image_schedule_list();
 
-        let mut tmpconv = Image::<T, C>::new(output.size());
+        let tmpconv = std::cell::UnsafeCell::new(Image::<T, C>::new(output.size()));
 
         for (j, index) in image_schedule_filters.iter().enumerate() {
             self.loop_inner(
                 &mut input,
                 output,
-                &mut tmpconv,
+                &tmpconv,
                 j,
                 *index,
                 &image_schedule_filters,
@@ -137,29 +133,7 @@ impl<T: Type, C: Color, U: Type, D: Color> Pipeline<T, C, U, D> {
             index,
             input,
             output,
-            tmpconv: Image::<T, C>::new(size),
-        }
-    }
-}
-
-impl<T: Type, C: Color> Pipeline<T, C> {
-    /// Execute the pipeline using the same input and output image
-    pub fn execute_in_place(&self, output: &mut Image<T, C>) {
-        let input = unsafe { &[&*(output as *const _)] };
-        let mut input = Input::new(input);
-        let image_schedule_filters = self.image_schedule_list();
-
-        let mut tmpconv = Image::<T, C>::new(output.size());
-
-        for (j, index) in image_schedule_filters.iter().enumerate() {
-            self.loop_inner(
-                &mut input,
-                output,
-                &mut tmpconv,
-                j,
-                *index,
-                &image_schedule_filters,
-            );
+            tmpconv: std::cell::UnsafeCell::new(Image::<T, C>::new(size)),
         }
     }
 }
