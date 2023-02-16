@@ -1,6 +1,6 @@
 [package]
 name = "image2"
-version = "1.9.1"
+version = "1.9.2"
 authors = ["Zach Shipko <zachshipko@gmail.com>"]
 license = "ISC"
 keywords = ["image", "image-processing"]
@@ -44,7 +44,7 @@ mmap = ["memmap2"]
 
 [package.metadata.docs.rs]
 no-default-features = true
-features = ["window", "parallel", "halide", "serialize", "mmap", "text"]
+features = ["window", "parallel", "serialize", "mmap", "text"]
 
 [[example]]
 name = "window"
