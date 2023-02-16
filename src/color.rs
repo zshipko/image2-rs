@@ -7,7 +7,7 @@ pub type Channel = usize;
 
 /// `Color` trait is used to define color spaces
 pub trait Color:
-    Unpin + PartialEq + Eq + PartialOrd + Ord + Clone + Sync + Send + std::fmt::Debug
+    Unpin + PartialEq + Eq + PartialOrd + Ord + Clone + Copy + Sync + Send + std::fmt::Debug
 {
     /// Color name
     const NAME: &'static str;

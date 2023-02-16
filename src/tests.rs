@@ -10,11 +10,7 @@ fn timer<F: FnMut()>(name: &str, mut f: F) {
     let now = Instant::now();
     f();
     let t = now.elapsed();
-    println!(
-        "BENCHMARK {}: {}s",
-        name,
-        t.as_secs() as f64 + (t.subsec_millis() as f64 * 0.001)
-    )
+    println!("BENCHMARK {}: {:?}", name, t)
 }
 
 #[test]
