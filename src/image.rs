@@ -75,6 +75,11 @@ impl<T: Type, C: Color> Image<T, C> {
         }
     }
 
+    /// Consume image and return inner ImageData
+    pub fn into_data(self) -> Box<dyn ImageData<T>> {
+        self.data
+    }
+
     /// Create a new image with the same size, type and color
     pub fn new_like(&self) -> Image<T, C> {
         Image::new(self.size())

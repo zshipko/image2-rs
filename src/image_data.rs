@@ -49,6 +49,9 @@ where
             )
         }
     }
+
+    /// Convert from ImageData to Vec
+    fn into_vec(self) -> Vec<T>;
 }
 
 impl<T: Type> std::ops::Index<usize> for dyn ImageData<T> {
@@ -233,7 +236,7 @@ pub mod mmap {
         fn as_mut(&mut self) -> &mut [T] {
             unsafe {
                 std::slice::from_raw_parts_mut(
-                    self.inner.as_ptr() as *mut _,
+                    self.inner.as_mut_ptr() as *mut _,
                     self.inner.len() / std::mem::size_of::<T>(),
                 )
             }
@@ -245,6 +248,16 @@ pub mod mmap {
             self.inner.flush()?;
             Ok(())
         }
+
+        fn into_vec(self) -> Vec<T> {
+            unsafe {
+                std::slice::from_raw_parts(
+                    self.inner.as_ptr() as *const _,
+                    self.inner.len() / std::mem::size_of::<T>(),
+                )
+                .to_vec()
+            }
+        }
     }
 
     impl<T: Type> Drop for Mmap<T> {
@@ -254,7 +267,25 @@ pub mod mmap {
     }
 }
 
-impl<T: Type> ImageData<T> for [T] {}
-impl<T: Type> ImageData<T> for Vec<T> {}
-impl<T: Type> ImageData<T> for Box<[T]> {}
-impl<T: Type> ImageData<T> for &mut [T] {}
+impl<const N: usize, T: Type> ImageData<T> for [T; N] {
+    fn into_vec(self) -> Vec<T> {
+        self.into()
+    }
+}
+
+impl<T: Type> ImageData<T> for Vec<T> {
+    fn into_vec(self) -> Vec<T> {
+        self
+    }
+}
+impl<T: Type> ImageData<T> for Box<[T]> {
+    fn into_vec(self) -> Vec<T> {
+        self.into()
+    }
+}
+
+impl<T: Type> ImageData<T> for &mut [T] {
+    fn into_vec(self) -> Vec<T> {
+        self.into()
+    }
+}
