@@ -123,6 +123,14 @@ impl<T: Type, C: Color> Image<T, C> {
         Ok(self)
     }
 
+    #[cfg(feature = "mmap")]
+    /// Map an existing image to disk, returns the new mmapped image
+    pub fn mmap_clone(&self, filename: impl AsRef<std::path::Path>) -> Result<Image<T, C>, Error> {
+        let mut data = Mmap::create(filename, &self.meta)?;
+        data.data_mut().copy_from_slice(self.data.data());
+        Image::new_with_data(self.meta.size(), data)
+    }
+
     /// Returns the number of channels
     #[inline]
     pub fn channels(&self) -> Channel {
