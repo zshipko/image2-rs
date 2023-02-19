@@ -61,14 +61,24 @@ pub const IM: Magick = Magick {
     convert: &["convert"],
 };
 
+/// ImageMagick
+pub const IM7: Magick = Magick {
+    identify: &["magick", "identify"],
+    convert: &["magick", "convert"],
+};
+
 /// GraphicsMagick
 pub const GM: Magick = Magick {
     identify: &["gm", "identify"],
     convert: &["gm", "convert"],
 };
 
-/// Default Magick implementation
+#[cfg(feature = "imagemagick6")]
 pub static mut DEFAULT: Magick = IM;
+
+/// Default Magick implementation
+#[cfg(feature = "imagemagick7")]
+pub static mut DEFAULT: Magick = IM7;
 
 /// Change default command
 pub fn set_default(magick: Magick) {
