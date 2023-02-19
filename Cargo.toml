@@ -42,7 +42,6 @@ glfw-sys = ["glfw/glfw-sys"]
 magick = []
 opengl = ["glow"]
 mmap = ["memmap2"]
-imagemagick6 = ["magick"]
 imagemagick7 = ["magick"]
 
 [package.metadata.docs.rs]

@@ -73,10 +73,11 @@ pub const GM: Magick = Magick {
     convert: &["gm", "convert"],
 };
 
-#[cfg(feature = "imagemagick6")]
+/// Default Magick implementation, imagemagick version <= 6
+#[cfg(not(feature = "imagemagick7"))]
 pub static mut DEFAULT: Magick = IM;
 
-/// Default Magick implementation
+/// Default Magick implementation, imagemagick version 7
 #[cfg(feature = "imagemagick7")]
 pub static mut DEFAULT: Magick = IM7;
 
