@@ -32,7 +32,6 @@ smol = "1"
 
 [features]
 default = ["oiio", "parallel", "text", "mmap"]
-window = ["opengl", "glfw"]
 oiio = ["cpp", "cpp_build"]
 oiio-custom = ["cpp", "cpp_build"]
 parallel = ["rayon"]
@@ -46,8 +45,5 @@ imagemagick7 = ["magick"]
 
 [package.metadata.docs.rs]
 no-default-features = true
-features = ["window", "parallel", "serialize", "mmap", "text"]
+features = ["parallel", "serialize", "mmap", "text"]
 
-[[example]]
-name = "window"
-required-features = ["window"]
